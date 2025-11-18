@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Predictor de Nabos - Animal Crossing</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>🥕 Predictor de Nabos</h1>
+      <p class="subtitle">Animal Crossing: New Horizons</p>
+    </header>
+
+    <div class="main-content">
+      <!-- Sección de precio de compra -->
+      <section class="buy-price-section">
+        <h2>Precio de compra (Domingo)</h2>
+        <div class="input-group">
+          <input type="number" id="buyPrice" placeholder="Ej: 92" min="90" max="110">
+          <span class="bayas">bayas</span>
+        </div>
+      </section>
+
+      <!-- Sección de precios de la semana -->
+      <section class="week-prices-section">
+        <h2>Precios de la semana</h2>
+        <div class="prices-grid">
+          <div class="day-group">
+            <h3>🌙 Lunes</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="mon_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="mon_pm" placeholder="-" min="0">
+            </div>
+          </div>
+
+          <div class="day-group">
+            <h3>🌙 Martes</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="tue_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="tue_pm" placeholder="-" min="0">
+            </div>
+          </div>
+
+          <div class="day-group">
+            <h3>🌙 Miércoles</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="wed_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="wed_pm" placeholder="-" min="0">
+            </div>
+          </div>
+
+          <div class="day-group">
+            <h3>🌙 Jueves</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="thu_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="thu_pm" placeholder="-" min="0">
+            </div>
+          </div>
+
+          <div class="day-group">
+            <h3>🌙 Viernes</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="fri_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="fri_pm" placeholder="-" min="0">
+            </div>
+          </div>
+
+          <div class="day-group">
+            <h3>🌙 Sábado</h3>
+            <div class="price-input">
+              <label>AM</label>
+              <input type="number" id="sat_am" placeholder="-" min="0">
+            </div>
+            <div class="price-input">
+              <label>PM</label>
+              <input type="number" id="sat_pm" placeholder="-" min="0">
+            </div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="calculateBtn" class="btn-primary">Calcular Pronóstico</button>
+          <button id="clearBtn" class="btn-secondary">Limpiar</button>
+        </div>
+      </section>
+
+      <!-- Sección de resultados -->
+      <section class="results-section" id="resultsSection" style="display: none;">
+        <h2>📊 Pronóstico</h2>
+
+        <div class="pattern-badge" id="patternBadge"></div>
+
+        <div class="predictions-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Día/Turno</th>
+                <th>Precio Actual</th>
+                <th>Rango Estimado</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="predictionsBody">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="recommendations" id="recommendations">
+        </div>
+
+        <div class="best-time" id="bestTime">
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <p>💡 Consejo: Actualiza los precios a medida que los descubres para obtener predicciones más precisas</p>
+      <p class="credits">Hecho con 💚 para jugadores de Animal Crossing</p>
+    </footer>
+  </div>
+
+  <script src="predictor.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
