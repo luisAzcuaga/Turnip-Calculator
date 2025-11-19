@@ -144,6 +144,10 @@ Patrón: Pico Grande (85%)  [88% confianza - 🟢]
   - Fase 2: Precios bajos (40-90%)
   - Fase 3: ¡PICO! (140-600%) - Usualmente miércoles PM o jueves AM
   - Fase 4: Bajada post-pico (40-90%)
+- **Ajuste dinámico:**
+  - **Fase baja:** Ajusta el "piso" basándose en precios bajos observados
+  - **Fase de subida:** Si detecta subida rápida (>20%), proyecta crecimiento del 50% por período
+  - **Post-pico:** Si ya pasó el pico, proyecta caída del 15% por período desde el máximo
 - **Cuándo vender:** En el pico máximo (período 5-7, especialmente 6)
 - **Detección:** Precio >200% del base o potencial para ello
 
@@ -155,6 +159,10 @@ Patrón: Pico Grande (85%)  [88% confianza - 🟢]
   - Fase 2: Precios bajos (60-80%, períodos 3-4)
   - Fase 3: Pico moderado (140-200%, períodos 6-8 - jueves/viernes)
   - Fase 4: Decreciente final (40-90%)
+- **Ajuste dinámico:**
+  - **Fase baja:** Ajusta el nivel del piso según precios observados
+  - **Fase de subida:** Proyecta crecimiento del 25% por período si detecta subida
+  - **Post-pico:** Proyecta caída del 12% por período después del pico
 - **Cuándo vender:** Durante el pico del jueves o viernes
 - **Detección:** Precio entre 140-200% del base (no más alto)
 
@@ -164,6 +172,11 @@ Patrón: Pico Grande (85%)  [88% confianza - 🟢]
   - Precios variables entre 60-140% del base
   - Sin patrón claro de subidas o bajadas
   - Puede tener pequeños picos pero no extremos
+- **Ajuste dinámico basado en volatilidad:**
+  - **Baja volatilidad (<10%):** Rangos estrechos 70-120% - precios más predecibles
+  - **Media volatilidad (10-20%):** Rangos normales 60-140% - comportamiento estándar
+  - **Alta volatilidad (>20%):** Rangos amplios 50-150% - muy impredecible
+  - **Proyección corto plazo:** Usa promedio entre último precio y media general
 - **Cuándo vender:** Cuando supere tu precio de compra
 - **Detección:** Sin picos muy altos ni precios muy bajos, variación moderada
 
@@ -190,6 +203,41 @@ El predictor elimina patrones que no pueden ser basándose en tus datos:
 - **Pico Grande:** Descartado si es tarde en la semana sin picos altos
 - **Pico Pequeño:** Descartado si hay precios >200% del base
 - **Fluctuante:** Descartado si hay extremos muy altos (>150%) o muy bajos (<50%)
+
+### 🧠 Sistema de ajuste dinámico inteligente
+
+El predictor no usa solo valores estáticos - **aprende de tus datos** y ajusta las predicciones en tiempo real:
+
+#### Métodos auxiliares:
+- **`detectPricePhase()`** - Detecta la tendencia actual:
+  - **Rising:** Subida rápida (>20% por período)
+  - **Increasing:** Subida moderada
+  - **Stable:** Sin cambios significativos
+  - **Decreasing:** Bajada moderada
+  - **Falling:** Bajada rápida (>10% por período)
+
+- **`findPeakInKnownPrices()`** - Identifica el precio máximo y cuándo ocurrió
+- **`calculateVolatility()`** - Calcula qué tan variables son los precios (desviación estándar %)
+
+#### Cómo funciona por patrón:
+
+**Pico Grande/Pequeño:**
+1. Detecta en qué fase estás (baja, subida, pico, post-pico)
+2. Ajusta el "piso" usando el promedio de precios bajos observados
+3. Si detecta subida, proyecta crecimiento exponencial
+4. Si ya pasó el pico, proyecta caída controlada desde el máximo
+
+**Fluctuante:**
+1. Calcula volatilidad de todos los precios conocidos
+2. Ajusta rangos según qué tan variables han sido:
+   - Poco variable → rangos estrechos (más precisión)
+   - Muy variable → rangos amplios (más incertidumbre)
+3. Proyección de corto plazo usa último precio como referencia
+
+**Decreciente:**
+1. Calcula tasa de decrecimiento real entre precios consecutivos
+2. Proyecta usando esa tasa en lugar de una tasa fija
+3. Se adapta si la caída es más/menos pronunciada de lo normal
 
 ### 📊 Visualización de estimaciones
 

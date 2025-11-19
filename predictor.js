@@ -341,15 +341,59 @@ class TurnipPredictor {
         return this.decreasingPattern(periodIndex, base, knownPricesArray);
 
       case this.patterns.LARGE_SPIKE:
-        return this.largeSpikePattern(periodIndex, base);
+        return this.largeSpikePattern(periodIndex, base, knownPricesArray);
 
       case this.patterns.SMALL_SPIKE:
-        return this.smallSpikePattern(periodIndex, base);
+        return this.smallSpikePattern(periodIndex, base, knownPricesArray);
 
       case this.patterns.FLUCTUATING:
       default:
-        return this.fluctuatingPattern(periodIndex, base);
+        return this.fluctuatingPattern(periodIndex, base, knownPricesArray);
     }
+  }
+
+  // Métodos auxiliares para ajuste dinámico
+  detectPricePhase(knownPrices) {
+    if (knownPrices.length < 2) return 'unknown';
+
+    const prices = knownPrices.map(p => p.price);
+    const last = prices[prices.length - 1];
+    const secondLast = prices[prices.length - 2];
+
+    // Detectar tendencia reciente
+    if (last > secondLast * 1.2) return 'rising';  // Subiendo rápido
+    if (last > secondLast) return 'increasing';    // Subiendo
+    if (last < secondLast * 0.9) return 'falling'; // Bajando rápido
+    if (last < secondLast) return 'decreasing';    // Bajando
+    return 'stable';                               // Estable
+  }
+
+  findPeakInKnownPrices(knownPrices) {
+    if (knownPrices.length === 0) return null;
+
+    let maxPrice = 0;
+    let maxIndex = -1;
+
+    knownPrices.forEach(p => {
+      if (p.price > maxPrice) {
+        maxPrice = p.price;
+        maxIndex = p.index;
+      }
+    });
+
+    return { price: maxPrice, index: maxIndex };
+  }
+
+  calculateVolatility(knownPrices) {
+    if (knownPrices.length < 2) return 0;
+
+    const prices = knownPrices.map(p => p.price);
+    const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
+    const squaredDiffs = prices.map(p => Math.pow(p - avg, 2));
+    const variance = squaredDiffs.reduce((sum, d) => sum + d, 0) / prices.length;
+    const stdDev = Math.sqrt(variance);
+
+    return (stdDev / avg) * 100; // Volatilidad como porcentaje
   }
 
   // Patrón DECRECIENTE: bajada constante del 90% al 40%
@@ -399,7 +443,52 @@ class TurnipPredictor {
   }
 
   // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
-  largeSpikePattern(periodIndex, base) {
+  largeSpikePattern(periodIndex, base, knownPrices = []) {
+    const phase = this.detectPricePhase(knownPrices);
+    const peak = this.findPeakInKnownPrices(knownPrices);
+
+    // Si ya encontramos el pico y estamos después de él
+    if (peak && peak.index < periodIndex && phase === 'decreasing') {
+      // Post-pico: ajustar basándose en la caída desde el pico
+      const periodsAfterPeak = periodIndex - peak.index;
+      const decayRate = 0.15; // 15% de caída por período post-pico
+      const projected = peak.price * Math.pow(1 - decayRate, periodsAfterPeak);
+
+      return {
+        min: Math.round(projected * 0.85),
+        max: Math.round(projected * 1.15)
+      };
+    }
+
+    // Si estamos en fase de subida rápida (probable pico)
+    if (phase === 'rising' && knownPrices.length > 0) {
+      const lastKnown = knownPrices[knownPrices.length - 1];
+      const periodsAhead = periodIndex - lastKnown.index;
+
+      if (periodsAhead > 0 && periodsAhead <= 2) {
+        // Estamos cerca del pico, proyectar con tasa de crecimiento alta
+        const growthRate = 0.5; // 50% de crecimiento por período
+        const projected = lastKnown.price * Math.pow(1 + growthRate, periodsAhead);
+
+        return {
+          min: Math.round(projected * 0.80),
+          max: Math.round(projected * 1.20)
+        };
+      }
+    }
+
+    // Ajustar fase baja si tenemos datos
+    if (periodIndex <= 4 && knownPrices.length > 0) {
+      const avgLowPhase = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
+      const floorLevel = avgLowPhase / base; // Nivel del "piso" observado
+
+      return {
+        min: Math.round(base * Math.max(0.40, floorLevel * 0.90)),
+        max: Math.round(base * Math.max(0.90, floorLevel * 1.10))
+      };
+    }
+
+    // Fallback: usar predicción estándar
     // Fase 1 (períodos 0-1): Decreciente 85-50%
     if (periodIndex <= 1) {
       return {
@@ -440,7 +529,52 @@ class TurnipPredictor {
   }
 
   // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
-  smallSpikePattern(periodIndex, base) {
+  smallSpikePattern(periodIndex, base, knownPrices = []) {
+    const phase = this.detectPricePhase(knownPrices);
+    const peak = this.findPeakInKnownPrices(knownPrices);
+
+    // Si ya encontramos el pico y estamos después de él
+    if (peak && peak.index < periodIndex && phase === 'decreasing') {
+      // Post-pico: ajustar basándose en la caída desde el pico
+      const periodsAfterPeak = periodIndex - peak.index;
+      const decayRate = 0.12; // 12% de caída por período post-pico
+      const projected = peak.price * Math.pow(1 - decayRate, periodsAfterPeak);
+
+      return {
+        min: Math.round(projected * 0.85),
+        max: Math.round(projected * 1.15)
+      };
+    }
+
+    // Si estamos en fase de subida (probable pico)
+    if ((phase === 'rising' || phase === 'increasing') && knownPrices.length > 0) {
+      const lastKnown = knownPrices[knownPrices.length - 1];
+      const periodsAhead = periodIndex - lastKnown.index;
+
+      if (periodsAhead > 0 && periodsAhead <= 2) {
+        // Estamos cerca del pico, proyectar con tasa de crecimiento moderada
+        const growthRate = 0.25; // 25% de crecimiento por período
+        const projected = lastKnown.price * Math.pow(1 + growthRate, periodsAhead);
+
+        return {
+          min: Math.round(projected * 0.85),
+          max: Math.round(projected * 1.15)
+        };
+      }
+    }
+
+    // Ajustar fase baja si tenemos datos
+    if (periodIndex <= 4 && knownPrices.length > 0) {
+      const avgLowPhase = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
+      const floorLevel = avgLowPhase / base;
+
+      return {
+        min: Math.round(base * Math.max(0.40, floorLevel * 0.90)),
+        max: Math.round(base * Math.max(0.90, floorLevel * 1.10))
+      };
+    }
+
+    // Fallback: usar predicción estándar
     // Fase 1 (períodos 0-2): Decreciente
     if (periodIndex <= 2) {
       return {
@@ -481,12 +615,48 @@ class TurnipPredictor {
   }
 
   // Patrón FLUCTUANTE: variable, 60-140%
-  fluctuatingPattern(periodIndex, base) {
-    // Los precios fluctúan pero generalmente entre estos rangos
-    // Pueden subir y bajar sin patrón claro
+  fluctuatingPattern(periodIndex, base, knownPrices = []) {
+    // Calcular volatilidad para ajustar rangos
+    const volatility = this.calculateVolatility(knownPrices);
+
+    // Ajustar rangos según volatilidad observada
+    let minMultiplier = 0.60;
+    let maxMultiplier = 1.40;
+
+    if (volatility > 0) {
+      if (volatility < 10) {
+        // Baja volatilidad: rangos más estrechos
+        minMultiplier = 0.70;
+        maxMultiplier = 1.20;
+      } else if (volatility > 20) {
+        // Alta volatilidad: rangos más amplios
+        minMultiplier = 0.50;
+        maxMultiplier = 1.50;
+      }
+      // Volatilidad media (10-20%): usar rangos por defecto (0.60-1.40)
+    }
+
+    // Si tenemos datos recientes, proyectar basándose en la última tendencia
+    if (knownPrices.length > 0) {
+      const lastKnown = knownPrices[knownPrices.length - 1];
+      const periodsAhead = periodIndex - lastKnown.index;
+
+      if (periodsAhead > 0 && periodsAhead <= 2) {
+        // Proyección de corto plazo: usar último precio como referencia
+        const avgPrice = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
+        const refPrice = (lastKnown.price + avgPrice) / 2; // Promedio entre último y media
+
+        return {
+          min: Math.round(refPrice * 0.85),
+          max: Math.round(refPrice * 1.15)
+        };
+      }
+    }
+
+    // Fallback: usar rangos ajustados por volatilidad
     return {
-      min: Math.round(base * 0.60),
-      max: Math.round(base * 1.40)
+      min: Math.round(base * minMultiplier),
+      max: Math.round(base * maxMultiplier)
     };
   }
 
