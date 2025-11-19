@@ -459,14 +459,12 @@ class TurnipPredictor {
 
     switch (pattern) {
       case this.patterns.DECREASING:
-        rec.push('⚠️ Patrón DECRECIENTE detectado');
         rec.push('📉 Los precios solo bajarán toda la semana');
         rec.push('💡 Vende HOY o visita otra isla');
         rec.push('🏃‍♂️ No esperes, solo empeorarán');
         break;
 
       case this.patterns.LARGE_SPIKE:
-        rec.push('🚀 ¡Patrón de PICO GRANDE detectado!');
         rec.push('💰 Espera un pico altísimo (puede llegar a 400-600 bayas)');
         rec.push('📅 El pico suele ser miércoles-jueves');
         rec.push('⏰ ¡Revisa los precios cada turno!');
@@ -474,7 +472,6 @@ class TurnipPredictor {
         break;
 
       case this.patterns.SMALL_SPIKE:
-        rec.push('📈 Patrón de PICO PEQUEÑO detectado');
         rec.push('💵 Espera un pico moderado (140-200 bayas)');
         rec.push('📅 El pico suele ser jueves-viernes');
         rec.push('👍 Buena oportunidad para ganancias');
@@ -482,7 +479,6 @@ class TurnipPredictor {
 
       case this.patterns.FLUCTUATING:
       default:
-        rec.push('📊 Patrón FLUCTUANTE detectado');
         rec.push('🎲 Precios variables durante la semana');
         rec.push('✅ Vende cuando supere tu precio de compra');
         rec.push('⚖️ Patrón impredecible, mantente atento');
