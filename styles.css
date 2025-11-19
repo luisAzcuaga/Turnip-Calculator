@@ -42,7 +42,7 @@ header h1 {
 
 /* Main content */
 .main-content {
-  padding: 30px;
+  padding: 20px;
 }
 
 /* Sección de precio de compra */
@@ -133,13 +133,13 @@ header h1 {
 .prices-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 10px;
   margin-bottom: 25px;
 }
 
 .day-group {
   background: #f1f8e9;
-  padding: 20px;
+  padding: 5px 10px;
   border-radius: 12px;
   border: 2px solid #aed581;
 }
@@ -170,8 +170,8 @@ header h1 {
 
 .price-input input {
   flex: 1;
-  min-width: 0;
-  padding: 10px;
+  width: 100%;
+  padding: 5px 0;
   border: 2px solid #aed581;
   border-radius: 8px;
   text-align: center;
@@ -715,7 +715,7 @@ footer p {
 }
 
 /* Móviles: 1 columna */
-@media (max-width: 768px) {
+@media (max-width: 425px) {
   header h1 {
     font-size: 2rem;
   }
