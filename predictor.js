@@ -173,10 +173,21 @@ class TurnipPredictor {
 
     // Si hay múltiples patrones, elegir el más probable basado en los datos
     if (knownPrices.length === 0) {
+      // Todos los patrones tienen igual probabilidad sin datos
+      const equalPercentage = Math.round(100 / possiblePatterns.length);
+      const percentages = {};
+      possiblePatterns.forEach(pattern => {
+        percentages[pattern] = equalPercentage;
+      });
+
       return {
         primary: this.patterns.FLUCTUATING,
         confidence: 25,
-        alternatives: possiblePatterns.filter(p => p !== this.patterns.FLUCTUATING).slice(0, 2)
+        alternatives: possiblePatterns.filter(p => p !== this.patterns.FLUCTUATING).slice(0, 2).map(p => ({
+          pattern: p,
+          percentage: equalPercentage
+        })),
+        percentages: percentages
       };
     }
 
