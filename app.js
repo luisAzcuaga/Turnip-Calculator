@@ -126,12 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.isConfirmed) {
         statusCell.innerHTML = '<span class="status-badge status-confirmed">Confirmado</span>';
       } else {
-        // Marcar el mejor momento para vender
-        if (data.max >= Math.max(...Object.values(predictions).map(p => p.max))) {
-          statusCell.innerHTML = '<span class="status-badge status-best">⭐ Mejor momento</span>';
-        } else {
-          statusCell.innerHTML = '<span class="status-badge status-estimated">Estimado</span>';
-        }
+        statusCell.innerHTML = '<span class="status-badge status-estimated">Estimado</span>';
       }
       row.appendChild(statusCell);
 
