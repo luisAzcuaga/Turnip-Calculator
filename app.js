@@ -66,9 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mostrar resultados
     displayResults(results);
-
-    // Scroll suave a los resultados
-    resultsSection.scrollIntoView({ behavior: 'smooth' });
   }
 
   function clearEstimatedValues() {
