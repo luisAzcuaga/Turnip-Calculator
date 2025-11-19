@@ -89,6 +89,47 @@ header h1 {
   font-size: 1.5rem;
 }
 
+/* Leyenda */
+.legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-box {
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  border: 2px solid;
+}
+
+.legend-box.estimated {
+  background: #fff3e0;
+  border-color: #ffb74d;
+}
+
+.legend-box.confirmed {
+  background: #e8f5e9;
+  border-color: #81c784;
+}
+
+.legend-text {
+  font-size: 0.9rem;
+  color: #424242;
+  font-weight: 500;
+}
+
 .prices-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -140,6 +181,28 @@ header h1 {
   outline: none;
   border-color: #66bb6a;
   box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.1);
+}
+
+/* Estilos para valores estimados y confirmados */
+.price-input input.estimated-value {
+  background: #fff3e0;
+  color: #e65100;
+  font-weight: bold;
+  border-color: #ffb74d;
+  font-style: italic;
+}
+
+.price-input input.estimated-value:hover {
+  background: #ffe0b2;
+  cursor: pointer;
+  border-color: #ff9800;
+}
+
+.price-input input.confirmed-value {
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-weight: bold;
+  border-color: #81c784;
 }
 
 /* Botones */

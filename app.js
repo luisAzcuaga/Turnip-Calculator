@@ -47,11 +47,15 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Recopilar precios conocidos
+    // Limpiar valores estimados previos antes de recalcular
+    clearEstimatedValues();
+
+    // Recopilar precios conocidos (solo los confirmados)
     const knownPrices = {};
     priceInputs.forEach(id => {
       const input = document.getElementById(id);
-      if (input && input.value) {
+      // Solo tomar valores que NO son estimados
+      if (input && input.value && input.dataset.isEstimated !== 'true') {
         knownPrices[id] = parseInt(input.value);
       }
     });
@@ -67,6 +71,21 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.scrollIntoView({ behavior: 'smooth' });
   }
 
+  function clearEstimatedValues() {
+    priceInputs.forEach(id => {
+      const input = document.getElementById(id);
+      if (input && input.dataset.isEstimated === 'true') {
+        // Limpiar el valor y los estilos
+        input.value = '';
+        input.classList.remove('estimated-value');
+        delete input.dataset.isEstimated;
+        delete input.dataset.min;
+        delete input.dataset.max;
+        input.title = '';
+      }
+    });
+  }
+
   function displayResults(results) {
     // Mostrar sección de resultados
     resultsSection.style.display = 'block';
@@ -75,8 +94,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Mostrar patrón
     displayPattern(results.pattern, results.patternName);
 
-    // Mostrar tabla de predicciones
-    displayPredictionsTable(results.predictions);
+    // Llenar inputs con predicciones
+    fillInputsWithPredictions(results.predictions);
 
     // Mostrar recomendaciones
     displayRecommendations(results.recommendation);
@@ -91,46 +110,60 @@ document.addEventListener('DOMContentLoaded', function () {
     patternBadge.textContent = `Patrón: ${patternName}`;
   }
 
-  function displayPredictionsTable(predictions) {
-    const tbody = document.getElementById('predictionsBody');
-    tbody.innerHTML = '';
-
+  function fillInputsWithPredictions(predictions) {
     Object.entries(predictions).forEach(([key, data]) => {
-      const row = document.createElement('tr');
+      const input = document.getElementById(key);
+      if (!input) return;
 
-      // Día/Turno
-      const dayCell = document.createElement('td');
-      dayCell.textContent = data.name;
-      row.appendChild(dayCell);
-
-      // Precio Actual
-      const currentPriceCell = document.createElement('td');
+      // Si el campo ya tiene un valor confirmado, no hacer nada
       if (data.isConfirmed) {
-        currentPriceCell.innerHTML = `<span class="price-confirmed">${data.confirmed} bayas ✓</span>`;
-      } else {
-        currentPriceCell.textContent = '-';
+        input.classList.remove('estimated-value');
+        input.classList.add('confirmed-value');
+        return;
       }
-      row.appendChild(currentPriceCell);
 
-      // Rango Estimado
-      const estimateCell = document.createElement('td');
-      if (data.isConfirmed) {
-        estimateCell.textContent = '-';
-      } else {
-        estimateCell.innerHTML = `<span class="price-estimate">${data.min}-${data.max} bayas</span>`;
+      // Si no tiene valor, llenar con el promedio del rango estimado
+      if (!input.value) {
+        const avgEstimate = Math.round((data.min + data.max) / 2);
+        input.value = avgEstimate;
+        input.classList.add('estimated-value');
+        input.classList.remove('confirmed-value');
+
+        // Guardar los rangos como atributos de datos
+        input.dataset.min = data.min;
+        input.dataset.max = data.max;
+        input.dataset.isEstimated = 'true';
+
+        // Agregar tooltip con el rango
+        input.title = `Estimado: ${data.min}-${data.max} bayas (click para editar)`;
       }
-      row.appendChild(estimateCell);
+    });
 
-      // Estado
-      const statusCell = document.createElement('td');
-      if (data.isConfirmed) {
-        statusCell.innerHTML = '<span class="status-badge status-confirmed">Confirmado</span>';
-      } else {
-        statusCell.innerHTML = '<span class="status-badge status-estimated">Estimado</span>';
+    // Agregar event listeners para convertir estimados en confirmados al editar
+    priceInputs.forEach(id => {
+      const input = document.getElementById(id);
+      if (input && !input.dataset.hasEstimateListener) {
+        input.addEventListener('focus', function() {
+          if (this.dataset.isEstimated === 'true') {
+            // Al hacer click en un valor estimado, limpiarlo para que el usuario pueda ingresar el real
+            this.select();
+          }
+        });
+
+        input.addEventListener('input', function() {
+          if (this.dataset.isEstimated === 'true') {
+            // Al modificar un valor estimado, marcarlo como confirmado
+            this.classList.remove('estimated-value');
+            this.classList.add('confirmed-value');
+            delete this.dataset.isEstimated;
+            delete this.dataset.min;
+            delete this.dataset.max;
+            this.title = '';
+          }
+        });
+
+        input.dataset.hasEstimateListener = 'true';
       }
-      row.appendChild(statusCell);
-
-      tbody.appendChild(row);
     });
   }
 
@@ -169,7 +202,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     priceInputs.forEach(id => {
       const input = document.getElementById(id);
-      if (input && input.value) {
+      // Solo guardar valores confirmados, NO los estimados
+      if (input && input.value && input.dataset.isEstimated !== 'true') {
         data[id] = input.value;
       }
     });

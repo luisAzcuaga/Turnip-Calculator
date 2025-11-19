@@ -28,6 +28,18 @@
       <!-- Sección de precios de la semana -->
       <section class="week-prices-section">
         <h2>Precios de la semana</h2>
+
+        <div class="legend">
+          <div class="legend-item">
+            <span class="legend-box estimated"></span>
+            <span class="legend-text">Valor estimado (click para editar)</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-box confirmed"></span>
+            <span class="legend-text">Valor confirmado</span>
+          </div>
+        </div>
+
         <div class="prices-grid">
           <div class="day-group">
             <h3>🌙 Lunes</h3>
@@ -113,21 +125,6 @@
         <h2>📊 Pronóstico</h2>
 
         <div class="pattern-badge" id="patternBadge"></div>
-
-        <div class="predictions-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Día/Turno</th>
-                <th>Precio Actual</th>
-                <th>Rango Estimado</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="predictionsBody">
-            </tbody>
-          </table>
-        </div>
 
         <div class="recommendations" id="recommendations">
         </div>
