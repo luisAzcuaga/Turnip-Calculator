@@ -166,19 +166,18 @@ class TurnipPredictor {
     return true;
   }
 
-  // Detectar el patrón más probable
+  // Detectar el patrón más probable con información de confianza
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
     const knownPrices = this.getPriceArrayWithIndices();
 
-    // Si solo hay un patrón posible, devolverlo
-    if (possiblePatterns.length === 1) {
-      return possiblePatterns[0];
-    }
-
     // Si hay múltiples patrones, elegir el más probable basado en los datos
     if (knownPrices.length === 0) {
-      return this.patterns.FLUCTUATING; // Default sin datos
+      return {
+        primary: this.patterns.FLUCTUATING,
+        confidence: 25,
+        alternatives: possiblePatterns.filter(p => p !== this.patterns.FLUCTUATING).slice(0, 2)
+      };
     }
 
     // Calcular score para cada patrón posible
@@ -187,18 +186,29 @@ class TurnipPredictor {
       scores[pattern] = this.calculatePatternScore(pattern, knownPrices);
     });
 
-    // Devolver el patrón con mayor score
-    let bestPattern = possiblePatterns[0];
-    let bestScore = scores[bestPattern];
+    // Ordenar patrones por score
+    const sortedPatterns = possiblePatterns.sort((a, b) => scores[b] - scores[a]);
+    const bestPattern = sortedPatterns[0];
+    const bestScore = scores[bestPattern];
 
-    possiblePatterns.forEach(pattern => {
-      if (scores[pattern] > bestScore) {
-        bestScore = scores[pattern];
-        bestPattern = pattern;
-      }
-    });
+    // Calcular confianza basada en la cantidad de datos y la diferencia de scores
+    const dataConfidence = Math.min(knownPrices.length * 8, 40); // Max 40% por cantidad de datos
 
-    return bestPattern;
+    let scoreConfidence = 30; // Base
+    if (sortedPatterns.length > 1) {
+      const secondScore = scores[sortedPatterns[1]];
+      const scoreDiff = bestScore - secondScore;
+      scoreConfidence = Math.min(scoreDiff, 60); // Max 60% por diferencia de score
+    }
+
+    const totalConfidence = Math.min(dataConfidence + scoreConfidence, 100);
+
+    return {
+      primary: bestPattern,
+      confidence: Math.round(totalConfidence),
+      alternatives: sortedPatterns.slice(1, 3), // Máximo 2 alternativas
+      scores: scores
+    };
   }
 
   // Calcular qué tan bien encajan los datos con un patrón
@@ -254,7 +264,8 @@ class TurnipPredictor {
   }
 
   predict() {
-    const pattern = this.detectPattern();
+    const patternResult = this.detectPattern();
+    const pattern = patternResult.primary;
     const predictions = {};
 
     const days = [
@@ -297,6 +308,11 @@ class TurnipPredictor {
     return {
       pattern: pattern,
       patternName: this.patternNames[pattern],
+      confidence: patternResult.confidence,
+      alternatives: patternResult.alternatives.map(p => ({
+        pattern: p,
+        name: this.patternNames[p]
+      })),
       predictions: predictions,
       recommendation: this.getRecommendation(pattern, predictions),
       bestTime: this.getBestTime(predictions)

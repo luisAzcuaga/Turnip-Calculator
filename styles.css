@@ -267,12 +267,63 @@ button {
 
 /* Badge del patrón */
 .pattern-badge {
-  display: inline-block;
-  padding: 15px 30px;
-  border-radius: 25px;
+  display: block;
+  padding: 20px 30px;
+  border-radius: 15px;
   font-weight: bold;
   font-size: 1.2rem;
   margin-bottom: 25px;
+}
+
+.pattern-main {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pattern-name {
+  font-size: 1.3rem;
+}
+
+.confidence-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border: 2px solid;
+}
+
+.confidence-high {
+  background: #c8e6c9;
+  color: #2e7d32;
+  border-color: #66bb6a;
+}
+
+.confidence-medium {
+  background: #fff9c4;
+  color: #f57f17;
+  border-color: #ffeb3b;
+}
+
+.confidence-low {
+  background: #ffcdd2;
+  color: #c62828;
+  border-color: #ef5350;
+}
+
+.pattern-alternatives {
+  margin-top: 12px;
+  text-align: center;
+  color: #616161;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.pattern-alternatives strong {
+  color: #424242;
 }
 
 .pattern-decreasing {

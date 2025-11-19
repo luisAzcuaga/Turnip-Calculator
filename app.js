@@ -88,8 +88,8 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.style.display = 'block';
     resultsSection.classList.add('fade-in');
 
-    // Mostrar patrón
-    displayPattern(results.pattern, results.patternName);
+    // Mostrar patrón con confianza y alternativas
+    displayPattern(results.pattern, results.patternName, results.confidence, results.alternatives);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -101,10 +101,31 @@ document.addEventListener('DOMContentLoaded', function () {
     displayBestTime(results.bestTime);
   }
 
-  function displayPattern(pattern, patternName) {
+  function displayPattern(pattern, patternName, confidence, alternatives) {
     const patternBadge = document.getElementById('patternBadge');
     patternBadge.className = 'pattern-badge pattern-' + pattern;
-    patternBadge.textContent = `Patrón: ${patternName}`;
+
+    // Determinar nivel de confianza
+    let confidenceClass = 'confidence-low';
+    if (confidence >= 70) confidenceClass = 'confidence-high';
+    else if (confidence >= 50) confidenceClass = 'confidence-medium';
+
+    let html = `
+      <div class="pattern-main">
+        <span class="pattern-name">Patrón: ${patternName}</span>
+        <span class="confidence-badge ${confidenceClass}">${confidence}% certeza</span>
+      </div>
+    `;
+
+    // Mostrar alternativas si la confianza es baja o media
+    if (confidence < 70 && alternatives && alternatives.length > 0) {
+      html += `<div class="pattern-alternatives">`;
+      html += `<small>También podría ser: `;
+      html += alternatives.map(alt => `<strong>${alt.name}</strong>`).join(' o ');
+      html += `</small></div>`;
+    }
+
+    patternBadge.innerHTML = html;
   }
 
   function fillInputsWithPredictions(predictions) {
