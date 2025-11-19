@@ -105,15 +105,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const patternBadge = document.getElementById('patternBadge');
     patternBadge.className = 'pattern-badge pattern-' + pattern;
 
-    // Determinar nivel de confianza
-    let confidenceClass = 'confidence-low';
-    if (confidence >= 70) confidenceClass = 'confidence-high';
-    else if (confidence >= 50) confidenceClass = 'confidence-medium';
-
+    // Mostrar solo el patrón y porcentaje en el badge
     let html = `
       <div class="pattern-main">
         <span class="pattern-name">Patrón: ${patternName} (${primaryPercentage}%)</span>
-        <span class="confidence-badge ${confidenceClass}">${confidence}% confianza del cálculo</span>
       </div>
     `;
 
@@ -126,6 +121,77 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     patternBadge.innerHTML = html;
+
+    // Panel de confianza (lateral derecho)
+    displayConfidencePanel(confidence, primaryPercentage, patternName, alternatives);
+  }
+
+  function displayConfidencePanel(confidence, primaryPercentage, patternName, alternatives) {
+    const confidencePanel = document.getElementById('confidencePanel');
+
+    // Determinar nivel de confianza
+    let confidenceClass = 'confidence-low';
+    let confidenceLabel = 'Baja';
+    let confidenceIcon = '🔴';
+    let confidenceMessage = 'Ingresa más precios para mejorar la precisión';
+
+    if (confidence >= 70) {
+      confidenceClass = 'confidence-high';
+      confidenceLabel = 'Alta';
+      confidenceIcon = '🟢';
+      confidenceMessage = 'Predicción muy confiable';
+    } else if (confidence >= 50) {
+      confidenceClass = 'confidence-medium';
+      confidenceLabel = 'Media';
+      confidenceIcon = '🟡';
+      confidenceMessage = 'Predicción moderadamente confiable';
+    }
+
+    let html = `
+      <div class="confidence-header">
+        <h3>Confianza del Cálculo</h3>
+      </div>
+      <div class="confidence-meter ${confidenceClass}">
+        <div class="confidence-percentage">${confidenceIcon} ${confidence}%</div>
+        <div class="confidence-bar">
+          <div class="confidence-bar-fill" style="width: ${confidence}%"></div>
+        </div>
+        <div class="confidence-level">${confidenceLabel}</div>
+        <div class="confidence-message">${confidenceMessage}</div>
+      </div>
+    `;
+
+    // Mostrar distribución de probabilidades
+    html += `<div class="probability-distribution">
+      <h4>Distribución de Probabilidades</h4>
+      <div class="probability-list">`;
+
+    // Agregar todas las probabilidades
+    const allPatterns = [{ name: patternName, percentage: primaryPercentage }];
+    if (alternatives && alternatives.length > 0) {
+      alternatives.forEach(alt => {
+        allPatterns.push({ name: alt.name, percentage: alt.percentage });
+      });
+    }
+
+    // Ordenar por porcentaje descendente
+    allPatterns.sort((a, b) => b.percentage - a.percentage);
+
+    allPatterns.forEach(p => {
+      html += `
+        <div class="probability-item">
+          <span class="probability-name">${p.name}</span>
+          <div class="probability-bar-container">
+            <div class="probability-bar-fill" style="width: ${p.percentage}%"></div>
+            <span class="probability-value">${p.percentage}%</span>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div></div>`;
+
+    confidencePanel.innerHTML = html;
   }
 
   function fillInputsWithPredictions(predictions) {

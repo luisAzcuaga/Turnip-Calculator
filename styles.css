@@ -259,6 +259,17 @@ button {
   border: 3px solid #66bb6a;
 }
 
+.results-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 25px;
+  margin-top: 20px;
+}
+
+.results-main {
+  min-width: 0;
+}
+
 .results-section h2 {
   color: #2e7d32;
   margin-bottom: 20px;
@@ -341,6 +352,166 @@ button {
 }
 
 .pattern-explanation strong {
+  color: #424242;
+}
+
+/* Panel de confianza */
+.confidence-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 20px;
+}
+
+.confidence-header h3 {
+  color: #2e7d32;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.confidence-meter {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 2px solid;
+}
+
+.confidence-meter.confidence-high {
+  border-color: #66bb6a;
+  background: #f1f8e9;
+}
+
+.confidence-meter.confidence-medium {
+  border-color: #ffeb3b;
+  background: #fffde7;
+}
+
+.confidence-meter.confidence-low {
+  border-color: #ef5350;
+  background: #ffebee;
+}
+
+.confidence-percentage {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.confidence-meter.confidence-high .confidence-percentage {
+  color: #2e7d32;
+}
+
+.confidence-meter.confidence-medium .confidence-percentage {
+  color: #f57f17;
+}
+
+.confidence-meter.confidence-low .confidence-percentage {
+  color: #c62828;
+}
+
+.confidence-bar {
+  width: 100%;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 10px;
+}
+
+.confidence-meter.confidence-high .confidence-bar-fill {
+  background: linear-gradient(90deg, #66bb6a 0%, #81c784 100%);
+}
+
+.confidence-meter.confidence-medium .confidence-bar-fill {
+  background: linear-gradient(90deg, #ffeb3b 0%, #fff176 100%);
+}
+
+.confidence-meter.confidence-low .confidence-bar-fill {
+  background: linear-gradient(90deg, #ef5350 0%, #e57373 100%);
+}
+
+.confidence-level {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: #424242;
+}
+
+.confidence-message {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #616161;
+  line-height: 1.4;
+}
+
+/* Distribución de probabilidades */
+.probability-distribution {
+  background: #f9fbe7;
+  padding: 15px;
+  border-radius: 10px;
+  border: 2px solid #aed581;
+}
+
+.probability-distribution h4 {
+  color: #558b2f;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.probability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.probability-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.probability-name {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #424242;
+}
+
+.probability-bar-container {
+  position: relative;
+  width: 100%;
+  height: 25px;
+  background: #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.probability-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #81c784 0%, #aed581 100%);
+  transition: width 0.5s ease;
+  border-radius: 8px;
+}
+
+.probability-value {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  font-weight: bold;
   color: #424242;
 }
 
@@ -524,6 +695,14 @@ footer p {
   .prices-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confidence-panel {
+    position: static;
+  }
 }
 
 /* Móviles: 1 columna */
@@ -534,6 +713,14 @@ footer p {
 
   .prices-grid {
     grid-template-columns: 1fr;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .confidence-panel {
+    position: static;
   }
 
   .button-group {
@@ -554,6 +741,11 @@ footer p {
   }
 
   .legend {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pattern-main {
     flex-direction: column;
     gap: 10px;
   }

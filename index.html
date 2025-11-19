@@ -124,19 +124,28 @@
       <section class="results-section" id="resultsSection" style="display: none;">
         <h2>📊 Pronóstico</h2>
 
-        <div class="pattern-badge" id="patternBadge"></div>
+        <div class="results-grid">
+          <!-- Columna izquierda: 2/3 - Info del patrón -->
+          <div class="results-main">
+            <div class="pattern-badge" id="patternBadge"></div>
 
-        <div class="pattern-explanation">
-          <small>
-            <strong>Los porcentajes (%) indican la probabilidad de cada patrón.</strong><br>
-            La confianza del cálculo muestra qué tan precisas son estas estimaciones (más datos = mayor confianza).
-          </small>
-        </div>
+            <div class="pattern-explanation">
+              <small>
+                <strong>Los porcentajes (%) indican la probabilidad de cada patrón.</strong><br>
+                La confianza del cálculo muestra qué tan precisas son estas estimaciones (más datos = mayor confianza).
+              </small>
+            </div>
 
-        <div class="recommendations" id="recommendations">
-        </div>
+            <div class="recommendations" id="recommendations">
+            </div>
 
-        <div class="best-time" id="bestTime">
+            <div class="best-time" id="bestTime">
+            </div>
+          </div>
+
+          <!-- Columna derecha: 1/3 - Panel de confianza -->
+          <div class="confidence-panel" id="confidencePanel">
+          </div>
         </div>
       </section>
     </div>
