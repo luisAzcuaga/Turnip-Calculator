@@ -79,6 +79,13 @@ document.addEventListener('DOMContentLoaded', function () {
         delete input.dataset.min;
         delete input.dataset.max;
         input.title = '';
+
+        // Remover indicador de rango
+        const parent = input.parentElement;
+        const rangeIndicator = parent.querySelector('.range-indicator');
+        if (rangeIndicator) {
+          rangeIndicator.remove();
+        }
       }
     });
   }
@@ -219,7 +226,24 @@ document.addEventListener('DOMContentLoaded', function () {
         input.dataset.isEstimated = 'true';
 
         // Agregar tooltip con el rango
-        input.title = `Estimado: ${data.min}-${data.max} bayas (click para editar)`;
+        input.title = `Promedio: ${avgEstimate} (rango: ${data.min}-${data.max} bayas)`;
+
+        // Agregar indicador de rango visual
+        const parent = input.parentElement;
+        let rangeIndicator = parent.querySelector('.range-indicator');
+        if (!rangeIndicator) {
+          rangeIndicator = document.createElement('div');
+          rangeIndicator.className = 'range-indicator';
+          parent.appendChild(rangeIndicator);
+        }
+        rangeIndicator.textContent = `${data.min}-${data.max}`;
+      } else if (input.dataset.isEstimated !== 'true') {
+        // Remover indicador si es confirmado
+        const parent = input.parentElement;
+        const rangeIndicator = parent.querySelector('.range-indicator');
+        if (rangeIndicator) {
+          rangeIndicator.remove();
+        }
       }
     });
 
@@ -243,6 +267,13 @@ document.addEventListener('DOMContentLoaded', function () {
             delete this.dataset.min;
             delete this.dataset.max;
             this.title = '';
+
+            // Remover indicador de rango
+            const parent = this.parentElement;
+            const rangeIndicator = parent.querySelector('.range-indicator');
+            if (rangeIndicator) {
+              rangeIndicator.remove();
+            }
           }
         });
 

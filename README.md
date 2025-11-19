@@ -170,12 +170,17 @@ Patrón: Pico Grande (85%)  [88% confianza - 🟢]
 #### ⚠️ Decreciente (Decreasing)
 - El peor patrón posible
 - **Características:**
-  - Bajada constante del 85% al 40% del precio base
-  - Cada período baja ~4% adicional
+  - Bajada constante del 90% al 40% del precio base
+  - Cada período baja ~2.5% adicional (tasa conservadora)
+  - **Ajuste dinámico:** Si hay precios confirmados, calcula la tasa real observada y proyecta hacia adelante
   - Sin picos ni subidas
   - Todos los precios van hacia abajo
 - **Cuándo vender:** ¡INMEDIATAMENTE! o visita otra isla
 - **Detección:** Todos los precios conocidos bajan progresivamente
+- **Ejemplo de ajuste dinámico:**
+  - Base: 92, Lunes AM: 86, Lunes PM: 83, Martes AM: 79
+  - Tasa observada: ~4% por período
+  - Martes PM proyectado: 79 × (1 - 0.04) ≈ 76 (rango: 68-84)
 
 ### 🔍 Filtrado de patrones imposibles
 
@@ -185,6 +190,22 @@ El predictor elimina patrones que no pueden ser basándose en tus datos:
 - **Pico Grande:** Descartado si es tarde en la semana sin picos altos
 - **Pico Pequeño:** Descartado si hay precios >200% del base
 - **Fluctuante:** Descartado si hay extremos muy altos (>150%) o muy bajos (<50%)
+
+### 📊 Visualización de estimaciones
+
+Los valores estimados se muestran de forma clara e informativa:
+
+**Indicadores visuales:**
+- **Valor en input:** Muestra el promedio del rango (ej: 75)
+- **Rango debajo:** Muestra el rango completo (ej: 65-85)
+- **Tooltip mejorado:** "Promedio: 75 (rango: 65-85 bayas)"
+- **Color naranja:** Indica que es un valor estimado (click para editar)
+- **Color verde:** Indica que es un valor confirmado por el usuario
+
+**Ajuste dinámico:**
+- Cada vez que ingresas un precio real, el predictor recalcula
+- Las estimaciones futuras se ajustan basándose en la tendencia observada
+- Especialmente útil en patrón decreciente para proyecciones más precisas
 
 ## ✨ Características
 

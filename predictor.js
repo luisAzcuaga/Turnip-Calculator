@@ -334,10 +334,11 @@ class TurnipPredictor {
 
   predictPrice(pattern, periodIndex) {
     const base = this.buyPrice;
+    const knownPricesArray = this.getPriceArrayWithIndices();
 
     switch (pattern) {
       case this.patterns.DECREASING:
-        return this.decreasingPattern(periodIndex, base);
+        return this.decreasingPattern(periodIndex, base, knownPricesArray);
 
       case this.patterns.LARGE_SPIKE:
         return this.largeSpikePattern(periodIndex, base);
@@ -351,9 +352,44 @@ class TurnipPredictor {
     }
   }
 
-  // Patrón DECRECIENTE: bajada constante del 85% al 40%
-  decreasingPattern(periodIndex, base) {
-    const rate = 0.85 - (periodIndex * 0.04);
+  // Patrón DECRECIENTE: bajada constante del 90% al 40%
+  decreasingPattern(periodIndex, base, knownPrices = []) {
+    // Si tenemos datos conocidos, calcular la tasa real observada
+    let observedRate = null;
+    if (knownPrices.length >= 2) {
+      // Calcular tasa de decrecimiento promedio entre precios conocidos
+      let totalRateChange = 0;
+      let rateCount = 0;
+
+      for (let i = 1; i < knownPrices.length; i++) {
+        const prevPrice = knownPrices[i - 1].price;
+        const currPrice = knownPrices[i].price;
+        const rateChange = (prevPrice - currPrice) / prevPrice;
+        totalRateChange += rateChange;
+        rateCount++;
+      }
+
+      observedRate = totalRateChange / rateCount;
+    }
+
+    // Si estamos prediciendo un período para el cual ya pasamos datos conocidos,
+    // usar la tasa observada para proyectar
+    if (observedRate !== null && knownPrices.length > 0) {
+      const lastKnown = knownPrices[knownPrices.length - 1];
+      const periodsAhead = periodIndex - lastKnown.index;
+
+      if (periodsAhead > 0) {
+        // Proyectar desde el último precio conocido
+        const projected = lastKnown.price * Math.pow(1 - observedRate, periodsAhead);
+        return {
+          min: Math.round(projected * 0.90),
+          max: Math.round(projected * 1.10)
+        };
+      }
+    }
+
+    // Fallback: usar tasa conservadora por defecto
+    const rate = 0.90 - (periodIndex * 0.025);
     const price = Math.round(base * Math.max(0.40, rate));
 
     return {
