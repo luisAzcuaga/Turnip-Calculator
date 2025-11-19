@@ -18,10 +18,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Agregar listeners para autoguardado
   buyPriceInput.addEventListener('input', saveData);
+  buyPriceInput.addEventListener('change', saveData);
   priceInputs.forEach(id => {
     const input = document.getElementById(id);
     if (input) {
       input.addEventListener('input', saveData);
+      input.addEventListener('change', saveData);
     }
   });
 
