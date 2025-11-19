@@ -203,11 +203,22 @@ class TurnipPredictor {
 
     const totalConfidence = Math.min(dataConfidence + scoreConfidence, 100);
 
+    // Convertir scores a porcentajes
+    const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+    const percentages = {};
+    Object.keys(scores).forEach(pattern => {
+      percentages[pattern] = totalScore > 0 ? Math.round((scores[pattern] / totalScore) * 100) : 0;
+    });
+
     return {
       primary: bestPattern,
       confidence: Math.round(totalConfidence),
-      alternatives: sortedPatterns.slice(1, 3), // Máximo 2 alternativas
-      scores: scores
+      alternatives: sortedPatterns.slice(1, 3).map(p => ({
+        pattern: p,
+        percentage: percentages[p]
+      })),
+      scores: scores,
+      percentages: percentages
     };
   }
 
@@ -309,9 +320,11 @@ class TurnipPredictor {
       pattern: pattern,
       patternName: this.patternNames[pattern],
       confidence: patternResult.confidence,
-      alternatives: patternResult.alternatives.map(p => ({
-        pattern: p,
-        name: this.patternNames[p]
+      primaryPercentage: patternResult.percentages[pattern],
+      alternatives: patternResult.alternatives.map(alt => ({
+        pattern: alt.pattern,
+        name: this.patternNames[alt.pattern],
+        percentage: alt.percentage
       })),
       predictions: predictions,
       recommendation: this.getRecommendation(pattern, predictions),

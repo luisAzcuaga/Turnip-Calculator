@@ -326,6 +326,24 @@ button {
   color: #424242;
 }
 
+.pattern-explanation {
+  background: #f5f5f5;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  border-left: 4px solid #66bb6a;
+}
+
+.pattern-explanation small {
+  color: #616161;
+  line-height: 1.6;
+}
+
+.pattern-explanation strong {
+  color: #424242;
+}
+
 .pattern-decreasing {
   background: #ffcdd2;
   color: #c62828;

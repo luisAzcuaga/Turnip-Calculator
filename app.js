@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Mostrar patrón con confianza y alternativas
-    displayPattern(results.pattern, results.patternName, results.confidence, results.alternatives);
+    displayPattern(results.pattern, results.patternName, results.confidence, results.primaryPercentage, results.alternatives);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
     displayBestTime(results.bestTime);
   }
 
-  function displayPattern(pattern, patternName, confidence, alternatives) {
+  function displayPattern(pattern, patternName, confidence, primaryPercentage, alternatives) {
     const patternBadge = document.getElementById('patternBadge');
     patternBadge.className = 'pattern-badge pattern-' + pattern;
 
@@ -112,8 +112,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let html = `
       <div class="pattern-main">
-        <span class="pattern-name">Patrón: ${patternName}</span>
-        <span class="confidence-badge ${confidenceClass}">${confidence}% certeza</span>
+        <span class="pattern-name">Patrón: ${patternName} (${primaryPercentage}%)</span>
+        <span class="confidence-badge ${confidenceClass}">${confidence}% confianza del cálculo</span>
       </div>
     `;
 
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confidence < 70 && alternatives && alternatives.length > 0) {
       html += `<div class="pattern-alternatives">`;
       html += `<small>También podría ser: `;
-      html += alternatives.map(alt => `<strong>${alt.name}</strong>`).join(' o ');
+      html += alternatives.map(alt => `<strong>${alt.name}</strong> (${alt.percentage}%)`).join(' o ');
       html += `</small></div>`;
     }
 
