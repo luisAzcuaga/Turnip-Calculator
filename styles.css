@@ -9,7 +9,7 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #a8e6cf 0%, #dcedc8 100%);
   min-height: 100vh;
-  padding: 20px;
+  padding: 10px;
 }
 
 .container {
@@ -25,7 +25,7 @@ body {
 header {
   background: linear-gradient(135deg, #66bb6a 0%, #81c784 100%);
   color: white;
-  padding: 30px;
+  padding: 15px;
   text-align: center;
 }
 
@@ -47,15 +47,15 @@ header h1 {
 
 /* Sección de precio de compra */
 .buy-price-section {
-  background: #fff3e0;
+  background: #bbd4ff;
   padding: 25px;
   border-radius: 15px;
-  margin-bottom: 30px;
-  border: 3px solid #ffb74d;
+  margin-bottom: 15px;
+  border: 3px solid #4d8eff;
 }
 
 .buy-price-section h2 {
-  color: #e65100;
+  color: #005eff;
   margin-bottom: 15px;
   font-size: 1.5rem;
 }
@@ -71,14 +71,15 @@ header h1 {
   max-width: 200px;
   padding: 15px;
   font-size: 1.2rem;
-  border: 2px solid #ffb74d;
+  border: 2px solid #4d8eff;
+  background: #bbd4ff;
   border-radius: 10px;
   text-align: center;
 }
 
 .bayas {
   font-weight: bold;
-  color: #e65100;
+  color: #005eff;
   font-size: 1.1rem;
 }
 
@@ -92,10 +93,10 @@ header h1 {
 /* Leyenda */
 .legend {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   justify-content: center;
-  margin-bottom: 20px;
-  padding: 15px;
+  margin-bottom: 10px;
+  padding: 10px;
   background: #f5f5f5;
   border-radius: 10px;
   flex-wrap: wrap;
@@ -751,7 +752,6 @@ footer p {
 
   .legend {
     flex-direction: column;
-    gap: 10px;
   }
 
   .pattern-main {
