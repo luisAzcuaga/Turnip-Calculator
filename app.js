@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Recopilar precios conocidos (solo los confirmados)
     const knownPrices = {};
-    priceInputs.forEach(id => {
+    PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       // Solo tomar valores que NO son estimados
       if (input && input.value && input.dataset.isEstimated !== 'true') {
