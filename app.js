@@ -218,14 +218,17 @@ document.addEventListener('DOMContentLoaded', function () {
       // Si no tiene valor, llenar con el promedio del rango estimado
       if (!input.value) {
         const avgEstimate = Math.round((data.min + data.max) / 2);
-        input.value = avgEstimate;
+
+        // Set isEstimated flag BEFORE setting value to prevent race condition
+        // This ensures saveData() can properly filter out estimated values
+        input.dataset.isEstimated = 'true';
+        input.dataset.min = data.min;
+        input.dataset.max = data.max;
         input.classList.add('estimated-value');
         input.classList.remove('confirmed-value');
 
-        // Guardar los rangos como atributos de datos
-        input.dataset.min = data.min;
-        input.dataset.max = data.max;
-        input.dataset.isEstimated = 'true';
+        // Set value AFTER flag is set (this triggers input event)
+        input.value = avgEstimate;
 
         // Agregar tooltip con el rango
         input.title = `Promedio: ${avgEstimate} (rango: ${data.min}-${data.max} bayas)`;
