@@ -305,7 +305,6 @@ button {
 .results-section {
   margin-top: 30px;
   margin: 30px auto 0;
-  max-width: 70%;
   padding: 10px;
   background: #e8f5e9;
   border-radius: 15px;
@@ -332,23 +331,19 @@ button {
 /* Badge del patrón */
 .pattern-badge {
   display: block;
-  padding: 15px;
-  border-radius: 15px;
-  font-weight: bold;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.pattern-compact {
+  line-height: 1.5;
+}
+
+.pattern-compact strong {
   font-size: 1.2rem;
-  margin-bottom: 25px;
-}
-
-.pattern-main {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.pattern-name {
-  font-size: 1.3rem;
 }
 
 .confidence-badge {
@@ -419,10 +414,21 @@ button {
 }
 
 .confidence-header h3 {
-  color: #2e7d32;
   font-size: 1.1rem;
   margin-bottom: 15px;
   text-align: center;
+}
+
+.confidence-meter.confidence-high .confidence-header h3 {
+  color: #2e7d32;
+}
+
+.confidence-meter.confidence-medium .confidence-header h3 {
+  color: #f57f17;
+}
+
+.confidence-meter.confidence-low .confidence-header h3 {
+  color: #c62828;
 }
 
 .confidence-meter {
@@ -520,8 +526,19 @@ button {
 .probability-distribution h4 {
   color: #558b2f;
   font-size: 1rem;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-align: center;
+}
+
+.probability-title {
+  margin-top: 25px;
+}
+
+.probability-explanation {
+  text-align: center;
+  margin-bottom: 12px;
+  color: #616161;
+  line-height: 1.4;
 }
 
 .probability-list {

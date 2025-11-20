@@ -153,27 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function displayPattern(pattern, patternName, confidence, primaryPercentage, alternatives) {
-    const patternBadge = document.getElementById('patternBadge');
-    patternBadge.className = 'pattern-badge pattern-' + pattern;
-
-    // Mostrar solo el patrón y porcentaje en el badge
-    let html = `
-      <div class="pattern-main">
-        <span class="pattern-name">Patrón: ${patternName} (${primaryPercentage}%)</span>
-      </div>
-    `;
-
-    // Mostrar alternativas si la confianza es baja o media
-    if (confidence < 70 && alternatives && alternatives.length > 0) {
-      html += `<div class="pattern-alternatives">`;
-      html += `<small>También podría ser: `;
-      html += alternatives.map(alt => `<strong>${alt.name}</strong> (${alt.percentage}%)`).join(' o ');
-      html += `</small></div>`;
-    }
-
-    patternBadge.innerHTML = html;
-
-    // Panel de confianza (lateral derecho)
+    // Panel de confianza (lateral derecho) - shows all pattern info
     displayConfidencePanel(confidence, primaryPercentage, patternName, alternatives);
   }
 
@@ -199,10 +179,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     let html = `
+      <div class="confidence-meter ${confidenceClass}">
       <div class="confidence-header">
         <h3>Confianza del Cálculo</h3>
       </div>
-      <div class="confidence-meter ${confidenceClass}">
         <div class="confidence-percentage">${confidenceIcon} ${confidence}%</div>
         <div class="confidence-bar">
           <div class="confidence-bar-fill" style="width: ${confidence}%"></div>
