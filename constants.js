@@ -16,7 +16,7 @@ const DAYS_CONFIG = [
   { key: 'sat_pm', name: 'Sábado PM' }
 ];
 
-// Extract just the keys for backward compatibility
+// Extract just the keys for convenience (when only IDs are needed)
 const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
 
 // Debounce configuration
