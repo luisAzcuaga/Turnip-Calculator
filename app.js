@@ -5,7 +5,7 @@ const utils = {
   // Debounce function to limit save frequency
   debounce(func, wait) {
     let timeout;
-    return function executedFunction(...args) {
+    return (...args) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => func(...args), wait);
     };
