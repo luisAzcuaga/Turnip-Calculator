@@ -2,9 +2,10 @@
 // Basado en los patrones reales del juego
 
 class TurnipPredictor {
-  constructor(buyPrice, knownPrices = {}) {
+  constructor(buyPrice, knownPrices = {}, previousPattern = null) {
     this.buyPrice = buyPrice;
     this.knownPrices = knownPrices;
+    this.previousPattern = previousPattern;
     this.patterns = {
       FLUCTUATING: 'fluctuating',
       LARGE_SPIKE: 'large_spike',
@@ -17,6 +18,43 @@ class TurnipPredictor {
       'large_spike': 'Pico Grande',
       'decreasing': 'Decreciente',
       'small_spike': 'Pico Pequeño'
+    };
+
+    // Probabilidades por defecto (sin historial)
+    this.defaultProbabilities = {
+      'fluctuating': 0.35,
+      'large_spike': 0.25,
+      'decreasing': 0.15,
+      'small_spike': 0.25
+    };
+
+    // Matriz de transición de patrones (basado en el código real de ACNH)
+    // [patrón_anterior][patrón_actual] = probabilidad
+    this.transitionProbabilities = {
+      'fluctuating': {
+        'fluctuating': 0.20,
+        'large_spike': 0.30,
+        'decreasing': 0.15,
+        'small_spike': 0.35
+      },
+      'large_spike': {
+        'fluctuating': 0.50,
+        'large_spike': 0.05,
+        'decreasing': 0.20,
+        'small_spike': 0.25
+      },
+      'decreasing': {
+        'fluctuating': 0.25,
+        'large_spike': 0.45,
+        'decreasing': 0.05,
+        'small_spike': 0.25
+      },
+      'small_spike': {
+        'fluctuating': 0.45,
+        'large_spike': 0.25,
+        'decreasing': 0.15,
+        'small_spike': 0.15
+      }
     };
   }
 
@@ -166,35 +204,73 @@ class TurnipPredictor {
     return true;
   }
 
+  // Obtener probabilidades base según el patrón anterior
+  getBaseProbabilities() {
+    // Si conocemos el patrón anterior, usar probabilidades de transición
+    if (this.previousPattern && this.transitionProbabilities[this.previousPattern]) {
+      return this.transitionProbabilities[this.previousPattern];
+    }
+
+    // Sin patrón anterior, usar probabilidades por defecto
+    return this.defaultProbabilities;
+  }
+
   // Detectar el patrón más probable con información de confianza
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
     const knownPrices = this.getPriceArrayWithIndices();
+    const baseProbabilities = this.getBaseProbabilities();
 
-    // Si hay múltiples patrones, elegir el más probable basado en los datos
+    // Si no hay datos de precios, usar solo las probabilidades base
     if (knownPrices.length === 0) {
-      // Todos los patrones tienen igual probabilidad sin datos
-      const equalPercentage = Math.round(100 / possiblePatterns.length);
+      // Calcular porcentajes basados en probabilidades
       const percentages = {};
+      let totalProb = 0;
+
       possiblePatterns.forEach(pattern => {
-        percentages[pattern] = equalPercentage;
+        const prob = baseProbabilities[pattern] || 0;
+        percentages[pattern] = prob;
+        totalProb += prob;
       });
 
+      // Normalizar a 100%
+      if (totalProb > 0) {
+        Object.keys(percentages).forEach(pattern => {
+          percentages[pattern] = Math.round((percentages[pattern] / totalProb) * 100);
+        });
+      }
+
+      // Encontrar el patrón más probable
+      const sortedByProb = possiblePatterns.sort((a, b) =>
+        (baseProbabilities[b] || 0) - (baseProbabilities[a] || 0)
+      );
+      const primaryPattern = sortedByProb[0];
+
+      // Confianza base dependiendo de si conocemos el patrón anterior
+      const baseConfidence = this.previousPattern ? 50 : 35;
+
       return {
-        primary: this.patterns.FLUCTUATING,
-        confidence: 25,
-        alternatives: possiblePatterns.filter(p => p !== this.patterns.FLUCTUATING).slice(0, 2).map(p => ({
+        primary: primaryPattern,
+        confidence: baseConfidence,
+        alternatives: sortedByProb.slice(1, 3).map(p => ({
           pattern: p,
-          percentage: equalPercentage
+          percentage: percentages[p]
         })),
         percentages: percentages
       };
     }
 
-    // Calcular score para cada patrón posible
+    // Calcular score combinando probabilidades base con análisis de datos
     const scores = {};
     possiblePatterns.forEach(pattern => {
-      scores[pattern] = this.calculatePatternScore(pattern, knownPrices);
+      const dataScore = this.calculatePatternScore(pattern, knownPrices);
+      const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convertir a escala 0-100
+
+      // Combinar scores: más peso a los datos si tenemos muchos, más a probabilidades si tenemos pocos
+      const dataWeight = Math.min(knownPrices.length / 12, 0.7); // Max 70% peso a datos
+      const probWeight = 1 - dataWeight;
+
+      scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
     });
 
     // Ordenar patrones por score
@@ -205,6 +281,9 @@ class TurnipPredictor {
     // Calcular confianza basada en la cantidad de datos y la diferencia de scores
     const dataConfidence = Math.min(knownPrices.length * 8, 40); // Max 40% por cantidad de datos
 
+    // Bonus de confianza si conocemos el patrón anterior
+    const historyBonus = this.previousPattern ? 15 : 0;
+
     let scoreConfidence = 30; // Base
     if (sortedPatterns.length > 1) {
       const secondScore = scores[sortedPatterns[1]];
@@ -212,7 +291,7 @@ class TurnipPredictor {
       scoreConfidence = Math.min(scoreDiff, 60); // Max 60% por diferencia de score
     }
 
-    const totalConfidence = Math.min(dataConfidence + scoreConfidence, 100);
+    const totalConfidence = Math.min(dataConfidence + scoreConfidence + historyBonus, 100);
 
     // Convertir scores a porcentajes
     const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);

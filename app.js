@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const calculateBtn = document.getElementById('calculateBtn');
   const clearBtn = document.getElementById('clearBtn');
   const buyPriceInput = document.getElementById('buyPrice');
+  const previousPatternSelect = document.getElementById('previousPattern');
   const resultsSection = document.getElementById('resultsSection');
 
   // Lista de inputs de precios
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Agregar listeners para autoguardado
   buyPriceInput.addEventListener('input', saveData);
   buyPriceInput.addEventListener('change', saveData);
+  previousPatternSelect.addEventListener('change', saveData);
   priceInputs.forEach(id => {
     const input = document.getElementById(id);
     if (input) {
@@ -62,8 +64,11 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
+    // Obtener patrón anterior si está seleccionado
+    const previousPattern = previousPatternSelect.value || null;
+
     // Crear predictor y obtener resultados
-    const predictor = new TurnipPredictor(buyPrice, knownPrices);
+    const predictor = new TurnipPredictor(buyPrice, knownPrices, previousPattern);
     const results = predictor.predict();
 
     // Mostrar resultados
@@ -317,7 +322,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function saveData() {
     const data = {
-      buyPrice: buyPriceInput.value
+      buyPrice: buyPriceInput.value,
+      previousPattern: previousPatternSelect.value
     };
 
     priceInputs.forEach(id => {
@@ -341,6 +347,10 @@ document.addEventListener('DOMContentLoaded', function () {
           buyPriceInput.value = data.buyPrice;
         }
 
+        if (data.previousPattern) {
+          previousPatternSelect.value = data.previousPattern;
+        }
+
         priceInputs.forEach(id => {
           if (data[id]) {
             const input = document.getElementById(id);
@@ -359,6 +369,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confirm('¿Estás seguro de que quieres borrar todos los datos?')) {
       // Limpiar inputs
       buyPriceInput.value = '';
+      previousPatternSelect.value = '';
       priceInputs.forEach(id => {
         const input = document.getElementById(id);
         if (input) {

@@ -86,6 +86,44 @@ header h1 {
   font-size: 1.1rem;
 }
 
+/* Sección de patrón anterior */
+.previous-pattern-section {
+  background: #ffe6b3;
+  padding: 15px;
+  border-radius: 15px;
+  max-width: 50%;
+  margin: 0 auto 15px;
+  border: 3px solid #ff9800;
+}
+
+.previous-pattern-section h2 {
+  color: #e65100;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+.previous-pattern-section .input-group select {
+  flex: 1;
+  max-width: 300px;
+  padding: 15px;
+  font-size: 1.1rem;
+  border: 2px solid #ff9800;
+  background: #fff8e1;
+  border-radius: 10px;
+  color: #e65100;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.previous-pattern-section .helper-text {
+  display: block;
+  margin-top: 10px;
+  color: #e65100;
+  font-size: 0.9rem;
+  text-align: center;
+  font-style: italic;
+}
+
 /* Sección de precios de la semana */
 .week-prices-section h2 {
   color: #2e7d32;
