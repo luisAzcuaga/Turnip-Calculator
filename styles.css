@@ -754,7 +754,7 @@ footer p {
   }
 }
 @media (max-width: 768px) {
-  .buy-price-section {
+  .buy-price-section, .previous-pattern-section {
      max-width: none;
    }
 
