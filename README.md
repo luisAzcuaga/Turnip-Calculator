@@ -72,7 +72,7 @@ _Para detalles técnicos del algoritmo, consulta [ALGORITHM.md](ALGORITHM.md)_
 - ✅ Sistema de confianza con porcentajes de probabilidad
 - ✅ Ajuste dinámico que aprende de tus datos
 - ✅ Inputs unificados con estimaciones visuales
-- ✅ Guardado automático (localStorage)
+- ✅ Guardado automático con debounce (previene guardados innecesarios)
 - ✅ Diseño responsive (móvil, tablet, desktop)
 - ✅ **Funciona offline** después de la primera carga
 - ✅ 100% estático, no requiere servidor

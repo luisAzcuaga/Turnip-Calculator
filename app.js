@@ -14,18 +14,49 @@ document.addEventListener('DOMContentLoaded', function () {
     'fri_am', 'fri_pm', 'sat_am', 'sat_pm'
   ];
 
+  // Flag para prevenir guardado durante carga inicial
+  let isLoading = true;
+
+  // Función de debounce para limitar frecuencia de guardado
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Versión debounced de saveData (300ms delay)
+  const debouncedSaveData = debounce(saveData, 300);
+
+  // Wrapper para evitar guardado durante carga inicial
+  function saveDataIfNotLoading() {
+    if (!isLoading) {
+      debouncedSaveData();
+    }
+  }
+
   // Cargar datos guardados del localStorage
   loadSavedData();
 
+  // Desactivar flag de carga después de un pequeño delay
+  setTimeout(() => {
+    isLoading = false;
+  }, 100);
+
   // Agregar listeners para autoguardado
-  buyPriceInput.addEventListener('input', saveData);
-  buyPriceInput.addEventListener('change', saveData);
-  previousPatternSelect.addEventListener('change', saveData);
+  buyPriceInput.addEventListener('input', saveDataIfNotLoading);
+  buyPriceInput.addEventListener('change', saveDataIfNotLoading);
+  previousPatternSelect.addEventListener('change', saveDataIfNotLoading);
   priceInputs.forEach(id => {
     const input = document.getElementById(id);
     if (input) {
-      input.addEventListener('input', saveData);
-      input.addEventListener('change', saveData);
+      input.addEventListener('input', saveDataIfNotLoading);
+      input.addEventListener('change', saveDataIfNotLoading);
     }
   });
 
