@@ -60,17 +60,10 @@ class TurnipPredictor {
 
   // Obtener array de precios conocidos con sus índices
   getPriceArrayWithIndices() {
-    const days = ['mon_am', 'mon_pm', 'tue_am', 'tue_pm', 'wed_am', 'wed_pm',
-      'thu_am', 'thu_pm', 'fri_am', 'fri_pm', 'sat_am', 'sat_pm'];
-
-    const result = [];
-    days.forEach((day, index) => {
-      const price = this.knownPrices[day];
-      if (price !== undefined && price !== null && price !== '') {
-        result.push({ index, price: parseInt(price), day });
-      }
-    });
-    return result;
+    return DAYS_CONFIG
+      .map((day, index) => ({ index, price: this.knownPrices[day.key], day: day.key }))
+      .filter(({ price }) => price !== undefined && price !== null && price !== '')
+      .map(({ index, price, day }) => ({ index, price: parseInt(price), day }));
   }
 
   // Detectar patrones posibles basados en los precios conocidos
@@ -369,22 +362,7 @@ class TurnipPredictor {
     const pattern = patternResult.primary;
     const predictions = {};
 
-    const days = [
-      { key: 'mon_am', name: 'Lunes AM' },
-      { key: 'mon_pm', name: 'Lunes PM' },
-      { key: 'tue_am', name: 'Martes AM' },
-      { key: 'tue_pm', name: 'Martes PM' },
-      { key: 'wed_am', name: 'Miércoles AM' },
-      { key: 'wed_pm', name: 'Miércoles PM' },
-      { key: 'thu_am', name: 'Jueves AM' },
-      { key: 'thu_pm', name: 'Jueves PM' },
-      { key: 'fri_am', name: 'Viernes AM' },
-      { key: 'fri_pm', name: 'Viernes PM' },
-      { key: 'sat_am', name: 'Sábado AM' },
-      { key: 'sat_pm', name: 'Sábado PM' }
-    ];
-
-    days.forEach((day, index) => {
+    DAYS_CONFIG.forEach((day, index) => {
       const price = this.knownPrices[day.key];
       if (price !== undefined && price !== null && price !== '') {
         predictions[day.key] = {
@@ -532,34 +510,29 @@ class TurnipPredictor {
     };
   }
 
-  // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
-  largeSpikePattern(periodIndex, base, knownPrices = []) {
+  // Generic spike pattern function (consolidates large and small spike logic)
+  spikePattern(periodIndex, base, knownPrices = [], config) {
+    const { decayRate, growthRate, risingPhases, peakPeriods, peakMin, peakMax } = config;
     const phase = this.detectPricePhase(knownPrices);
     const peak = this.findPeakInKnownPrices(knownPrices);
 
-    // Si ya encontramos el pico y estamos después de él
+    // Post-peak phase: adjust based on decay from peak
     if (peak && peak.index < periodIndex && phase === 'decreasing') {
-      // Post-pico: ajustar basándose en la caída desde el pico
       const periodsAfterPeak = periodIndex - peak.index;
-      const decayRate = 0.15; // 15% de caída por período post-pico
       const projected = peak.price * Math.pow(1 - decayRate, periodsAfterPeak);
-
       return {
         min: Math.round(projected * 0.85),
         max: Math.round(projected * 1.15)
       };
     }
 
-    // Si estamos en fase de subida rápida (probable pico)
-    if (phase === 'rising' && knownPrices.length > 0) {
+    // Rising phase: project peak growth
+    if (risingPhases.includes(phase) && knownPrices.length > 0) {
       const lastKnown = knownPrices[knownPrices.length - 1];
       const periodsAhead = periodIndex - lastKnown.index;
 
       if (periodsAhead > 0 && periodsAhead <= 2) {
-        // Estamos cerca del pico, proyectar con tasa de crecimiento alta
-        const growthRate = 0.5; // 50% de crecimiento por período
         const projected = lastKnown.price * Math.pow(1 + growthRate, periodsAhead);
-
         return {
           min: Math.round(projected * 0.80),
           max: Math.round(projected * 1.20)
@@ -567,141 +540,57 @@ class TurnipPredictor {
       }
     }
 
-    // Ajustar fase baja si tenemos datos
+    // Adjust low phase based on observed data
     if (periodIndex <= 4 && knownPrices.length > 0) {
       const avgLowPhase = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
-      const floorLevel = avgLowPhase / base; // Nivel del "piso" observado
-
+      const floorLevel = avgLowPhase / base;
       return {
         min: Math.round(base * Math.max(0.40, floorLevel * 0.90)),
         max: Math.round(base * Math.max(0.90, floorLevel * 1.10))
       };
     }
 
-    // Fallback: usar predicción estándar
-    // Fase 1 (períodos 0-1): Decreciente 85-50%
-    if (periodIndex <= 1) {
+    // Fallback: standard prediction based on period
+    return this.getSpikeStandardPrediction(periodIndex, base, peakPeriods, peakMin, peakMax);
+  }
+
+  // Standard spike prediction helper
+  getSpikeStandardPrediction(periodIndex, base, peakPeriods, peakMin, peakMax) {
+    if (peakPeriods.includes(periodIndex)) {
       return {
-        min: Math.round(base * 0.50),
-        max: Math.round(base * 0.85)
+        min: Math.round(base * peakMin),
+        max: Math.round(base * peakMax)
       };
     }
-
-    // Fase 2 (períodos 2-4): Bajo continuo 40-90%
-    if (periodIndex <= 4) {
-      return {
-        min: Math.round(base * 0.40),
-        max: Math.round(base * 0.90)
-      };
-    }
-
-    // Fase 3 (períodos 5-7): ¡PICO! 90-600%
-    if (periodIndex <= 7) {
-      // El pico máximo suele ser en período 6 (miércoles PM / jueves AM)
-      if (periodIndex === 5 || periodIndex === 6) {
-        return {
-          min: Math.round(base * 1.40),
-          max: Math.round(base * 6.00)
-        };
-      } else {
-        return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 2.00)
-        };
-      }
-    }
-
-    // Fase 4 (períodos 8-11): Post-pico bajo 40-90%
+    // Default low phase
     return {
       min: Math.round(base * 0.40),
       max: Math.round(base * 0.90)
     };
   }
 
+  // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
+  largeSpikePattern(periodIndex, base, knownPrices = []) {
+    return this.spikePattern(periodIndex, base, knownPrices, {
+      decayRate: 0.15,
+      growthRate: 0.5,
+      risingPhases: ['rising'],
+      peakPeriods: [5, 6],
+      peakMin: 1.40,
+      peakMax: 6.00
+    });
+  }
+
   // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
   smallSpikePattern(periodIndex, base, knownPrices = []) {
-    const phase = this.detectPricePhase(knownPrices);
-    const peak = this.findPeakInKnownPrices(knownPrices);
-
-    // Si ya encontramos el pico y estamos después de él
-    if (peak && peak.index < periodIndex && phase === 'decreasing') {
-      // Post-pico: ajustar basándose en la caída desde el pico
-      const periodsAfterPeak = periodIndex - peak.index;
-      const decayRate = 0.12; // 12% de caída por período post-pico
-      const projected = peak.price * Math.pow(1 - decayRate, periodsAfterPeak);
-
-      return {
-        min: Math.round(projected * 0.85),
-        max: Math.round(projected * 1.15)
-      };
-    }
-
-    // Si estamos en fase de subida (probable pico)
-    if ((phase === 'rising' || phase === 'increasing') && knownPrices.length > 0) {
-      const lastKnown = knownPrices[knownPrices.length - 1];
-      const periodsAhead = periodIndex - lastKnown.index;
-
-      if (periodsAhead > 0 && periodsAhead <= 2) {
-        // Estamos cerca del pico, proyectar con tasa de crecimiento moderada
-        const growthRate = 0.25; // 25% de crecimiento por período
-        const projected = lastKnown.price * Math.pow(1 + growthRate, periodsAhead);
-
-        return {
-          min: Math.round(projected * 0.85),
-          max: Math.round(projected * 1.15)
-        };
-      }
-    }
-
-    // Ajustar fase baja si tenemos datos
-    if (periodIndex <= 4 && knownPrices.length > 0) {
-      const avgLowPhase = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
-      const floorLevel = avgLowPhase / base;
-
-      return {
-        min: Math.round(base * Math.max(0.40, floorLevel * 0.90)),
-        max: Math.round(base * Math.max(0.90, floorLevel * 1.10))
-      };
-    }
-
-    // Fallback: usar predicción estándar
-    // Fase 1 (períodos 0-2): Decreciente
-    if (periodIndex <= 2) {
-      return {
-        min: Math.round(base * 0.40),
-        max: Math.round(base * 0.90)
-      };
-    }
-
-    // Fase 2 (períodos 3-4): Bajo
-    if (periodIndex <= 4) {
-      return {
-        min: Math.round(base * 0.60),
-        max: Math.round(base * 0.80)
-      };
-    }
-
-    // Fase 3 (períodos 5-9): Pico moderado
-    if (periodIndex <= 9) {
-      // El pico suele ser jueves/viernes
-      if (periodIndex >= 6 && periodIndex <= 8) {
-        return {
-          min: Math.round(base * 1.40),
-          max: Math.round(base * 2.00)
-        };
-      } else {
-        return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
-        };
-      }
-    }
-
-    // Fase 4 (períodos 10-11): Decreciente final
-    return {
-      min: Math.round(base * 0.40),
-      max: Math.round(base * 0.90)
-    };
+    return this.spikePattern(periodIndex, base, knownPrices, {
+      decayRate: 0.12,
+      growthRate: 0.25,
+      risingPhases: ['rising', 'increasing'],
+      peakPeriods: [6, 7, 8],
+      peakMin: 1.40,
+      peakMax: 2.00
+    });
   }
 
   // Patrón FLUCTUANTE: variable, 60-140%

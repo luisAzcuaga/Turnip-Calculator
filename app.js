@@ -1,5 +1,51 @@
 // App.js - Manejo de la interfaz de usuario
 
+// Utility functions
+const utils = {
+  // Debounce function to limit save frequency
+  debounce(func, wait) {
+    let timeout;
+    return (...args) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  },
+
+  // Add multiple event listeners to an element
+  addEventListeners(element, events, handler) {
+    events.forEach(event => element.addEventListener(event, handler));
+  },
+
+  // Manage estimated value styling and attributes
+  setEstimatedValue(input, min, max, avgEstimate) {
+    input.dataset.isEstimated = 'true';
+    input.dataset.min = min;
+    input.dataset.max = max;
+    input.classList.add('estimated-value');
+    input.classList.remove('confirmed-value');
+    input.value = avgEstimate;
+    input.title = `Promedio: ${avgEstimate} (rango: ${min}-${max} bayas)`;
+  },
+
+  clearEstimatedValue(input) {
+    input.value = '';
+    input.classList.remove('estimated-value');
+    delete input.dataset.isEstimated;
+    delete input.dataset.min;
+    delete input.dataset.max;
+    input.title = '';
+  },
+
+  convertToConfirmedValue(input) {
+    input.classList.remove('estimated-value');
+    input.classList.add('confirmed-value');
+    delete input.dataset.isEstimated;
+    delete input.dataset.min;
+    delete input.dataset.max;
+    input.title = '';
+  }
+};
+
 document.addEventListener('DOMContentLoaded', function () {
   const calculateBtn = document.getElementById('calculateBtn');
   const clearBtn = document.getElementById('clearBtn');
@@ -7,57 +53,27 @@ document.addEventListener('DOMContentLoaded', function () {
   const previousPatternSelect = document.getElementById('previousPattern');
   const resultsSection = document.getElementById('resultsSection');
 
-  // Lista de inputs de precios
-  const priceInputs = [
-    'mon_am', 'mon_pm', 'tue_am', 'tue_pm',
-    'wed_am', 'wed_pm', 'thu_am', 'thu_pm',
-    'fri_am', 'fri_pm', 'sat_am', 'sat_pm'
-  ];
-
   // Flag para prevenir guardado durante carga inicial
   let isLoading = true;
 
-  // Función de debounce para limitar frecuencia de guardado
-  function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
-
-  // Versión debounced de saveData (300ms delay)
-  const debouncedSaveData = debounce(saveData, 300);
+  // Versión debounced de saveData
+  const debouncedSaveData = utils.debounce(saveData, DEBOUNCE_DELAY);
 
   // Wrapper para evitar guardado durante carga inicial
-  function saveDataIfNotLoading() {
-    if (!isLoading) {
-      debouncedSaveData();
-    }
-  }
+  const saveDataIfNotLoading = () => !isLoading && debouncedSaveData();
 
   // Cargar datos guardados del localStorage
   loadSavedData();
 
   // Desactivar flag de carga después de un pequeño delay
-  setTimeout(() => {
-    isLoading = false;
-  }, 100);
+  setTimeout(() => isLoading = false, LOADING_DELAY);
 
   // Agregar listeners para autoguardado
-  buyPriceInput.addEventListener('input', saveDataIfNotLoading);
-  buyPriceInput.addEventListener('change', saveDataIfNotLoading);
-  previousPatternSelect.addEventListener('change', saveDataIfNotLoading);
-  priceInputs.forEach(id => {
+  utils.addEventListeners(buyPriceInput, ['input', 'change'], saveDataIfNotLoading);
+  utils.addEventListeners(previousPatternSelect, ['change'], saveDataIfNotLoading);
+  PRICE_INPUT_IDS.forEach(id => {
     const input = document.getElementById(id);
-    if (input) {
-      input.addEventListener('input', saveDataIfNotLoading);
-      input.addEventListener('change', saveDataIfNotLoading);
-    }
+    if (input) utils.addEventListeners(input, ['input', 'change'], saveDataIfNotLoading);
   });
 
   // Evento del botón calcular
@@ -87,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Recopilar precios conocidos (solo los confirmados)
     const knownPrices = {};
-    priceInputs.forEach(id => {
+    PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       // Solo tomar valores que NO son estimados
       if (input && input.value && input.dataset.isEstimated !== 'true') {
@@ -107,23 +123,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function clearEstimatedValues() {
-    priceInputs.forEach(id => {
+    PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       if (input && input.dataset.isEstimated === 'true') {
-        // Limpiar el valor y los estilos
-        input.value = '';
-        input.classList.remove('estimated-value');
-        delete input.dataset.isEstimated;
-        delete input.dataset.min;
-        delete input.dataset.max;
-        input.title = '';
-
+        utils.clearEstimatedValue(input);
         // Remover indicador de rango
-        const parent = input.parentElement;
-        const rangeIndicator = parent.querySelector('.range-indicator');
-        if (rangeIndicator) {
-          rangeIndicator.remove();
-        }
+        const rangeIndicator = input.parentElement.querySelector('.range-indicator');
+        rangeIndicator?.remove();
       }
     });
   }
@@ -255,19 +261,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!input.value) {
         const avgEstimate = Math.round((data.min + data.max) / 2);
 
-        // Set isEstimated flag BEFORE setting value to prevent race condition
-        // This ensures saveData() can properly filter out estimated values
-        input.dataset.isEstimated = 'true';
-        input.dataset.min = data.min;
-        input.dataset.max = data.max;
-        input.classList.add('estimated-value');
-        input.classList.remove('confirmed-value');
-
-        // Set value AFTER flag is set (this triggers input event)
-        input.value = avgEstimate;
-
-        // Agregar tooltip con el rango
-        input.title = `Promedio: ${avgEstimate} (rango: ${data.min}-${data.max} bayas)`;
+        // Set estimated value (sets flag BEFORE value to prevent race condition)
+        utils.setEstimatedValue(input, data.min, data.max, avgEstimate);
 
         // Agregar indicador de rango visual
         const parent = input.parentElement;
@@ -280,41 +275,22 @@ document.addEventListener('DOMContentLoaded', function () {
         rangeIndicator.textContent = `${data.min}-${data.max}`;
       } else if (input.dataset.isEstimated !== 'true') {
         // Remover indicador si es confirmado
-        const parent = input.parentElement;
-        const rangeIndicator = parent.querySelector('.range-indicator');
-        if (rangeIndicator) {
-          rangeIndicator.remove();
-        }
+        input.parentElement.querySelector('.range-indicator')?.remove();
       }
     });
 
     // Agregar event listeners para convertir estimados en confirmados al editar
-    priceInputs.forEach(id => {
+    PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       if (input && !input.dataset.hasEstimateListener) {
         input.addEventListener('focus', function() {
-          if (this.dataset.isEstimated === 'true') {
-            // Al hacer click en un valor estimado, limpiarlo para que el usuario pueda ingresar el real
-            this.select();
-          }
+          if (this.dataset.isEstimated === 'true') this.select();
         });
 
         input.addEventListener('input', function() {
           if (this.dataset.isEstimated === 'true') {
-            // Al modificar un valor estimado, marcarlo como confirmado
-            this.classList.remove('estimated-value');
-            this.classList.add('confirmed-value');
-            delete this.dataset.isEstimated;
-            delete this.dataset.min;
-            delete this.dataset.max;
-            this.title = '';
-
-            // Remover indicador de rango
-            const parent = this.parentElement;
-            const rangeIndicator = parent.querySelector('.range-indicator');
-            if (rangeIndicator) {
-              rangeIndicator.remove();
-            }
+            utils.convertToConfirmedValue(this);
+            this.parentElement.querySelector('.range-indicator')?.remove();
           }
         });
 
@@ -357,10 +333,10 @@ document.addEventListener('DOMContentLoaded', function () {
       previousPattern: previousPatternSelect.value
     };
 
-    priceInputs.forEach(id => {
+    PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       // Solo guardar valores confirmados, NO los estimados
-      if (input && input.value && input.dataset.isEstimated !== 'true') {
+      if (input?.value && input.dataset.isEstimated !== 'true') {
         data[id] = input.value;
       }
     });
@@ -370,53 +346,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function loadSavedData() {
     const savedData = localStorage.getItem('turnipData');
-    if (savedData) {
-      try {
-        const data = JSON.parse(savedData);
+    if (!savedData) return;
 
-        if (data.buyPrice) {
-          buyPriceInput.value = data.buyPrice;
-        }
+    try {
+      const data = JSON.parse(savedData);
 
-        if (data.previousPattern) {
-          previousPatternSelect.value = data.previousPattern;
-        }
+      if (data.buyPrice) buyPriceInput.value = data.buyPrice;
+      if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
 
-        priceInputs.forEach(id => {
-          if (data[id]) {
-            const input = document.getElementById(id);
-            if (input) {
-              input.value = data[id];
-            }
-          }
-        });
-      } catch (e) {
-        console.error('Error al cargar datos guardados:', e);
-      }
+      PRICE_INPUT_IDS.forEach(id => {
+        const input = document.getElementById(id);
+        if (data[id] && input) input.value = data[id];
+      });
+    } catch (e) {
+      console.error('Error al cargar datos guardados:', e);
     }
   }
 
   function clearAllData() {
-    if (confirm('¿Estás seguro de que quieres borrar todos los datos?')) {
-      // Limpiar inputs
-      buyPriceInput.value = '';
-      previousPatternSelect.value = '';
-      priceInputs.forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-          input.value = '';
-        }
-      });
+    if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
 
-      // Limpiar localStorage
-      localStorage.removeItem('turnipData');
+    // Limpiar inputs
+    buyPriceInput.value = '';
+    previousPatternSelect.value = '';
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.value = '';
+    });
 
-      // Ocultar resultados
-      resultsSection.style.display = 'none';
+    // Limpiar localStorage
+    localStorage.removeItem('turnipData');
 
-      // Scroll al inicio
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // Ocultar resultados
+    resultsSection.style.display = 'none';
+
+    // Scroll al inicio
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // Auto-calcular si hay datos guardados al cargar
