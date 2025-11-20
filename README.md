@@ -13,10 +13,11 @@ Una aplicación web estática para predecir los precios de los nabos en Animal C
 ## 📖 Uso básico
 
 1. **Ingresa el precio de compra** del domingo (90-110 bayas)
-2. **Añade los precios** que vayas descubriendo durante la semana
-3. **Haz clic en "Calcular Pronóstico"** para ver las predicciones
-4. **Colores**: 🟠 Naranja = estimado (click para editar) | 🟢 Verde = confirmado
-5. Los datos se guardan automáticamente en tu navegador
+2. **(Opcional) Selecciona el patrón de la semana anterior** para mejorar la precisión
+3. **Añade los precios** que vayas descubriendo durante la semana
+4. **Haz clic en "Calcular Pronóstico"** para ver las predicciones
+5. **Colores**: 🟠 Naranja = estimado (click para editar) | 🟢 Verde = confirmado
+6. Los datos se guardan automáticamente en tu navegador
 
 ## 🎯 Sistema de confianza
 
@@ -38,6 +39,20 @@ El predictor muestra:
 | 📊 **Fluctuante** | 60-140% | Cuando supere compra | Impredecible |
 | ⚠️ **Decreciente** | 40-90% (bajando) | ¡AHORA! o visita otra isla | EL PEOR |
 
+### 🔄 Sistema de probabilidades de transición
+
+El predictor usa las **probabilidades reales del juego** basadas en el patrón de la semana anterior:
+
+| Patrón anterior → | Fluctuante | Pico Grande | Decreciente | Pico Pequeño |
+|-------------------|------------|-------------|-------------|--------------|
+| **Sin historial** | 35% | 25% | 15% | 25% |
+| **Fluctuante** | 20% | 30% | 15% | **35%** |
+| **Pico Grande** | **50%** | 5% | 20% | 25% |
+| **Decreciente** | 25% | **45%** 🎉 | 5% | 25% |
+| **Pico Pequeño** | **45%** | 25% | 15% | 15% |
+
+**💡 Insight clave:** Si la semana pasada tuviste **Decreciente**, esta semana tienes **45% de probabilidad de Pico Grande** (¡excelente noticia!)
+
 ### 🧠 Ajuste dinámico inteligente
 
 El predictor **aprende de tus datos** y ajusta las predicciones en tiempo real:
@@ -52,6 +67,7 @@ _Para detalles técnicos del algoritmo, consulta [ALGORITHM.md](ALGORITHM.md)_
 
 ## ✨ Características
 
+- ✅ **Probabilidades de transición basadas en el patrón anterior** (usando lógica real del juego)
 - ✅ Detección automática de patrones con filtrado inteligente
 - ✅ Sistema de confianza con porcentajes de probabilidad
 - ✅ Ajuste dinámico que aprende de tus datos
@@ -64,6 +80,7 @@ _Para detalles técnicos del algoritmo, consulta [ALGORITHM.md](ALGORITHM.md)_
 ## 💡 Consejos
 
 ### Para mejores predicciones:
+- **Selecciona el patrón de la semana anterior**: Aumenta la confianza base +15% y mejora las probabilidades iniciales
 - **Ingresa más datos**: Cada precio adicional aumenta la precisión
 - **Prioriza lunes-martes**: Los primeros días identifican el patrón rápidamente
 - **Recalcula frecuentemente**: Cada nuevo precio mejora las estimaciones
@@ -74,6 +91,7 @@ _Para detalles técnicos del algoritmo, consulta [ALGORITHM.md](ALGORITHM.md)_
 - Si tienes patrón decreciente, no esperes - vende ya o visita otra isla
 - Si la confianza es baja, espera más datos antes de tomar decisiones
 - Los patrones se reinician cada semana (domingo)
+- **Anota el patrón de cada semana** para aprovechar las probabilidades de transición
 
 ## 🎮 Sobre los nabos en Animal Crossing
 
@@ -82,6 +100,7 @@ Los nabos son el "mercado de valores" de Animal Crossing:
 - 📈 Precios cambian 2 veces al día: AM/PM (lunes a sábado)
 - 💀 Se pudren después del sábado
 - 🎲 Cada isla tiene uno de 4 patrones cada semana
+- 🔄 **El patrón de esta semana está influenciado por el de la semana anterior** (ver tabla de probabilidades arriba)
 
 ## 🛠️ Personalización
 
