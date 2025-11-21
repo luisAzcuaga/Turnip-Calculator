@@ -17,18 +17,19 @@ const utils = {
   },
 
   // Manage estimated value styling and attributes
-  setEstimatedValue(input, min, max, avgEstimate) {
+  setEstimatedValue(input, min, max) {
     input.dataset.isEstimated = 'true';
     input.dataset.min = min;
     input.dataset.max = max;
     input.classList.add('estimated-value');
     input.classList.remove('confirmed-value');
-    input.value = avgEstimate;
-    input.title = `Promedio: ${avgEstimate} (rango: ${min}-${max} bayas)`;
+    input.placeholder = `${min}-${max}`;
+    input.title = `Rango estimado: ${min}-${max} bayas`;
   },
 
   clearEstimatedValue(input) {
     input.value = '';
+    input.placeholder = '-';
     input.classList.remove('estimated-value');
     delete input.dataset.isEstimated;
     delete input.dataset.min;
@@ -127,9 +128,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const input = document.getElementById(id);
       if (input && input.dataset.isEstimated === 'true') {
         utils.clearEstimatedValue(input);
-        // Remover indicador de rango
-        const rangeIndicator = input.parentElement.querySelector('.range-indicator');
-        rangeIndicator?.remove();
       }
     });
   }
@@ -140,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Mostrar patrón con confianza y alternativas
-    displayPattern(results.pattern, results.patternName, results.confidence, results.allProbabilities);
+    displayPattern(results.patternName, results.confidence, results.allProbabilities);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -152,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
     displayBestTime(results.bestTime);
   }
 
-  function displayPattern(pattern, patternName, confidence, allProbabilities) {
+  function displayPattern(patternName, confidence, allProbabilities) {
     // Panel de confianza (lateral derecho) - shows all pattern info
     displayConfidencePanel(confidence, patternName, allProbabilities);
   }
@@ -258,25 +256,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      // Si no tiene valor, llenar con el promedio del rango estimado
+      // Si no tiene valor, mostrar placeholder con el rango estimado
       if (!input.value) {
-        const avgEstimate = Math.round((data.min + data.max) / 2);
-
-        // Set estimated value (sets flag BEFORE value to prevent race condition)
-        utils.setEstimatedValue(input, data.min, data.max, avgEstimate);
-
-        // Agregar indicador de rango visual
-        const parent = input.parentElement;
-        let rangeIndicator = parent.querySelector('.range-indicator');
-        if (!rangeIndicator) {
-          rangeIndicator = document.createElement('div');
-          rangeIndicator.className = 'range-indicator';
-          parent.appendChild(rangeIndicator);
-        }
-        rangeIndicator.textContent = `${data.min}-${data.max}`;
-      } else if (input.dataset.isEstimated !== 'true') {
-        // Remover indicador si es confirmado
-        input.parentElement.querySelector('.range-indicator')?.remove();
+        // Set estimated value (placeholder shows range)
+        utils.setEstimatedValue(input, data.min, data.max);
       }
     });
 
@@ -284,14 +267,9 @@ document.addEventListener('DOMContentLoaded', function () {
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       if (input && !input.dataset.hasEstimateListener) {
-        input.addEventListener('focus', function() {
-          if (this.dataset.isEstimated === 'true') this.select();
-        });
-
         input.addEventListener('input', function() {
           if (this.dataset.isEstimated === 'true') {
             utils.convertToConfirmedValue(this);
-            this.parentElement.querySelector('.range-indicator')?.remove();
           }
         });
 

@@ -235,6 +235,12 @@ header h1 {
   font-style: italic;
 }
 
+.price-input input.estimated-value::placeholder {
+  color: #e65100;
+  opacity: 1;
+  font-style: italic;
+}
+
 .price-input input.estimated-value:hover {
   background: #ffe0b2;
   cursor: pointer;
