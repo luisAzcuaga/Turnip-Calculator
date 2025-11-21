@@ -384,11 +384,20 @@ class TurnipPredictor {
       }
     });
 
+    // Asegurar que tenemos probabilidades para los 4 patrones
+    const allProbabilities = {
+      'fluctuating': patternResult.percentages['fluctuating'] || 0,
+      'large_spike': patternResult.percentages['large_spike'] || 0,
+      'decreasing': patternResult.percentages['decreasing'] || 0,
+      'small_spike': patternResult.percentages['small_spike'] || 0
+    };
+
     return {
       pattern: pattern,
       patternName: this.patternNames[pattern],
       confidence: patternResult.confidence,
       primaryPercentage: patternResult.percentages[pattern],
+      allProbabilities: allProbabilities,
       alternatives: patternResult.alternatives.map(alt => ({
         pattern: alt.pattern,
         name: this.patternNames[alt.pattern],

@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Mostrar patrón con confianza y alternativas
-    displayPattern(results.pattern, results.patternName, results.confidence, results.primaryPercentage, results.alternatives);
+    displayPattern(results.pattern, results.patternName, results.confidence, results.allProbabilities);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -152,12 +152,12 @@ document.addEventListener('DOMContentLoaded', function () {
     displayBestTime(results.bestTime);
   }
 
-  function displayPattern(pattern, patternName, confidence, primaryPercentage, alternatives) {
+  function displayPattern(pattern, patternName, confidence, allProbabilities) {
     // Panel de confianza (lateral derecho) - shows all pattern info
-    displayConfidencePanel(confidence, primaryPercentage, patternName, alternatives);
+    displayConfidencePanel(confidence, patternName, allProbabilities);
   }
 
-  function displayConfidencePanel(confidence, primaryPercentage, patternName, alternatives) {
+  function displayConfidencePanel(confidence, patternName, allProbabilities) {
     const confidencePanel = document.getElementById('confidencePanel');
 
     // Determinar nivel de confianza
@@ -196,26 +196,39 @@ document.addEventListener('DOMContentLoaded', function () {
       </div>
     `;
 
-    // Mostrar distribución de probabilidades
+    // Mostrar distribución de probabilidades - SIEMPRE LOS 4 PATRONES
     html += `<div class="probability-distribution">
-      <h4>Distribución de Probabilidades</h4>
+      <h4>Todos los Patrones Posibles</h4>
       <div class="probability-list">`;
 
-    // Agregar todas las probabilidades
-    const allPatterns = [{ name: patternName, percentage: primaryPercentage }];
-    if (alternatives && alternatives.length > 0) {
-      alternatives.forEach(alt => {
-        allPatterns.push({ name: alt.name, percentage: alt.percentage });
-      });
-    }
+    // Crear lista con todos los patrones y ordenar por probabilidad (más probable primero)
+    const allPatterns = [
+      { key: 'large_spike', name: 'Pico Grande' },
+      { key: 'small_spike', name: 'Pico Pequeño' },
+      { key: 'decreasing', name: 'Decreciente' },
+      { key: 'fluctuating', name: 'Fluctuante' }
+    ];
 
-    // Ordenar por porcentaje descendente
-    allPatterns.sort((a, b) => b.percentage - a.percentage);
+    // Agregar probabilidades y ordenar descendente
+    const patternsWithProb = allPatterns.map(p => ({
+      ...p,
+      percentage: allProbabilities[p.key] || 0,
+      isPrimary: p.name === patternName
+    }));
 
-    allPatterns.forEach(p => {
+    // Ordenar por probabilidad (mayor a menor)
+    patternsWithProb.sort((a, b) => b.percentage - a.percentage);
+
+    patternsWithProb.forEach(p => {
+      const itemClass = p.isPrimary ? 'probability-item primary-pattern' : 'probability-item';
+      const badge = p.isPrimary ? '<span class="primary-badge">MÁS PROBABLE</span>' : '';
+
       html += `
-        <div class="probability-item">
-          <span class="probability-name">${p.name}</span>
+        <div class="${itemClass}">
+          <div class="probability-header-row">
+            <span class="probability-name">${p.name}</span>
+            ${badge}
+          </div>
           <div class="probability-bar-container">
             <div class="probability-bar-fill" style="width: ${p.percentage}%"></div>
             <span class="probability-value">${p.percentage}%</span>
@@ -226,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     html += `</div>
       <p class="probability-explanation">
-        <small>Los porcentajes (%) indican la probabilidad de cada patrón.</small>
+        <small>Todos los patrones se muestran con sus probabilidades. Los patrones en 0% son incompatibles con los precios ingresados.</small>
       </p>
     </div>`;
 
