@@ -189,6 +189,10 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
         <div class="confidence-level">${confidenceLabel}</div>
         <div class="confidence-message">${confidenceMessage}</div>
+        <p class="probability-explanation">
+          <small>Los porcentajes (%) indican la probabilidad de cada patrón.
+          La confianza muestra qué tan precisas son estas estimaciones (más datos = mayor confianza).</small>
+        </p>
       </div>
     `;
 
@@ -220,7 +224,11 @@ document.addEventListener('DOMContentLoaded', function () {
       `;
     });
 
-    html += `</div></div>`;
+    html += `</div>
+      <p class="probability-explanation">
+        <small>Los porcentajes (%) indican la probabilidad de cada patrón.</small>
+      </p>
+    </div>`;
 
     confidencePanel.innerHTML = html;
   }

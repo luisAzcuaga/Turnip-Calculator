@@ -536,9 +536,31 @@ button {
 
 .probability-explanation {
   text-align: center;
-  margin-bottom: 12px;
+  margin: 15px auto 12px;
   color: #616161;
   line-height: 1.4;
+}
+
+.confidence-meter .probability-explanation {
+  margin: 15px 0 0 0;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.85rem;
+}
+
+.confidence-meter.confidence-high .probability-explanation {
+  color: #558b2f;
+  border-top-color: rgba(102, 187, 106, 0.3);
+}
+
+.confidence-meter.confidence-medium .probability-explanation {
+  color: #e65100;
+  border-top-color: rgba(255, 235, 59, 0.3);
+}
+
+.confidence-meter.confidence-low .probability-explanation {
+  color: #c62828;
+  border-top-color: rgba(239, 83, 80, 0.3);
 }
 
 .probability-list {
