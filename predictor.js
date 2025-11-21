@@ -284,7 +284,27 @@ class TurnipPredictor {
       scoreConfidence = Math.min(scoreDiff, 60); // Max 60% por diferencia de score
     }
 
-    const totalConfidence = Math.min(dataConfidence + scoreConfidence + historyBonus, 100);
+    // Bonus: si los top 2 patrones son ambos picos (large/small), sabemos que ES un pico
+    const spikePatterns = [this.patterns.LARGE_SPIKE, this.patterns.SMALL_SPIKE];
+    let patternFamilyBonus = 0;
+    if (sortedPatterns.length > 1) {
+      const topTwo = [sortedPatterns[0], sortedPatterns[1]];
+      const bothAreSpikes = topTwo.every(p => spikePatterns.includes(p));
+      if (bothAreSpikes) {
+        patternFamilyBonus = 25; // Sabemos que es un pico, solo dudamos del tamaño
+      }
+    }
+
+    // Bonus: si el mejor score es alto (>70), dar confianza base por certeza absoluta
+    let absoluteScoreBonus = 0;
+    if (bestScore > 70) {
+      absoluteScoreBonus = Math.min(Math.round((bestScore - 70) / 2), 15);
+    }
+
+    const totalConfidence = Math.min(
+      dataConfidence + scoreConfidence + historyBonus + patternFamilyBonus + absoluteScoreBonus,
+      100
+    );
 
     // Convertir scores a porcentajes
     const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
