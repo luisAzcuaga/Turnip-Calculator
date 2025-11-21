@@ -513,47 +513,6 @@ button {
   line-height: 1.4;
 }
 
-/* Historial de semana pasada */
-.last-week-info {
-  background: #fff8e1;
-  padding: 15px;
-  border-radius: 10px;
-  margin: 0 0 15px;
-  border: 2px solid #ffc107;
-}
-
-.last-week-info h3 {
-  color: #e65100;
-  font-size: 1rem;
-  margin: 0 0 10px;
-  text-align: center;
-}
-
-.last-week-pattern {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  text-align: center;
-  margin: 0 0 8px;
-}
-
-.last-week-pattern .pattern-label {
-  font-size: 0.85rem;
-  color: #757575;
-}
-
-.last-week-pattern .pattern-value {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #e65100;
-}
-
-.last-week-confidence {
-  text-align: center;
-  color: #757575;
-  font-size: 0.85rem;
-}
-
 /* Distribución de probabilidades */
 .probability-distribution {
   background: #f9fbe7;
