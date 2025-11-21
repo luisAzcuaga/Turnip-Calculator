@@ -142,6 +142,9 @@
         <div class="results-grid">
           <!-- Columna izquierda: 2/3 - Info del patrón -->
           <div class="results-main">
+            <div class="chart-container">
+              <h3>📈 Tendencia de Precios</h3>
+              <canvas id="priceChart"></canvas>
             </div>
 
             <div class="recommendations" id="recommendations">
@@ -164,6 +167,9 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1"></script>
   <script src="constants.js"></script>
   <script src="predictor.js"></script>
   <script src="app.js"></script>
