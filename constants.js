@@ -19,6 +19,12 @@ const DAYS_CONFIG = [
 // Extract just the keys for convenience (when only IDs are needed)
 const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
 
+// Turnip price validation (según Animal Crossing Wiki)
+const TURNIP_PRICE_MIN = 9;
+const TURNIP_PRICE_MAX = 660;
+const BUY_PRICE_MIN = 90;
+const BUY_PRICE_MAX = 110;
+
 // Debounce configuration
 const DEBOUNCE_DELAY = 300; // ms
 const LOADING_DELAY = 100; // ms

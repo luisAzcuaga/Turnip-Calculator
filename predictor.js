@@ -3,8 +3,13 @@
 
 class TurnipPredictor {
   constructor(buyPrice, knownPrices = {}, previousPattern = null) {
+    // Validar precio de compra
+    if (buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
+      console.warn(`Precio de compra ${buyPrice} fuera de rango válido (${BUY_PRICE_MIN}-${BUY_PRICE_MAX})`);
+    }
+
     this.buyPrice = buyPrice;
-    this.knownPrices = knownPrices;
+    this.knownPrices = this.validatePrices(knownPrices);
     this.previousPattern = previousPattern;
     this.patterns = {
       FLUCTUATING: 'fluctuating',
@@ -56,6 +61,33 @@ class TurnipPredictor {
         'small_spike': 0.15
       }
     };
+  }
+
+  // Validar precios conocidos
+  validatePrices(knownPrices) {
+    const validated = {};
+
+    Object.entries(knownPrices).forEach(([key, price]) => {
+      if (price === undefined || price === null || price === '') {
+        return; // Skip empty values
+      }
+
+      const numPrice = parseInt(price);
+
+      if (isNaN(numPrice)) {
+        console.warn(`Precio inválido para ${key}: ${price}`);
+        return;
+      }
+
+      if (numPrice < TURNIP_PRICE_MIN || numPrice > TURNIP_PRICE_MAX) {
+        console.warn(`Precio ${numPrice} para ${key} fuera de rango válido (${TURNIP_PRICE_MIN}-${TURNIP_PRICE_MAX}). Ignorando.`);
+        return;
+      }
+
+      validated[key] = numPrice;
+    });
+
+    return validated;
   }
 
   // Obtener array de precios conocidos con sus índices
