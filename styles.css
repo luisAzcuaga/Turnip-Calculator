@@ -230,7 +230,6 @@ header h1 {
 .price-input input.estimated-value {
   background: #fff3e0;
   color: #e65100;
-  font-weight: bold;
   border-color: #ffb74d;
   font-style: italic;
 }
@@ -239,6 +238,7 @@ header h1 {
   color: #e65100;
   opacity: 1;
   font-style: italic;
+  font-weight: normal;
 }
 
 .price-input input.estimated-value:hover {

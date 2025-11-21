@@ -268,8 +268,13 @@ document.addEventListener('DOMContentLoaded', function () {
       const input = document.getElementById(id);
       if (input && !input.dataset.hasEstimateListener) {
         input.addEventListener('input', function() {
+          // Convertir a confirmado solo si tiene texto
           if (this.dataset.isEstimated === 'true') {
-            utils.convertToConfirmedValue(this);
+            if (this.value.trim() !== '') {
+              utils.convertToConfirmedValue(this);
+            }
+            // Si borra todo, NO reconvertir a estimado aquí
+            // (se recalculará en el próximo cálculo)
           }
         });
 
