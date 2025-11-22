@@ -152,65 +152,68 @@ class TurnipPredictor {
   // Verificar si el patrón PICO GRANDE es posible
   isPossibleLargeSpike(knownPrices) {
     let hasHighPeak = false;
-    let hasLowPhase = false;
 
     for (let i = 0; i < knownPrices.length; i++) {
       const price = knownPrices[i].price;
       const ratio = price / this.buyPrice;
 
-      // Si encuentra un precio muy alto (200%+), es probable pico grande
+      // Si encuentra un precio muy alto (200%+), definitivamente es pico grande
       if (ratio >= 2.0) {
         hasHighPeak = true;
-      }
-
-      // Si encuentra precios bajos al inicio (< 90%), es consistente con pico grande
-      if (i < 6 && ratio < 0.9) {
-        hasLowPhase = true;
-      }
-
-      // Si encuentra precios muy bajos tarde en la semana Y no hay pico, no puede ser pico grande
-      if (i >= 8 && ratio < 0.6 && !hasHighPeak) {
-        return false;
+        break; // Ya confirmamos que es posible
       }
     }
 
-    // Si ya pasó la mitad de la semana y no hay picos altos, es menos probable
+    // Si ya vimos un pico alto, es posible
+    if (hasHighPeak) {
+      return true;
+    }
+
+    // Si estamos muy tarde en la semana (después del sábado AM) y no hubo pico alto
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-    if (maxKnownIndex > 7 && !hasHighPeak) {
-      // Verificar si hay al menos un precio moderadamente alto
+    if (maxKnownIndex >= 10) {
+      // El pico ya debería haber ocurrido
+      // Verificar si al menos hay precios que indiquen fase de pico
       const maxPrice = Math.max(...knownPrices.map(p => p.price));
-      if (maxPrice < this.buyPrice * 1.4) {
+      const maxRatio = maxPrice / this.buyPrice;
+
+      // Si el precio máximo fue < 140%, es muy improbable que sea pico grande
+      if (maxRatio < 1.4) {
         return false;
       }
     }
 
+    // En otros casos, mantener como posible (aún puede venir el pico)
     return true;
   }
 
   // Verificar si el patrón PICO PEQUEÑO es posible
   isPossibleSmallSpike(knownPrices) {
-    let hasModerateSpike = false;
-    let hasTooHighSpike = false;
-
     for (let i = 0; i < knownPrices.length; i++) {
       const price = knownPrices[i].price;
       const ratio = price / this.buyPrice;
 
       // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
+      // (sería pico grande)
       if (ratio > 2.0) {
-        hasTooHighSpike = true;
-      }
-
-      // Si encuentra un precio moderadamente alto (140-200%), es consistente
-      if (ratio >= 1.4 && ratio <= 2.0) {
-        hasModerateSpike = true;
+        return false;
       }
     }
 
-    if (hasTooHighSpike) {
-      return false;
+    // Si estamos muy tarde en la semana (después del sábado PM) y no hubo pico
+    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+    if (maxKnownIndex >= 11) {
+      // El pico ya debería haber ocurrido
+      const maxPrice = Math.max(...knownPrices.map(p => p.price));
+      const maxRatio = maxPrice / this.buyPrice;
+
+      // Si el precio máximo fue < 90%, es muy improbable que sea pico pequeño
+      if (maxRatio < 0.90) {
+        return false;
+      }
     }
 
+    // En otros casos, mantener como posible
     return true;
   }
 
@@ -571,87 +574,232 @@ class TurnipPredictor {
     };
   }
 
-  // Generic spike pattern function (consolidates large and small spike logic)
-  spikePattern(periodIndex, base, knownPrices = [], config) {
-    const { decayRate, growthRate, risingPhases, peakPeriods, peakMin, peakMax } = config;
-    const phase = this.detectPricePhase(knownPrices);
-    const peak = this.findPeakInKnownPrices(knownPrices);
-
-    // Post-peak phase: adjust based on decay from peak
-    if (peak && peak.index < periodIndex && phase === 'decreasing') {
-      const periodsAfterPeak = periodIndex - peak.index;
-      const projected = peak.price * Math.pow(1 - decayRate, periodsAfterPeak);
-      return {
-        min: Math.round(projected * 0.85),
-        max: Math.round(projected * 1.15)
-      };
+  // Detecta dinámicamente dónde empieza la fase de pico en patrones de Spike
+  // Basado en análisis de precios conocidos
+  detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike) {
+    if (knownPrices.length === 0) {
+      return 6; // Default: miércoles PM (período típico)
     }
 
-    // Rising phase: project peak growth
-    if (risingPhases.includes(phase) && knownPrices.length > 0) {
-      const lastKnown = knownPrices[knownPrices.length - 1];
-      const periodsAhead = periodIndex - lastKnown.index;
+    // Buscar el primer precio que sube significativamente desde fase baja
+    for (let i = 1; i < knownPrices.length; i++) {
+      const current = knownPrices[i];
+      const previous = knownPrices[i - 1];
 
-      if (periodsAhead > 0 && periodsAhead <= 2) {
-        const projected = lastKnown.price * Math.pow(1 + growthRate, periodsAhead);
-        return {
-          min: Math.round(projected * 0.80),
-          max: Math.round(projected * 1.20)
-        };
+      // Detectar subida significativa (transición a fase de pico)
+      if (current.price > previous.price * 1.3) {
+        // Este es probablemente el inicio de la fase de pico
+        const estimatedStart = Math.max(minPeakStart, current.index);
+        return Math.min(maxPeakStart, estimatedStart);
       }
     }
 
-    // Adjust low phase based on observed data
-    if (periodIndex <= 4 && knownPrices.length > 0) {
-      const avgLowPhase = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
-      const floorLevel = avgLowPhase / base;
-      return {
-        min: Math.round(base * Math.max(0.40, floorLevel * 0.90)),
-        max: Math.round(base * Math.max(0.90, floorLevel * 1.10))
-      };
+    // Buscar el precio máximo conocido
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+
+    if (maxPriceData) {
+      const baseEstimate = knownPrices[0]?.price || 100;
+      const ratio = maxPrice / baseEstimate;
+
+      // Large Spike: pico máximo en 200-600%
+      if (isLargeSpike && ratio >= 2.0) {
+        // El pico máximo está en peakStart+2
+        const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 2);
+        return Math.min(maxPeakStart, estimatedPeakStart);
+      }
+
+      // Small Spike: pico máximo en 140-200%
+      if (!isLargeSpike && ratio >= 1.4) {
+        // El pico máximo está en peakStart+2, +3, o +4
+        const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
+        return Math.min(maxPeakStart, estimatedPeakStart);
+      }
     }
 
-    // Fallback: standard prediction based on period
-    return this.getSpikeStandardPrediction(periodIndex, base, peakPeriods, peakMin, peakMax);
+    // Si hay tendencia decreciente, el pico probablemente ya pasó o está cerca
+    const lastKnownIndex = knownPrices[knownPrices.length - 1]?.index || 5;
+
+    // Si estamos en fase baja tardía, asumir que el pico será pronto
+    if (lastKnownIndex >= 4) {
+      return Math.max(minPeakStart, Math.min(maxPeakStart, lastKnownIndex));
+    }
+
+    // Fallback: usar período medio del rango válido
+    return Math.floor((minPeakStart + maxPeakStart) / 2);
   }
 
-  // Standard spike prediction helper
-  getSpikeStandardPrediction(periodIndex, base, peakPeriods, peakMin, peakMax) {
-    if (peakPeriods.includes(periodIndex)) {
+  // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
+  // Basado en el algoritmo real datamineado del juego (Pattern 1)
+  largeSpikePattern(periodIndex, base, knownPrices = []) {
+    // peakStart puede ser 3-9 según el algoritmo del juego
+    const peakStart = this.detectSpikePeakStart(knownPrices, 3, 9, true);
+
+    // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
+    // Empieza en 85-90%, baja 3-5% cada período
+    if (periodIndex < peakStart) {
+      const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
+
+      if (decreasingPhase.length >= 2) {
+        // Calcular tasa de decrecimiento observada
+        let totalRate = 0;
+        for (let i = 1; i < decreasingPhase.length; i++) {
+          const rate = (decreasingPhase[i - 1].price - decreasingPhase[i].price) / decreasingPhase[i - 1].price;
+          totalRate += rate;
+        }
+        const avgRate = totalRate / (decreasingPhase.length - 1);
+
+        const lastKnown = decreasingPhase[decreasingPhase.length - 1];
+        const periodsAhead = periodIndex - lastKnown.index;
+        if (periodsAhead > 0) {
+          const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
+          return {
+            min: Math.round(projected * 0.90),
+            max: Math.round(projected * 1.10)
+          };
+        }
+      }
+
+      // Sin datos suficientes: usar rangos del algoritmo
+      const initialRate = 0.875; // Promedio de 0.85-0.90
+      const decayPerPeriod = 0.04; // Promedio de 0.03-0.05
+      const rate = Math.max(0.40, initialRate - (periodIndex * decayPerPeriod));
+      const price = base * rate;
+
       return {
-        min: Math.round(base * peakMin),
-        max: Math.round(base * peakMax)
+        min: Math.round(price * 0.85),
+        max: Math.round(price * 1.10)
       };
     }
-    // Default low phase
+
+    // Fase 2: PICO (5 períodos consecutivos desde peakStart)
+    const peakPhaseIndex = periodIndex - peakStart;
+
+    if (peakPhaseIndex >= 0 && peakPhaseIndex < 5) {
+      // Rangos según el algoritmo del juego:
+      // peakStart+0: 90-140%
+      // peakStart+1: 140-200%
+      // peakStart+2: 200-600% (PICO MÁXIMO)
+      // peakStart+3: 140-200%
+      // peakStart+4: 90-140%
+      const peakPhaseRanges = [
+        { min: 0.90, max: 1.40 },
+        { min: 1.40, max: 2.00 },
+        { min: 2.00, max: 6.00 },
+        { min: 1.40, max: 2.00 },
+        { min: 0.90, max: 1.40 }
+      ];
+
+      const range = peakPhaseRanges[peakPhaseIndex];
+      return {
+        min: Math.round(base * range.min),
+        max: Math.round(base * range.max)
+      };
+    }
+
+    // Fase 3: BAJA FINAL (después del pico)
     return {
       min: Math.round(base * 0.40),
       max: Math.round(base * 0.90)
     };
   }
 
-  // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
-  largeSpikePattern(periodIndex, base, knownPrices = []) {
-    return this.spikePattern(periodIndex, base, knownPrices, {
-      decayRate: 0.15,
-      growthRate: 0.5,
-      risingPhases: ['rising'],
-      peakPeriods: [5, 6],
-      peakMin: 1.40,
-      peakMax: 6.00
-    });
-  }
-
   // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
+  // Basado en el algoritmo real datamineado del juego (Pattern 3)
   smallSpikePattern(periodIndex, base, knownPrices = []) {
-    return this.spikePattern(periodIndex, base, knownPrices, {
-      decayRate: 0.12,
-      growthRate: 0.25,
-      risingPhases: ['rising', 'increasing'],
-      peakPeriods: [6, 7, 8],
-      peakMin: 1.40,
-      peakMax: 2.00
-    });
+    // peakStart puede ser 2-9 según el algoritmo del juego
+    const peakStart = this.detectSpikePeakStart(knownPrices, 2, 9, false);
+
+    // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
+    // Empieza en 40-90%, baja 3-5% cada período
+    if (periodIndex < peakStart) {
+      const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
+
+      if (decreasingPhase.length >= 2) {
+        // Calcular tasa de decrecimiento observada
+        let totalRate = 0;
+        for (let i = 1; i < decreasingPhase.length; i++) {
+          const rate = (decreasingPhase[i - 1].price - decreasingPhase[i].price) / decreasingPhase[i - 1].price;
+          totalRate += rate;
+        }
+        const avgRate = totalRate / (decreasingPhase.length - 1);
+
+        const lastKnown = decreasingPhase[decreasingPhase.length - 1];
+        const periodsAhead = periodIndex - lastKnown.index;
+        if (periodsAhead > 0) {
+          const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
+          return {
+            min: Math.round(projected * 0.90),
+            max: Math.round(projected * 1.10)
+          };
+        }
+      }
+
+      // Sin datos suficientes: usar rangos del algoritmo
+      const initialRate = 0.65; // Promedio de 0.40-0.90
+      const decayPerPeriod = 0.04; // Promedio de 0.03-0.05
+      const rate = Math.max(0.40, initialRate - (periodIndex * decayPerPeriod));
+      const price = base * rate;
+
+      return {
+        min: Math.round(price * 0.80),
+        max: Math.round(price * 1.20)
+      };
+    }
+
+    // Fase 2: PICO (5 períodos consecutivos desde peakStart)
+    const peakPhaseIndex = periodIndex - peakStart;
+
+    if (peakPhaseIndex >= 0 && peakPhaseIndex < 5) {
+      // Rangos según el algoritmo del juego:
+      // peakStart+0: 90-140%
+      // peakStart+1: 90-140%
+      // peakStart+2: 140-200%
+      // peakStart+3: 140-200% (usualmente el pico máximo)
+      // peakStart+4: 140-200%
+      const peakPhaseRanges = [
+        { min: 0.90, max: 1.40 },
+        { min: 0.90, max: 1.40 },
+        { min: 1.40, max: 2.00 },
+        { min: 1.40, max: 2.00 },
+        { min: 1.40, max: 2.00 }
+      ];
+
+      const range = peakPhaseRanges[peakPhaseIndex];
+      return {
+        min: Math.round(base * range.min),
+        max: Math.round(base * range.max)
+      };
+    }
+
+    // Fase 3: DECRECIENTE FINAL (después del pico)
+    const finalDecreasingPhase = knownPrices.filter(p => p.index >= peakStart + 5);
+
+    if (finalDecreasingPhase.length >= 2) {
+      // Calcular tasa de decrecimiento observada
+      let totalRate = 0;
+      for (let i = 1; i < finalDecreasingPhase.length; i++) {
+        const rate = (finalDecreasingPhase[i - 1].price - finalDecreasingPhase[i].price) / finalDecreasingPhase[i - 1].price;
+        totalRate += rate;
+      }
+      const avgRate = totalRate / (finalDecreasingPhase.length - 1);
+
+      const lastKnown = finalDecreasingPhase[finalDecreasingPhase.length - 1];
+      const periodsAhead = periodIndex - lastKnown.index;
+      if (periodsAhead > 0) {
+        const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
+        return {
+          min: Math.round(projected * 0.90),
+          max: Math.round(projected * 1.10)
+        };
+      }
+    }
+
+    // Sin datos suficientes en fase final: usar rangos del algoritmo
+    return {
+      min: Math.round(base * 0.40),
+      max: Math.round(base * 0.90)
+    };
   }
 
   // Patrón FLUCTUANTE: variable, 60-140%
