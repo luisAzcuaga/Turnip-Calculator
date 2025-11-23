@@ -1,124 +1,183 @@
 # 🥕 Predictor de Nabos - Animal Crossing New Horizons
 
-Una aplicación web estática para predecir los precios de los nabos en Animal Crossing: New Horizons. **No requiere internet después de la primera carga** - funciona completamente offline.
+Predictor de precios de nabos basado en los **algoritmos reales del juego** (extraídos por datamining).
+
+100% estático, funciona offline, sin servidor necesario.
+
+---
 
 ## 🚀 Cómo usar
 
-1. Descarga todos los archivos en una carpeta
-2. Abre `index.html` en tu navegador
-3. ¡Listo! Ya puedes usarlo
+1. **Descarga** todos los archivos en una carpeta
+2. **Abre** `index.html` en tu navegador
+3. **¡Listo!** Ya puedes usarlo
 
-**Opcional:** También puedes deployarlo gratis en [Netlify](https://netlify.com) o [GitHub Pages](https://pages.github.com) arrastrando los archivos.
+**Opcional:** Puedes deployarlo gratis en [Netlify](https://netlify.com) o [GitHub Pages](https://pages.github.com).
 
-## 📖 Uso básico
+---
 
-1. **Ingresa el precio de compra** del domingo (90-110 bayas)
-2. **(Opcional) Selecciona el patrón de la semana anterior** para mejorar la precisión
-3. **Añade los precios** que vayas descubriendo durante la semana
-4. **Haz clic en "Calcular Pronóstico"** para ver las predicciones
-5. **Colores**: 🟠 Naranja = estimado (click para editar) | 🟢 Verde = confirmado
-6. Los datos se guardan automáticamente en tu navegador
+## 📖 Guía rápida
+
+### Paso a paso:
+1. **Ingresa tu precio de compra** del domingo (90-110 bayas)
+2. **Selecciona el patrón de la semana anterior** (si lo sabes) → Mejora mucho la precisión
+3. **Añade precios** conforme los veas en tu isla
+4. **Haz clic en "Calcular Pronóstico"**
+5. **Revisa las predicciones** y el nivel de confianza
+
+### Colores:
+- 🟠 **Naranja** = Precio estimado (click para editar si sabes el real)
+- 🟢 **Verde** = Precio confirmado (ya lo ingresaste)
+
+### Guardado automático:
+Todos tus datos se guardan en el navegador. No necesitas hacer nada.
+
+---
+
+## 📊 Los 4 patrones de nabos
+
+| Patrón | Rango típico | Mejor momento | Qué hacer |
+|--------|-------------|---------------|-----------|
+| 🚀 **Pico Grande** | 200-600% | Miércoles-Jueves | ¡ESPERA AL PICO! Vende cuando veas 200%+ |
+| 📈 **Pico Chico** | 140-200% | Jueves-Viernes | Vende en el pico (~150-190%) |
+| 📊 **Fluctuante** | 60-140% | Cuando >110% | Vende cuando veas ganancia |
+| 📉 **Decreciente** | 40-90% (bajando) | ¡AHORA! | Vende YA o busca otra isla |
+
+**💡 Tip:** Lee [ALGORITHM.md](ALGORITHM.md) para entender cómo funciona cada patrón en detalle.
+
+---
+
+## 🔄 Cómo cambian los patrones cada semana
+
+El juego NO elige patrones al azar. **El patrón de esta semana depende del de la semana anterior:**
+
+| Semana pasada | Más probable esta semana |
+|---------------|-------------------------|
+| **Sin historial** | 35% Fluctuante |
+| **Fluctuante** | **35% Pico Chico** |
+| **Pico Grande** | **50% Fluctuante** |
+| **Decreciente** | **45% Pico Grande** 🎉 |
+| **Pico Chico** | **45% Fluctuante** |
+
+### 💡 Insight clave:
+**Si tuviste Decreciente la semana pasada, tienes 45% de probabilidad de Pico Grande esta semana.**
+
+Por eso es importante seleccionar el patrón anterior en el predictor.
+
+---
 
 ## 🎯 Sistema de confianza
 
-El predictor muestra:
-- **Porcentajes de probabilidad (%)**: Qué tan probable es cada patrón (suman 100%)
-- **Nivel de confianza**: Qué tan precisas son las predicciones
-  - 🟢 **Alta (≥70%)**: Muy confiable, muestra solo el patrón principal
-  - 🟡 **Media (50-69%)**: Confianza moderada, muestra alternativas
-  - 🔴 **Baja (<50%)**: Poca certeza, ingresa más datos
+El predictor te dice qué tan seguro está de sus predicciones:
 
-**Regla de oro:** Más precios = más confianza. Confianza >70% = predicciones muy confiables.
+### 🟢 **Alta (≥70%)**
+- ✅ Predicciones muy confiables
+- ✅ Muestra solo el patrón principal
+- ✅ Puedes tomar decisiones con seguridad
 
-## 📊 Patrones de precios
+### 🟡 **Media (50-69%)**
+- ⚠️ Confianza moderada
+- ⚠️ Muestra patrones alternativos
+- ⚠️ Ingresa más precios para mejorar
 
-| Patrón | Rango de precios | Cuándo vender | Nota |
-|--------|-----------------|---------------|------|
-| 🚀 **Pico Grande** | 200-600% | Miércoles-Jueves | ¡EL MEJOR! Espera el pico máximo |
-| 📈 **Pico Pequeño** | 140-200% | Jueves-Viernes | Buenas ganancias |
-| 📊 **Fluctuante** | 60-140% | Cuando supere compra | Impredecible |
-| ⚠️ **Decreciente** | 40-90% (bajando) | ¡AHORA! o visita otra isla | EL PEOR |
+### 🔴 **Baja (<50%)**
+- ❌ Poca certeza
+- ❌ Muchos patrones posibles
+- ❌ Necesitas más datos
 
-### 🔄 Sistema de probabilidades de transición
+### Cómo aumentar la confianza:
+1. **Ingresa más precios** (cada precio ayuda)
+2. **Selecciona el patrón anterior** (+15% confianza base)
+3. **Prioriza lunes-martes** (los primeros días identifican el patrón más rápido)
 
-El predictor usa las **probabilidades reales del juego** basadas en el patrón de la semana anterior:
+**Regla de oro:** Confianza ≥70% = predicciones en las que puedes confiar
 
-| Patrón anterior → | Fluctuante | Pico Grande | Decreciente | Pico Pequeño |
-|-------------------|------------|-------------|-------------|--------------|
-| **Sin historial** | 35% | 25% | 15% | 25% |
-| **Fluctuante** | 20% | 30% | 15% | **35%** |
-| **Pico Grande** | **50%** | 5% | 20% | 25% |
-| **Decreciente** | 25% | **45%** 🎉 | 5% | 25% |
-| **Pico Pequeño** | **45%** | 25% | 15% | 15% |
+---
 
-**💡 Insight clave:** Si la semana pasada tuviste **Decreciente**, esta semana tienes **45% de probabilidad de Pico Grande** (¡excelente noticia!)
+## 💡 Consejos pro
 
-### 🧠 Ajuste dinámico inteligente
+### Para mejores predicciones:
+- ✅ **SIEMPRE selecciona el patrón de la semana anterior** si lo sabes
+- ✅ Ingresa precios lo antes posible (lunes-martes)
+- ✅ Revisa precios AM y PM todos los días
+- ✅ Espera a tener confianza ≥70% antes de tomar decisiones importantes
+- ✅ Anota el patrón de cada semana para la siguiente
 
-El predictor **aprende de tus datos** y ajusta las predicciones en tiempo real:
+### Estrategias de venta:
+- 🚀 **Pico Grande**: Espera a ver 200%+, ese es el momento
+- 📈 **Pico Chico**: Vende cuando veas 150-190%
+- 📊 **Fluctuante**: Vende cuando veas >110% (cualquier ganancia es buena)
+- 📉 **Decreciente**: Vende INMEDIATAMENTE o busca otra isla
 
-- **Pico Grande/Pequeño**: Detecta en qué fase estás (baja/subida/pico/post-pico) y proyecta crecimiento o caída
-- **Fluctuante**: Calcula volatilidad y ajusta rangos (poco variable = rangos estrechos, muy variable = rangos amplios)
-- **Decreciente**: Calcula tu tasa de caída real y proyecta usando esa tasa específica
+### Qué NO hacer:
+- ❌ No esperes al sábado si tienes Decreciente
+- ❌ No vendas muy temprano si ves señales de pico
+- ❌ No tomes decisiones con confianza <50%
+- ❌ No olvides anotar el patrón de cada semana
 
-**Resultado:** Las predicciones mejoran con cada precio que ingresas.
-
-_Para detalles técnicos del algoritmo, consulta [ALGORITHM.md](ALGORITHM.md)_
+---
 
 ## ✨ Características
 
-- ✅ **Probabilidades de transición basadas en el patrón anterior** (usando lógica real del juego)
-- ✅ Detección automática de patrones con filtrado inteligente
-- ✅ Sistema de confianza con porcentajes de probabilidad
-- ✅ Ajuste dinámico que aprende de tus datos
-- ✅ Inputs unificados con estimaciones visuales
-- ✅ Guardado automático con debounce (previene guardados innecesarios)
+- ✅ **Algoritmos reales del juego** (extraídos por datamining)
+- ✅ Predicciones basadas en el código oficial de Animal Crossing
+- ✅ Sistema de probabilidades de transición entre patrones
+- ✅ Detección automática con filtrado inteligente
+- ✅ Niveles de confianza con porcentajes
+- ✅ Guardado automático en el navegador
+- ✅ **Funciona 100% offline** (después de la primera carga)
 - ✅ Diseño responsive (móvil, tablet, desktop)
-- ✅ **Funciona offline** después de la primera carga
-- ✅ 100% estático, no requiere servidor
+- ✅ Sin servidor, sin base de datos, sin complicaciones
 
-## 💡 Consejos
-
-### Para mejores predicciones:
-- **Selecciona el patrón de la semana anterior**: Aumenta la confianza base +15% y mejora las probabilidades iniciales
-- **Ingresa más datos**: Cada precio adicional aumenta la precisión
-- **Prioriza lunes-martes**: Los primeros días identifican el patrón rápidamente
-- **Recalcula frecuentemente**: Cada nuevo precio mejora las estimaciones
-- **Espera confianza >70%**: A partir de ahí las predicciones son muy confiables
-
-### Para jugar mejor:
-- Revisa los precios AM y PM todos los días
-- Si tienes patrón decreciente, no esperes - vende ya o visita otra isla
-- Si la confianza es baja, espera más datos antes de tomar decisiones
-- Los patrones se reinician cada semana (domingo)
-- **Anota el patrón de cada semana** para aprovechar las probabilidades de transición
+---
 
 ## 🎮 Sobre los nabos en Animal Crossing
 
 Los nabos son el "mercado de valores" de Animal Crossing:
-- 🛒 Compras el domingo de Perico (90-110 bayas)
-- 📈 Precios cambian 2 veces al día: AM/PM (lunes a sábado)
-- 💀 Se pudren después del sábado
-- 🎲 Cada isla tiene uno de 4 patrones cada semana
-- 🔄 **El patrón de esta semana está influenciado por el de la semana anterior** (ver tabla de probabilidades arriba)
+
+- 🛒 **Domingo**: Perico vende nabos a 90-110 bayas
+- 📈 **Lunes-Sábado**: El precio cambia 2 veces al día (AM/PM)
+- 💀 **Domingo siguiente**: Los nabos se pudren (pierdes todo)
+- 🎲 **Cada semana**: Tu isla tiene uno de los 4 patrones
+- 🔄 **El patrón depende**: Del patrón de la semana anterior
+
+**Objetivo:** Comprar barato el domingo, vender caro durante la semana.
+
+---
 
 ## 🛠️ Personalización
 
-Puedes modificar fácilmente:
-- **Colores**: Edita `styles.css`
-- **Textos**: Edita `index.html` y `predictor.js`
-- **Lógica de predicción**: Ajusta los multiplicadores en `predictor.js`
+Puedes modificar:
+- **Colores y estilos**: `styles.css`
+- **Textos e interfaz**: `index.html`
+- **Algoritmos de predicción**: Archivos en `patterns/`
+
+Todo el código está organizado y comentado.
+
+---
+
+## 📚 Para saber más
+
+- **[ALGORITHM.md](ALGORITHM.md)**: Explicación detallada de cómo funciona cada patrón
+- **[Código del juego](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b)**: Algoritmos originales extraídos del juego
+- **[r/acturnips](https://reddit.com/r/acturnips)**: Comunidad de intercambio de nabos
+
+---
+
+## 🙏 Créditos
+
+- Algoritmos basados en el **código oficial** extraído por Treeki/Ninji
+- Inspirado en la comunidad de Animal Crossing
+- Diseño inspirado en la estética del juego
+
+---
 
 ## 📄 Licencia
 
 Código abierto. Úsalo, modifícalo y compártelo libremente.
 
-## 🙏 Créditos
-
-- Inspirado en la comunidad de Animal Crossing
-- Patrones basados en data mining de jugadores
-- Diseño inspirado en la estética del juego
-
 ---
 
-¡Disfruta prediciendo tus nabos! 🥕✨
+**¡Disfruta prediciendo tus nabos!** 🥕✨
+
+_Si tienes dudas sobre cómo funcionan los patrones, lee [ALGORITHM.md](ALGORITHM.md)_
