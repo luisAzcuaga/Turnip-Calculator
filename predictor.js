@@ -151,36 +151,43 @@ class TurnipPredictor {
 
   // Verificar si el patrón PICO GRANDE es posible
   isPossibleLargeSpike(knownPrices) {
-    let hasHighPeak = false;
+    if (knownPrices.length === 0) return true;
 
-    for (let i = 0; i < knownPrices.length; i++) {
-      const price = knownPrices[i].price;
-      const ratio = price / this.buyPrice;
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const maxRatio = maxPrice / this.buyPrice;
+    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-      // Si encuentra un precio muy alto (200%+), definitivamente es pico grande
-      if (ratio >= 2.0) {
-        hasHighPeak = true;
-        break; // Ya confirmamos que es posible
-      }
-    }
-
-    // Si ya vimos un pico alto, es posible
-    if (hasHighPeak) {
+    // Si encuentra un precio muy alto (200%+), definitivamente es pico grande
+    if (maxRatio >= 2.0) {
       return true;
     }
 
-    // Si estamos muy tarde en la semana (después del sábado AM) y no hubo pico alto
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-    if (maxKnownIndex >= 10) {
-      // El pico ya debería haber ocurrido
-      // Verificar si al menos hay precios que indiquen fase de pico
-      const maxPrice = Math.max(...knownPrices.map(p => p.price));
-      const maxRatio = maxPrice / this.buyPrice;
+    // Si el pico máximo está claramente en el rango de Small Spike (140-200%)
+    // Y ya estamos tarde en la semana (viernes o después), rechazar Large Spike
+    if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
+      // Buscar si hay señales claras de que es Large Spike
+      // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
+      let hasRapidIncrease = false;
+      for (let i = 1; i < knownPrices.length; i++) {
+        const current = knownPrices[i];
+        const previous = knownPrices[i - 1];
+        // Subida de más de 100% en un período
+        if (current.price > previous.price * 2.0) {
+          hasRapidIncrease = true;
+          break;
+        }
+      }
 
-      // Si el precio máximo fue < 140%, es muy improbable que sea pico grande
-      if (maxRatio < 1.4) {
+      // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
+      // es muy probable que sea Small Spike, no Large Spike
+      if (!hasRapidIncrease) {
         return false;
       }
+    }
+
+    // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
+    if (maxKnownIndex >= 11 && maxRatio < 1.4) {
+      return false;
     }
 
     // En otros casos, mantener como posible (aún puede venir el pico)
@@ -189,24 +196,27 @@ class TurnipPredictor {
 
   // Verificar si el patrón PICO PEQUEÑO es posible
   isPossibleSmallSpike(knownPrices) {
-    for (let i = 0; i < knownPrices.length; i++) {
-      const price = knownPrices[i].price;
-      const ratio = price / this.buyPrice;
+    if (knownPrices.length === 0) return true;
 
-      // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
-      // (sería pico grande)
-      if (ratio > 2.0) {
-        return false;
-      }
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const maxRatio = maxPrice / this.buyPrice;
+    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+
+    // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
+    // (sería pico grande)
+    if (maxRatio > 2.0) {
+      return false;
     }
 
-    // Si estamos muy tarde en la semana (después del sábado PM) y no hubo pico
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+    // Si el pico está en el rango perfecto de Small Spike (140-200%)
+    // Y ya estamos en viernes o después, es muy probable que sea Small Spike
+    if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
+      return true; // Confirmación fuerte de Small Spike
+    }
+
+    // Si estamos muy tarde en la semana (sábado PM) y no hubo pico significativo
     if (maxKnownIndex >= 11) {
       // El pico ya debería haber ocurrido
-      const maxPrice = Math.max(...knownPrices.map(p => p.price));
-      const maxRatio = maxPrice / this.buyPrice;
-
       // Si el precio máximo fue < 90%, es muy improbable que sea pico pequeño
       if (maxRatio < 0.90) {
         return false;
@@ -383,23 +393,54 @@ class TurnipPredictor {
         break;
 
       case this.patterns.LARGE_SPIKE:
-        // Bonus si hay un pico muy alto
-        if (ratio >= 2.0) score += 80;
-        else if (ratio >= 1.5) score += 40;
+        // Bonus si hay un pico muy alto (200%+)
+        if (ratio >= 2.0) {
+          score += 100; // Confirmación definitiva de Large Spike
+        } else if (ratio >= 1.5 && ratio < 2.0) {
+          // Rango ambiguo: podría ser Small Spike o Large Spike
+          // Penalizar si está muy cerca del límite de Small Spike
+          if (ratio < 1.9) {
+            score += 10; // Penalización: probablemente sea Small Spike
+          } else {
+            score += 30; // Cerca del límite de Large Spike (190-200%)
+          }
+        } else {
+          // Ratio < 1.5: muy improbable que sea Large Spike
+          score += 5;
+        }
 
-        // Bonus si hay fase baja seguida de pico
+        // Bonus si hay fase baja seguida de pico muy rápido
         const hasLowToHigh = knownPrices.some((p, i) =>
-          i > 0 && p.price > knownPrices[i-1].price * 1.5 && knownPrices[i-1].price < this.buyPrice
+          i > 0 && p.price > knownPrices[i-1].price * 2.0 && knownPrices[i-1].price < this.buyPrice
         );
-        if (hasLowToHigh) score += 30;
-        score += 20; // Base score
+        if (hasLowToHigh) score += 40;
+
+        score += 10; // Base score reducido (menos común que Small Spike)
         break;
 
       case this.patterns.SMALL_SPIKE:
-        // Bonus si hay pico moderado
-        if (ratio >= 1.4 && ratio < 2.0) score += 70;
-        else if (ratio >= 1.2 && ratio < 1.4) score += 40;
-        score += 20;
+        // Bonus si hay pico moderado en el rango exacto de Small Spike
+        if (ratio >= 1.4 && ratio < 2.0) {
+          // Dentro del rango perfecto de Small Spike
+          if (ratio >= 1.5 && ratio <= 1.9) {
+            score += 90; // Rango ideal de Small Spike
+          } else {
+            score += 70; // En los bordes del rango
+          }
+        } else if (ratio >= 1.2 && ratio < 1.4) {
+          score += 40; // Podría ser pre-pico de Small Spike
+        } else if (ratio >= 2.0) {
+          // Definitivamente NO es Small Spike
+          score = 0;
+        }
+
+        // Bonus si hay fase baja seguida de subida moderada
+        const hasModerateIncrease = knownPrices.some((p, i) =>
+          i > 0 && p.price > knownPrices[i-1].price * 1.3 && p.price < knownPrices[i-1].price * 2.0
+        );
+        if (hasModerateIncrease) score += 20;
+
+        score += 20; // Base score
         break;
 
       case this.patterns.FLUCTUATING:
