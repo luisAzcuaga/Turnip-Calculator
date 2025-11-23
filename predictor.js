@@ -131,9 +131,9 @@ class TurnipPredictor {
   isPossibleDecreasing(knownPrices) {
     // En patrón decreciente, cada precio debe ser <= al anterior
     // y todos deben estar entre 85% y 40% del precio base
-    for (let i = 0; i < knownPrices.length; i++) {
-      const price = knownPrices[i].price;
-      const expectedMax = this.buyPrice * (0.9 - (knownPrices[i].index * 0.03));
+    return knownPrices.every((current, i) => {
+      const { price, index } = current;
+      const expectedMax = this.buyPrice * (0.9 - (index * 0.03));
       const expectedMin = this.buyPrice * 0.40;
 
       // El precio debe estar en el rango del patrón decreciente
@@ -145,8 +145,9 @@ class TurnipPredictor {
       if (i > 0 && price > knownPrices[i - 1].price * 1.05) {
         return false;
       }
-    }
-    return true;
+
+      return true;
+    });
   }
 
   // Verificar si el patrón PICO GRANDE es posible
@@ -167,16 +168,13 @@ class TurnipPredictor {
     if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
       // Buscar si hay señales claras de que es Large Spike
       // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
-      let hasRapidIncrease = false;
-      for (let i = 1; i < knownPrices.length; i++) {
-        const current = knownPrices[i];
+      const hasRapidIncrease = knownPrices.some((current, i) => {
+        if (i === 0) return false;
+
         const previous = knownPrices[i - 1];
         // Subida de más de 100% en un período
-        if (current.price > previous.price * 2.0) {
-          hasRapidIncrease = true;
-          break;
-        }
-      }
+        return current.price > previous.price * 2.0;
+      });
 
       // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
       // es muy probable que sea Small Spike, no Large Spike
@@ -230,16 +228,11 @@ class TurnipPredictor {
   // Verificar si el patrón FLUCTUANTE es posible
   isPossibleFluctuating(knownPrices) {
     // El patrón fluctuante permite precios entre 60% y 140% del base
-    for (let i = 0; i < knownPrices.length; i++) {
-      const price = knownPrices[i].price;
+    return knownPrices.every(({ price }) => {
       const ratio = price / this.buyPrice;
-
       // Si hay picos muy altos o muy bajos, probablemente no es fluctuante
-      if (ratio > 1.5 || ratio < 0.5) {
-        return false;
-      }
-    }
-    return true;
+      return ratio <= 1.5 && ratio >= 0.5;
+    });
   }
 
   // Obtener probabilidades base según el patrón anterior
@@ -394,12 +387,11 @@ class TurnipPredictor {
     switch (pattern) {
       case this.patterns.DECREASING:
         // Penalizar si hay subidas
-        let isDecreasing = true;
-        for (let i = 1; i < knownPrices.length; i++) {
-          if (knownPrices[i].price > knownPrices[i - 1].price) {
-            isDecreasing = false;
-          }
-        }
+        const isDecreasing = knownPrices.every((current, i) => {
+          if (i === 0) return true;
+
+          return current.price <= knownPrices[i - 1].price;
+        });
         score = isDecreasing ? 100 : 20;
         // Bonus si el promedio es bajo
         if (avgPrice < this.buyPrice * 0.8) score += 30;

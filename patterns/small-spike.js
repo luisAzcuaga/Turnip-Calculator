@@ -19,12 +19,10 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
     if (decreasingPhase.length >= 2) {
       // Calcular tasa de decrecimiento observada
-      let totalRate = 0;
-      for (let i = 1; i < decreasingPhase.length; i++) {
-        const rate = (decreasingPhase[i - 1].price - decreasingPhase[i].price) / decreasingPhase[i - 1].price;
-        totalRate += rate;
-      }
-      const avgRate = totalRate / (decreasingPhase.length - 1);
+      const avgRate = decreasingPhase.slice(1).reduce((totalRate, current, i) => {
+        const rate = (decreasingPhase[i].price - current.price) / decreasingPhase[i].price;
+        return totalRate + rate;
+      }, 0) / (decreasingPhase.length - 1);
 
       const lastKnown = decreasingPhase[decreasingPhase.length - 1];
       const periodsAhead = periodIndex - lastKnown.index;
@@ -117,12 +115,10 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
   if (finalDecreasingPhase.length >= 2) {
     // Calcular tasa de decrecimiento observada
-    let totalRate = 0;
-    for (let i = 1; i < finalDecreasingPhase.length; i++) {
-      const rate = (finalDecreasingPhase[i - 1].price - finalDecreasingPhase[i].price) / finalDecreasingPhase[i - 1].price;
-      totalRate += rate;
-    }
-    const avgRate = totalRate / (finalDecreasingPhase.length - 1);
+    const avgRate = finalDecreasingPhase.slice(1).reduce((totalRate, current, i) => {
+      const rate = (finalDecreasingPhase[i].price - current.price) / finalDecreasingPhase[i].price;
+      return totalRate + rate;
+    }, 0) / (finalDecreasingPhase.length - 1);
 
     const lastKnown = finalDecreasingPhase[finalDecreasingPhase.length - 1];
     const periodsAhead = periodIndex - lastKnown.index;

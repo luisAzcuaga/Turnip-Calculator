@@ -15,16 +15,18 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
   }
 
   // Buscar el primer precio que sube significativamente desde fase baja
-  for (let i = 1; i < knownPrices.length; i++) {
-    const current = knownPrices[i];
-    const previous = knownPrices[i - 1];
+  const firstSignificantRise = knownPrices.findIndex((current, i) => {
+    if (i === 0) return false;
 
+    const previous = knownPrices[i - 1];
     // Detectar subida significativa (transición a fase de pico)
-    if (current.price > previous.price * 1.3) {
-      // Este es probablemente el inicio de la fase de pico
-      const estimatedStart = Math.max(minPeakStart, current.index);
-      return Math.min(maxPeakStart, estimatedStart);
-    }
+    return current.price > previous.price * 1.3;
+  });
+
+  if (firstSignificantRise !== -1) {
+    // Este es probablemente el inicio de la fase de pico
+    const estimatedStart = Math.max(minPeakStart, knownPrices[firstSignificantRise].index);
+    return Math.min(maxPeakStart, estimatedStart);
   }
 
   // Buscar el precio máximo conocido

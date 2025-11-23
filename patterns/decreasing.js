@@ -16,14 +16,11 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // Si tenemos datos conocidos, estimar la tasa de decrecimiento real
   if (knownPrices.length >= 2) {
     // Calcular tasa de decrecimiento promedio entre precios conocidos
-    let totalRate = 0;
-    for (let i = 1; i < knownPrices.length; i++) {
-      const prevPrice = knownPrices[i - 1].price;
-      const currPrice = knownPrices[i].price;
-      const rate = (prevPrice - currPrice) / prevPrice;
-      totalRate += rate;
-    }
-    const avgDecayRate = totalRate / (knownPrices.length - 1);
+    const avgDecayRate = knownPrices.slice(1).reduce((totalRate, current, i) => {
+      const prevPrice = knownPrices[i].price;
+      const rate = (prevPrice - current.price) / prevPrice;
+      return totalRate + rate;
+    }, 0) / (knownPrices.length - 1);
 
     // Proyectar desde el último precio conocido
     const lastKnown = knownPrices[knownPrices.length - 1];
