@@ -244,6 +244,17 @@ class TurnipPredictor {
 
   // Obtener probabilidades base según el patrón anterior
   getBaseProbabilities() {
+    // Regla especial del juego: si previousPattern es un número >= 4, forzar Decreasing
+    // (Esto es un failsafe del código original para valores inválidos)
+    if (typeof this.previousPattern === 'number' && this.previousPattern >= 4) {
+      return {
+        'fluctuating': 0,
+        'large_spike': 0,
+        'decreasing': 1.0,
+        'small_spike': 0
+      };
+    }
+
     // Si conocemos el patrón anterior, usar probabilidades de transición
     if (this.previousPattern && this.transitionProbabilities[this.previousPattern]) {
       return this.transitionProbabilities[this.previousPattern];
@@ -304,9 +315,12 @@ class TurnipPredictor {
       const dataScore = this.calculatePatternScore(pattern, knownPrices);
       const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convertir a escala 0-100
 
-      // Combinar scores: más peso a los datos si tenemos muchos, más a probabilidades si tenemos pocos
-      const dataWeight = Math.min(knownPrices.length / 12, 0.7); // Max 70% peso a datos
-      const probWeight = 1 - dataWeight;
+      // Combinar scores: mantener peso mínimo de 40% para probabilidades
+      // Con 0 precios: 100% probabilidades
+      // Con 6 precios: 50% probabilidades
+      // Con 12 precios: 40% probabilidades (mínimo)
+      const dataWeight = Math.min(knownPrices.length / 12, 0.6); // Max 60% peso a datos
+      const probWeight = 1 - dataWeight; // Min 40% peso a probabilidades
 
       scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
     });

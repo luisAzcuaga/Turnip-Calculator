@@ -90,9 +90,9 @@ Sábado:     100-115  (termina alto)
 Fase BAJA     → 40-90% (antes del pico)
 Pico período 1 → 90-140%
 Pico período 2 → 90-140%
-Pico período 3 → 140-200%  ← PICO MÁXIMO
-Pico período 4 → 140-200%
-Pico período 5 → 140-200%
+Pico período 3 → 140-200% menos 1 baya
+Pico período 4 → 140-200%  ← PICO MÁXIMO
+Pico período 5 → 140-200% menos 1 baya
 Después       → 40-90% (baja)
 ```
 
@@ -102,17 +102,17 @@ Compraste a: 100 bayas
 
 Lunes:      85-75    (fase baja)
 Martes AM:  70       (aún bajo)
-Martes PM:  90       (empieza pico)
-Miércoles AM: 120    (subiendo)
-Miércoles PM: 170    ← MÁXIMO (170%)
-Jueves AM:  165      (aún alto)
-Jueves PM:  155      (empieza a bajar)
+Martes PM:  90       (empieza pico - período 1)
+Miércoles AM: 120    (período 2)
+Miércoles PM: 169    (período 3 - cerca del máximo menos 1)
+Jueves AM:  170      ← MÁXIMO (período 4 - 170%)
+Jueves PM:  169      (período 5 - cerca del máximo menos 1)
 Viernes:    80-70    (ya pasó)
 Sábado:     65-55    (terminó)
 ```
 
 **¿Cuándo vender?**
-- En el **tercer período del pico** (es el más alto)
+- En el **cuarto período del pico** (es el más alto)
 - Si ves un precio entre **140-200%**, probablemente estás en el pico
 - No esperes más después del pico, baja rápido
 

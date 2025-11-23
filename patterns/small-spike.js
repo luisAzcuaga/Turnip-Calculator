@@ -53,25 +53,63 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   const peakPhaseIndex = periodIndex - peakStart;
 
   if (peakPhaseIndex >= 0 && peakPhaseIndex < 5) {
-    // Rangos según el algoritmo del juego:
-    // peakStart+0: 90-140%
-    // peakStart+1: 90-140%
-    // peakStart+2: 140-200%
-    // peakStart+3: 140-200% (usualmente el pico máximo)
-    // peakStart+4: 140-200%
-    const peakPhaseRanges = [
-      { min: 0.90, max: 1.40 },
-      { min: 0.90, max: 1.40 },
-      { min: 1.40, max: 2.00 },
-      { min: 1.40, max: 2.00 },
-      { min: 1.40, max: 2.00 }
-    ];
+    // Algoritmo real del juego (Pattern 3):
+    // El juego elige un "rate" aleatorio entre 1.4-2.0
+    // Período 0: 0.9-1.4
+    // Período 1: 0.9-1.4
+    // Período 2: (1.4 a rate) - 1 bell
+    // Período 3: rate (PICO REAL)
+    // Período 4: (1.4 a rate) - 1 bell
 
-    const range = peakPhaseRanges[peakPhaseIndex];
-    return {
-      min: Math.round(base * range.min),
-      max: Math.round(base * range.max)
-    };
+    // Intentar inferir el "rate" de los datos conocidos
+    // IMPORTANTE: Solo inferir si ya vimos el período 3 (pico real) o posterior
+    const peakPrices = knownPrices.filter(p =>
+      p.index >= peakStart && p.index < peakStart + 5
+    );
+
+    let inferredRate = null;
+    const hasPeakData = peakPrices.some(p => p.index >= peakStart + 3);
+
+    if (hasPeakData) {
+      // Ya pasó el pico real, podemos inferir el rate
+      const maxInPeak = Math.max(...peakPrices.map(p => p.price));
+      inferredRate = maxInPeak / base;
+      // Asegurar que esté en el rango válido
+      inferredRate = Math.max(1.4, Math.min(2.0, inferredRate));
+    }
+
+    // Rangos según el algoritmo exacto del juego
+    if (peakPhaseIndex === 0 || peakPhaseIndex === 1) {
+      // Períodos 1 y 2: 0.9-1.4
+      return {
+        min: Math.round(base * 0.90),
+        max: Math.round(base * 1.40)
+      };
+    } else if (peakPhaseIndex === 3) {
+      // Período 4: PICO REAL (rate * base)
+      if (inferredRate) {
+        return {
+          min: Math.round(base * inferredRate * 0.95),
+          max: Math.round(base * inferredRate * 1.05)
+        };
+      }
+      return {
+        min: Math.round(base * 1.40),
+        max: Math.round(base * 2.00)
+      };
+    } else {
+      // Períodos 3 y 5: (1.4 a rate) * base - 1 bell
+      if (inferredRate) {
+        return {
+          min: Math.round(base * 1.40 - 1),
+          max: Math.round(base * inferredRate - 1)
+        };
+      }
+      return {
+        min: Math.round(base * 1.40 - 1),
+        max: Math.round(base * 2.00 - 1)
+      };
+    }
   }
 
   // Fase 3: DECRECIENTE FINAL (después del pico)
