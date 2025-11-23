@@ -44,7 +44,7 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
 
     // Small Spike: pico máximo en 140-200%
     if (!isLargeSpike && ratio >= 1.4) {
-      // El pico máximo está en peakStart+2, +3, o +4
+      // El pico máximo está en peakStart+3 (período 4 del pico)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }

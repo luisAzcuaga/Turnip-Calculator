@@ -45,16 +45,15 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   }
 
   // Sin datos suficientes: usar el algoritmo del juego
-  // Tasa inicial: 0.85-0.90 (promedio: 0.875)
-  // Decrecimiento por período: 0.03-0.05 (promedio: 0.04)
+  // Tasa inicial: 0.85-0.90
+  // Decrecimiento por período: 0.03-0.05
 
-  // Calcular el precio para este período usando el algoritmo
-  // rate = initialRate - (periodIndex * decayPerPeriod)
-  const initialRate = 0.875; // Promedio de 0.85-0.90
   const minDecayPerPeriod = 0.03;
   const maxDecayPerPeriod = 0.05;
 
   // Calcular rango mínimo y máximo
+  // Peor caso: empieza en 0.85 y baja 0.05 por período
+  // Mejor caso: empieza en 0.90 y baja 0.03 por período
   const minRate = Math.max(0.40, (0.85 - (periodIndex * maxDecayPerPeriod)));
   const maxRate = Math.max(0.40, (0.90 - (periodIndex * minDecayPerPeriod)));
 

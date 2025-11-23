@@ -388,7 +388,6 @@ class TurnipPredictor {
   calculatePatternScore(pattern, knownPrices) {
     let score = 0;
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const minPrice = Math.min(...knownPrices.map(p => p.price));
     const avgPrice = knownPrices.reduce((sum, p) => sum + p.price, 0) / knownPrices.length;
     const ratio = maxPrice / this.buyPrice;
 
@@ -514,7 +513,7 @@ class TurnipPredictor {
         percentage: alt.percentage
       })),
       predictions: predictions,
-      recommendation: this.getRecommendation(pattern, predictions),
+      recommendation: this.getRecommendation(pattern),
       bestTime: this.getBestTime(predictions)
     };
   }
@@ -605,7 +604,7 @@ class TurnipPredictor {
     return calculateFluctuatingPattern(periodIndex, base, knownPrices);
   }
 
-  getRecommendation(pattern, predictions) {
+  getRecommendation(pattern) {
     let rec = [];
 
     switch (pattern) {
@@ -644,7 +643,7 @@ class TurnipPredictor {
     let bestDay = '';
     let bestIsConfirmed = false;
 
-    Object.entries(predictions).forEach(([key, data]) => {
+    Object.values(predictions).forEach((data) => {
       const maxPrice = data.isConfirmed ? data.confirmed : data.max;
       if (maxPrice > bestPrice) {
         bestPrice = maxPrice;
