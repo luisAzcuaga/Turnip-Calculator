@@ -386,6 +386,13 @@ class TurnipPredictor {
     // MEJORA #4: Bonus por evidencia fuerte de patrones claramente identificables
     let strongEvidenceBonus = 0;
 
+    // Calcular ratio si hay precios conocidos
+    let ratio = 0;
+    if (knownPrices.length > 0) {
+      const maxPrice = Math.max(...knownPrices.map(p => p.price));
+      ratio = maxPrice / this.buyPrice;
+    }
+
     // Decreasing: todos los precios bajando consistentemente
     if (bestPattern === this.patterns.DECREASING && knownPrices.length >= 3) {
       const allDecreasing = knownPrices.every((p, i) =>
