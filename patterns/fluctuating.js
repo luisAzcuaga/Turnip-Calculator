@@ -34,64 +34,31 @@ function detectPhase(price, base) {
  * @param {number} base - Precio base de compra
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @returns {{min: number, max: number}} - Rango de precios
+ *
+ * FILOSOFÍA: Fluctuante es aleatorio por definición.
+ * No tiene sentido "predecir" usando tendencias o promedios.
+ * Cualquier precio entre 60-140% puede ocurrir en cualquier momento.
  */
 function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
-  // Si tenemos datos recientes, intentar detectar la fase actual
-  if (knownPrices.length > 0) {
-    const lastKnown = knownPrices[knownPrices.length - 1];
-    const periodsAhead = periodIndex - lastKnown.index;
-
-    if (periodsAhead === 0) {
-      // Mismo período, devolver el precio conocido
-      return {
-        min: lastKnown.price,
-        max: lastKnown.price
-      };
-    }
-
-    if (periodsAhead > 0 && periodsAhead <= 2) {
-      const lastPhase = detectPhase(lastKnown.price, base);
-
-      if (lastPhase === 'high') {
-        // Si estamos en fase alta, el siguiente período podría:
-        // 1) Seguir alto (90-140%)
-        // 2) Empezar a bajar (60-80%)
-        // Usar rango amplio que cubra ambas posibilidades
-        return {
-          min: Math.round(base * 0.60),
-          max: Math.round(base * 1.40)
-        };
-      } else {
-        // Si estamos en fase baja, podría:
-        // 1) Seguir bajando (4-10% menos)
-        // 2) Volver a fase alta (90-140%)
-
-        // Proyectar bajada desde el último conocido
-        const projectedLow = lastKnown.price * 0.90; // Baja ~10%
-
-        return {
-          min: Math.round(Math.max(base * 0.40, projectedLow * 0.85)),
-          max: Math.round(base * 1.40) // Podría subir a fase alta
-        };
-      }
-    }
-
-    // Para predicciones a más largo plazo, analizar la tendencia general
-    if (knownPrices.length >= 2) {
-      const recentPrices = knownPrices.slice(-3); // Últimos 3 precios
-      const avgRecent = recentPrices.reduce((sum, p) => sum + p.price, 0) / recentPrices.length;
-
-      // Usar el promedio reciente como referencia
-      return {
-        min: Math.round(avgRecent * 0.70),
-        max: Math.round(avgRecent * 1.30)
-      };
-    }
+  // Validación defensiva: si no hay precio base, no podemos predecir
+  if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
+    console.warn('Fluctuating pattern: precio base inválido', base);
+    return { min: 0, max: 0 };
   }
 
-  // Sin datos conocidos: usar rangos completos del algoritmo
-  // Fases altas: 90-140%
-  // Fases bajas: 40-80% (considerando el decrecimiento)
+  // Si tenemos un precio conocido para este período exacto, devolverlo
+  const knownPrice = knownPrices.find(p => p.index === periodIndex);
+  if (knownPrice) {
+    return {
+      min: knownPrice.price,
+      max: knownPrice.price
+    };
+  }
+
+  // Para todos los períodos desconocidos: rango completo del algoritmo
+  // El patrón Fluctuante es aleatorio - puede estar en cualquier punto del rango
+  // en cualquier momento, sin importar qué pasó antes.
+  // Rango: 60-140% del precio base
   return {
     min: Math.round(base * 0.60),
     max: Math.round(base * 1.40)
