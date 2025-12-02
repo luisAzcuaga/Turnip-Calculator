@@ -228,11 +228,40 @@ class TurnipPredictor {
   // Verificar si el patrón FLUCTUANTE es posible
   isPossibleFluctuating(knownPrices) {
     // El patrón fluctuante permite precios entre 60% y 140% del base
-    return knownPrices.every(({ price }) => {
+    const inRange = knownPrices.every(({ price }) => {
       const ratio = price / this.buyPrice;
       // Si hay picos muy altos o muy bajos, probablemente no es fluctuante
       return ratio <= 1.5 && ratio >= 0.5;
     });
+
+    if (!inRange) return false;
+
+    // El patrón fluctuante NO tiene tendencias decrecientes sostenidas
+    // Si hay 3+ períodos consecutivos bajando constantemente, probablemente es Decreasing o un Spike
+    if (knownPrices.length >= 3) {
+      let consecutiveDecreases = 0;
+      let maxConsecutiveDecreases = 0;
+
+      for (let i = 1; i < knownPrices.length; i++) {
+        const current = knownPrices[i];
+        const previous = knownPrices[i - 1];
+
+        // Verificar si está bajando (con margen de error del 2%)
+        if (current.price < previous.price * 0.98) {
+          consecutiveDecreases++;
+          maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
+        } else {
+          consecutiveDecreases = 0;
+        }
+      }
+
+      // Si hay 3+ períodos consecutivos bajando, no es fluctuante
+      if (maxConsecutiveDecreases >= 3) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // Obtener probabilidades base según el patrón anterior
@@ -451,6 +480,30 @@ class TurnipPredictor {
       case this.patterns.FLUCTUATING:
         // Bonus si los precios varían pero sin extremos
         if (ratio < 1.5 && ratio > 0.8) score += 50;
+
+        // Penalizar fuertemente tendencias decrecientes sostenidas
+        // El patrón fluctuante debe tener variación aleatoria, no bajadas constantes
+        let consecutiveDecreases = 0;
+        let maxConsecutiveDecreases = 0;
+
+        for (let i = 1; i < knownPrices.length; i++) {
+          if (knownPrices[i].price < knownPrices[i - 1].price * 0.98) {
+            consecutiveDecreases++;
+            maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
+          } else {
+            consecutiveDecreases = 0;
+          }
+        }
+
+        // Penalizar según la longitud de la tendencia decreciente
+        if (maxConsecutiveDecreases >= 4) {
+          score -= 60; // Penalización severa: 4+ períodos bajando
+        } else if (maxConsecutiveDecreases >= 3) {
+          score -= 40; // Penalización fuerte: 3 períodos bajando
+        } else if (maxConsecutiveDecreases >= 2) {
+          score -= 15; // Penalización moderada: 2 períodos bajando
+        }
+
         score += 30; // Base score (más común)
         break;
     }
