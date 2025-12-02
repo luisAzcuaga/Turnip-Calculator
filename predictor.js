@@ -337,12 +337,13 @@ class TurnipPredictor {
       const dataScore = this.calculatePatternScore(pattern, knownPrices);
       const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convertir a escala 0-100
 
-      // Combinar scores: mantener peso mínimo de 40% para probabilidades
+      // MEJORA #3: Ajustar peso de datos vs probabilidades
+      // Combinar scores: mantener peso mínimo de 30% para probabilidades
       // Con 0 precios: 100% probabilidades
-      // Con 6 precios: 50% probabilidades
-      // Con 12 precios: 40% probabilidades (mínimo)
-      const dataWeight = Math.min(knownPrices.length / 12, 0.6); // Max 60% peso a datos
-      const probWeight = 1 - dataWeight; // Min 40% peso a probabilidades
+      // Con 4 precios: 50% probabilidades, 50% datos
+      // Con 8+ precios: 70% datos, 30% probabilidades (mínimo)
+      const dataWeight = Math.min(knownPrices.length / 8, 0.7); // Max 70% peso a datos
+      const probWeight = 1 - dataWeight; // Min 30% peso a probabilidades
 
       scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
     });
@@ -382,8 +383,31 @@ class TurnipPredictor {
       absoluteScoreBonus = Math.min(Math.round((bestScore - 70) / 2), 15);
     }
 
+    // MEJORA #4: Bonus por evidencia fuerte de patrones claramente identificables
+    let strongEvidenceBonus = 0;
+
+    // Decreasing: todos los precios bajando consistentemente
+    if (bestPattern === this.patterns.DECREASING && knownPrices.length >= 3) {
+      const allDecreasing = knownPrices.every((p, i) =>
+        i === 0 || p.price <= knownPrices[i - 1].price
+      );
+      if (allDecreasing) {
+        strongEvidenceBonus = 20; // Confirmación fuerte de Decreasing
+      }
+    }
+
+    // Large Spike: ratio >2.0 es confirmación definitiva
+    if (bestPattern === this.patterns.LARGE_SPIKE && ratio >= 2.0) {
+      strongEvidenceBonus = 25; // Confirmación definitiva de Large Spike
+    }
+
+    // Small Spike: ratio entre 1.4-2.0 sin caídas posteriores dramáticas
+    if (bestPattern === this.patterns.SMALL_SPIKE && ratio >= 1.4 && ratio < 2.0) {
+      strongEvidenceBonus = 20; // Confirmación fuerte de Small Spike
+    }
+
     const totalConfidence = Math.min(
-      dataConfidence + scoreConfidence + historyBonus + patternFamilyBonus + absoluteScoreBonus,
+      dataConfidence + scoreConfidence + historyBonus + patternFamilyBonus + absoluteScoreBonus + strongEvidenceBonus,
       100
     );
 
@@ -453,6 +477,9 @@ class TurnipPredictor {
         break;
 
       case this.patterns.SMALL_SPIKE:
+        // MEJORA #1: Flag para detectar si el patrón está descartado
+        let smallSpikeRejected = false;
+
         // Bonus si hay pico moderado en el rango exacto de Small Spike
         if (ratio >= 1.4 && ratio < 2.0) {
           // Dentro del rango perfecto de Small Spike
@@ -463,18 +490,39 @@ class TurnipPredictor {
           }
         } else if (ratio >= 1.2 && ratio < 1.4) {
           score += 40; // Podría ser pre-pico de Small Spike
+
+          // MEJORA #1: Verificar si hubo caída dramática post-"pico"
+          // Si el "pico" es <1.4 (no califica) y luego cae >40%, NO es Small Spike
+          const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
+          if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
+            const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
+            const hasSharpDrop = pricesAfterMax.some(p =>
+              p.price < maxPrice * 0.60 // Caída >40% del "pico"
+            );
+
+            if (hasSharpDrop) {
+              // Si el "pico" fue <1.4 y luego cayó brutalmente,
+              // NO puede ser Small Spike (el pico debe ser ≥1.4)
+              smallSpikeRejected = true;
+              score = 0;
+            }
+          }
         } else if (ratio >= 2.0) {
           // Definitivamente NO es Small Spike
+          smallSpikeRejected = true;
           score = 0;
         }
 
-        // Bonus si hay fase baja seguida de subida moderada
-        const hasModerateIncrease = knownPrices.some((p, i) =>
-          i > 0 && p.price > knownPrices[i-1].price * 1.3 && p.price < knownPrices[i-1].price * 2.0
-        );
-        if (hasModerateIncrease) score += 20;
+        // Solo aplicar bonuses si el patrón no fue rechazado
+        if (!smallSpikeRejected) {
+          // Bonus si hay fase baja seguida de subida moderada
+          const hasModerateIncrease = knownPrices.some((p, i) =>
+            i > 0 && p.price > knownPrices[i-1].price * 1.3 && p.price < knownPrices[i-1].price * 2.0
+          );
+          if (hasModerateIncrease) score += 20;
 
-        score += 20; // Base score
+          score += 20; // Base score
+        }
         break;
 
       case this.patterns.FLUCTUATING:
