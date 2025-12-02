@@ -298,6 +298,17 @@ document.addEventListener('DOMContentLoaded', function () {
   function displayBestTime(bestTime) {
     const bestTimeDiv = document.getElementById('bestTime');
 
+    // Caso especial: patrón Fluctuante (aleatorio)
+    if (bestTime.pattern === 'fluctuating') {
+      bestTimeDiv.innerHTML = `
+                <h3>⚠️ Patrón Fluctuante Detectado</h3>
+                <p>No hay momento óptimo predecible. Los precios son aleatorios.</p>
+                <p><strong>Consejo:</strong> Vende cuando veas un precio que te satisfaga.</p>
+            `;
+      return;
+    }
+
+    // Patrones predecibles (Spikes, Decreasing)
     if (bestTime.isConfirmed) {
       bestTimeDiv.innerHTML = `
                 <h3>⭐ Mejor precio confirmado</h3>

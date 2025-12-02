@@ -607,7 +607,7 @@ class TurnipPredictor {
       })),
       predictions: predictions,
       recommendation: this.getRecommendation(pattern),
-      bestTime: this.getBestTime(predictions)
+      bestTime: this.getBestTime(predictions, pattern)
     };
   }
 
@@ -731,7 +731,17 @@ class TurnipPredictor {
     return rec;
   }
 
-  getBestTime(predictions) {
+  getBestTime(predictions, pattern) {
+    // Si es Fluctuante, no tiene sentido buscar "mejor momento"
+    // El patrón es aleatorio por diseño - cualquier día puede ser el mejor
+    if (pattern === this.patterns.FLUCTUATING) {
+      return {
+        pattern: 'fluctuating',
+        message: 'No hay momento óptimo predecible en patrón aleatorio'
+      };
+    }
+
+    // Para patrones predecibles (Spikes, Decreasing), buscar el máximo
     let bestPrice = 0;
     let bestDay = '';
     let bestIsConfirmed = false;
@@ -746,6 +756,7 @@ class TurnipPredictor {
     });
 
     return {
+      pattern: 'predictable',
       day: bestDay,
       price: bestPrice,
       isConfirmed: bestIsConfirmed
