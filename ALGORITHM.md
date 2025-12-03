@@ -177,7 +177,8 @@ El predictor analiza los precios que ingresas y **descarta** patrones imposibles
 **Fluctuante se descarta si:**
 - Hay precios extremadamente altos (>150%)
 - Hay precios extremadamente bajos (<50%)
-- Ya que este patrón es moderado
+- **Hay 4+ períodos consecutivos bajando (máx. permitido: 3)**
+- Ya que este patrón es moderado y aleatorio
 
 **Pico Chico se descarta si:**
 - Hay precios sobre 200% (eso es Pico Grande)
@@ -186,6 +187,7 @@ El predictor analiza los precios que ingresas y **descarta** patrones imposibles
 **Pico Grande se descarta si:**
 - Es tarde en la semana (después del jueves) y no hay picos altos
 - El pico máximo es entre 140-200% sin aumentos rápidos
+- **El "pico" es bajo (<140%) y después hay caída dramática (>40%)**
 - Ya que necesita tener el pico grande de 200-600%
 
 ---

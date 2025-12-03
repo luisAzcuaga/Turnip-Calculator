@@ -163,6 +163,20 @@ class TurnipPredictor {
       return true;
     }
 
+    // BUG FIX: Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
+    // Esto indica que el pico ya pasó y fue muy bajo para ser Large Spike
+    if (maxRatio < 1.4) {
+      const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
+      if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
+        const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
+        // Si después del "pico" hay caída >40%, el pico ya pasó
+        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * 0.60);
+        if (hasSharpDrop) {
+          return false; // El pico ya pasó y fue muy bajo para Large Spike
+        }
+      }
+    }
+
     // Si el pico máximo está claramente en el rango de Small Spike (140-200%)
     // Y ya estamos tarde en la semana (viernes o después), rechazar Large Spike
     if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
@@ -237,8 +251,9 @@ class TurnipPredictor {
     if (!inRange) return false;
 
     // El patrón fluctuante NO tiene tendencias decrecientes sostenidas
-    // Si hay 3+ períodos consecutivos bajando constantemente, probablemente es Decreasing o un Spike
-    if (knownPrices.length >= 3) {
+    // Según el gist: decPhaseLen puede ser 2 o 3, por lo que hasta 3 períodos bajando es válido
+    // Si hay 4+ períodos consecutivos bajando, probablemente es Decreasing o un Spike
+    if (knownPrices.length >= 4) {
       let consecutiveDecreases = 0;
       let maxConsecutiveDecreases = 0;
 
@@ -255,8 +270,8 @@ class TurnipPredictor {
         }
       }
 
-      // Si hay 3+ períodos consecutivos bajando, no es fluctuante
-      if (maxConsecutiveDecreases >= 3) {
+      // Si hay 4+ períodos consecutivos bajando, no es fluctuante
+      if (maxConsecutiveDecreases >= 4) {
         return false;
       }
     }
@@ -551,12 +566,13 @@ class TurnipPredictor {
         }
 
         // Penalizar según la longitud de la tendencia decreciente
+        // Según el gist: hasta 3 períodos bajando es válido para Fluctuating
         if (maxConsecutiveDecreases >= 4) {
-          score -= 60; // Penalización severa: 4+ períodos bajando
-        } else if (maxConsecutiveDecreases >= 3) {
-          score -= 40; // Penalización fuerte: 3 períodos bajando
-        } else if (maxConsecutiveDecreases >= 2) {
-          score -= 15; // Penalización moderada: 2 períodos bajando
+          score -= 60; // Penalización severa: 4+ períodos bajando (fuera de spec)
+        } else if (maxConsecutiveDecreases === 3) {
+          score -= 20; // Penalización leve: 3 períodos bajando (límite superior válido)
+        } else if (maxConsecutiveDecreases === 2) {
+          score -= 10; // Penalización mínima: 2 períodos bajando (normal)
         }
 
         score += 30; // Base score (más común)
