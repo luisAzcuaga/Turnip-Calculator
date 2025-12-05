@@ -58,23 +58,49 @@ Fase BAJA  (2-3 períodos)  → 60-80%, bajando
 Fase ALTA  (resto)         → 90-140%
 ```
 
+**🎯 REGLA CLAVE del juego:**
+```
+decPhaseLen1 + decPhaseLen2 = 5 períodos SIEMPRE
+```
+- Si la primera fase baja tiene **3 períodos** → la segunda tendrá **2 períodos**
+- Si la primera fase baja tiene **2 períodos** → la segunda tendrá **3 períodos**
+
+**🧠 Predicción inteligente:**
+
+El predictor ahora **detecta automáticamente** las fases bajas completadas:
+
+1. **Detecta fase baja**: 2 o 3 períodos consecutivos bajando (<85% del precio base)
+2. **Deduce la otra fase**: Usa la regla de suma = 5 para saber la longitud de la segunda fase
+3. **Predice con precisión**: Una vez que ambas fases bajas pasaron, solo predice fase ALTA (90-140%)
+
 **Ejemplo práctico:**
 ```
 Compraste a: 100 bayas
 
-Lunes:      110-95   (fase alta)
-Martes AM:  75       (empieza fase baja)
-Martes PM:  68       (sigue bajando)
-Miércoles:  90-120   (vuelve a fase alta)
-Jueves:     95-130
-Viernes:    70       (otra fase baja)
-Sábado:     100-115  (termina alto)
+Lunes:      110, 95   (fase alta)
+Martes AM:  75        ← EMPIEZA fase baja 1
+Martes PM:  68        (bajando)
+Miércoles AM: 60      (bajando) = 3 períodos
+                      ✓ El predictor detecta: fase baja de 3 períodos
+                      → Deduce: la segunda será de 2 períodos
+
+Miércoles PM: 90      (vuelve a fase alta)
+Jueves AM:  95, 130   (fase alta)
+Jueves PM:  70        ← EMPIEZA fase baja 2
+Viernes AM: 65        (bajando) = 2 períodos
+                      ✓ El predictor confirma: segunda fase baja de 2 períodos
+                      → Total: 3 + 2 = 5 períodos ✓
+
+Viernes PM: ???       → PREDICCIÓN: 90-140% (solo fase ALTA)
+Sábado:     ???, ???  → PREDICCIÓN: 90-140% (solo fase ALTA)
+                      Ya no predice 60-140%, ahora sabe que solo puede ser fase alta
 ```
 
 **¿Cuándo vender?**
 - Cuando veas precios sobre el precio de compra (110%+)
 - No esperes picos enormes, no van a pasar
 - Vende en los días que estén en fase alta
+- **💡 Si ya pasaron las 2 fases bajas, el resto de la semana será fase alta (90-140%)**
 
 ---
 
@@ -177,8 +203,9 @@ El predictor analiza los precios que ingresas y **descarta** patrones imposibles
 **Fluctuante se descarta si:**
 - Hay precios extremadamente altos (>150%)
 - Hay precios extremadamente bajos (<50%)
-- **Hay 4+ períodos consecutivos bajando (máx. permitido: 3)**
+- **Hay 4+ períodos consecutivos bajando** (máx. permitido: 3 por fase baja)
 - Ya que este patrón es moderado y aleatorio
+- **Bonus**: Si detecta fases bajas (2 o 3 períodos), deduce automáticamente la longitud de la otra fase
 
 **Pico Chico se descarta si:**
 - Hay precios sobre 200% (eso es Pico Grande)
@@ -255,9 +282,10 @@ El predictor **aprende** de los datos que ingresas:
 - Te avisa si es Decreciente (para que vendas ya)
 
 ### Si detecta FLUCTUANTE:
-- Analiza si estás en fase alta o baja
-- Ajusta los rangos según tu volatilidad
-- Te muestra cuándo es mejor vender
+- **Detecta fases bajas completadas** (2 o 3 períodos consecutivos bajando)
+- **Deduce la longitud de la segunda fase baja** (deben sumar 5 períodos)
+- **Predice con precisión**: Una vez que ambas fases bajas pasaron, solo muestra fase ALTA (90-140%)
+- Te muestra cuándo es mejor vender basándose en las fases detectadas
 
 **Resultado:** Cuantos más precios ingreses, más precisas son las predicciones.
 
