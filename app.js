@@ -148,6 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mostrar mejor momento
     displayBestTime(results.bestTime);
+
+    // Mostrar razones de rechazo/baja probabilidad
+    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern);
   }
 
   function displayPattern(patternName, confidence, allProbabilities) {
@@ -320,6 +323,86 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p>${bestTime.day}: hasta ${bestTime.price} bayas (estimado)</p>
             `;
     }
+  }
+
+  function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern) {
+    const debugDiv = document.getElementById('debugInfo');
+    if (!debugDiv) return;
+
+    // Mapeo de nombres de patrones
+    const patternNames = {
+      'large_spike': 'Pico Grande',
+      'small_spike': 'Pico Pequeño',
+      'decreasing': 'Decreciente',
+      'fluctuating': 'Fluctuante'
+    };
+
+    // Separar patrones descartados (0%) vs improbables (>0%)
+    const patternsToShow = Object.keys(patternNames).filter(key => key !== primaryPattern);
+    const rejected = patternsToShow.filter(key => allProbabilities[key] === 0);
+    const unlikely = patternsToShow.filter(key => allProbabilities[key] > 0);
+
+    // Ordenar improbables por probabilidad descendente
+    unlikely.sort((a, b) => allProbabilities[b] - allProbabilities[a]);
+
+    let html = '';
+
+    // Sección 1 Patrones improbables (>0%)
+    if (unlikely.length > 0) {
+      html += '<h3>🔍 Patrones menos probables</h3>';
+      html += '<p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>';
+      html += '<ul class="rejection-list">';
+      unlikely.forEach(key => {
+        const name = patternNames[key];
+        const prob = allProbabilities[key];
+        const scores = scoreReasons[key] || [];
+
+        html += `<li><strong>${name}</strong> (${prob}%):`;
+        if (scores.length > 0) {
+          html += '<ul>';
+          scores.forEach(reason => {
+            html += `<li>${reason}</li>`;
+          });
+          html += '</ul>';
+        } else {
+          html += ' <em>Sin señales fuertes a favor o en contra</em>';
+        }
+        html += '</li>';
+      });
+      html += '</ul>';
+    }
+
+    // Sección 2: Patrones descartados (0%)
+    if (rejected.length > 0) {
+      html += '<h3>🚫 Patrones descartados (0%)</h3>';
+      html += '<p><small>Estos patrones rompen las reglas del algoritmo del juego con los datos ingresados:</small></p>';
+      html += '<ul class="rejection-list">';
+      rejected.forEach(key => {
+        const name = patternNames[key];
+        const rejections = rejectionReasons[key] || [];
+
+        html += `<li><strong>${name}</strong>:`;
+        if (rejections.length > 0) {
+          html += '<ul>';
+          rejections.forEach(reason => {
+            html += `<li>${reason}</li>`;
+          });
+          html += '</ul>';
+        } else {
+          html += ' <em>Incompatible con los datos actuales</em>';
+        }
+        html += '</li>';
+      });
+      html += '</ul>';
+    }
+
+    // Si no hay ninguno
+    if (rejected.length === 0 && unlikely.length === 0) {
+      html = '<h3>🔍 Análisis de patrones</h3>';
+      html += '<p><small>No hay suficientes datos para descartar patrones alternativos.</small></p>';
+    }
+
+    debugDiv.innerHTML = html;
   }
 
   function saveData() {
