@@ -13,37 +13,58 @@ function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
   const peakStart = detectSpikePeakStart(knownPrices, 3, 9, true);
 
   // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
-  // Empieza en 85-90%, baja 3-5% cada período
+  // Empieza en 85-90%, baja 3-5% cada período hasta mínimo 40%
   if (periodIndex < peakStart) {
     const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
 
-    if (decreasingPhase.length >= 2) {
-      // Calcular tasa de decrecimiento observada
-      const avgRate = decreasingPhase.slice(1).reduce((totalRate, current, i) => {
-          const rate = (decreasingPhase[i].price - current.price) / decreasingPhase[i].price;
-        return totalRate + rate;
-      }, 0) / (decreasingPhase.length - 1);
-
+    if (decreasingPhase.length >= 1) {
       const lastKnown = decreasingPhase[decreasingPhase.length - 1];
       const periodsAhead = periodIndex - lastKnown.index;
-      if (periodsAhead > 0) {
+
+      // Si tenemos al menos 2 precios, calcular tasa de decrecimiento observada
+      if (decreasingPhase.length >= 2 && periodsAhead > 0) {
+        const avgRate = decreasingPhase.slice(1).reduce((totalRate, current, i) => {
+          const rate = (decreasingPhase[i].price - current.price) / decreasingPhase[i].price;
+          return totalRate + rate;
+        }, 0) / (decreasingPhase.length - 1);
+
         const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
         return {
           min: Math.round(projected * 0.90),
           max: Math.round(projected * 1.10)
         };
       }
+
+      // Si solo tenemos 1 precio o estamos prediciendo después del último conocido,
+      // el máximo no puede ser mayor al último precio conocido (está bajando)
+      if (periodsAhead > 0) {
+        // Usar tasa de decrecimiento del algoritmo (3-5% por período)
+        const minProjected = lastKnown.price * Math.pow(0.95, periodsAhead); // Baja 5%
+        const maxProjected = lastKnown.price * Math.pow(0.97, periodsAhead); // Baja 3%
+
+        return {
+          min: Math.round(Math.max(base * 0.40, minProjected)),
+          max: Math.round(Math.min(lastKnown.price, maxProjected))
+        };
+      }
     }
 
-    // Sin datos suficientes: usar rangos del algoritmo
-    const initialRate = 0.875; // Promedio de 0.85-0.90
-    const decayPerPeriod = 0.04; // Promedio de 0.03-0.05
-    const rate = Math.max(0.40, initialRate - (periodIndex * decayPerPeriod));
-    const price = base * rate;
+    // Sin datos suficientes: usar rangos del algoritmo del juego
+    // Large Spike empieza 85-90%, baja 3-5% por período hasta mínimo 40%
+    const minDecayPerPeriod = 0.03; // Baja mínima por período
+    const maxDecayPerPeriod = 0.05; // Baja máxima por período
+
+    // Calcular rango para este período
+    // Peor caso: empieza en 85%, baja 5% por período
+    const minRateStart = 0.85;
+    const minRate = Math.max(0.40, minRateStart - (periodIndex * maxDecayPerPeriod));
+    // Mejor caso: empieza en 90%, baja 3% por período
+    const maxRateStart = 0.90;
+    const maxRate = Math.max(0.40, maxRateStart - (periodIndex * minDecayPerPeriod));
 
     return {
-      min: Math.round(price * 0.85),
-      max: Math.round(price * 1.10)
+      min: Math.round(base * minRate),
+      max: Math.round(base * maxRate)
     };
   }
 
