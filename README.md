@@ -36,12 +36,12 @@ Todos tus datos se guardan en el navegador. No necesitas hacer nada.
 
 ## 📊 Los 4 patrones de nabos
 
-| Patrón | Rango típico | Mejor momento | Qué hacer |
-|--------|-------------|---------------|-----------|
-| 🚀 **Pico Grande** | 200-600% | Miércoles-Jueves | ¡ESPERA AL PICO! Vende cuando veas 200%+ |
-| 📈 **Pico Chico** | 140-200% | Jueves-Viernes | Vende en el pico (~150-190%) |
-| 📊 **Fluctuante** | 60-140% | Cuando >110% | Vende cuando veas ganancia |
-| 📉 **Decreciente** | 40-90% (bajando) | ¡AHORA! | Vende YA o busca otra isla |
+| Patrón | ALTA | BAJA | Mejor momento |
+|--------|------|------|---------------|
+| 📊 **Fluctuante** | 90-140% | 60-80% | Fase alta (90-140%) |
+| 📉 **Decreciente** | 85-90% (solo inicio) | 40-90% (bajando) | Lunes AM 😢 |
+| 📈 **Pico Chico** | 140-200% | 40-90% | Período 4 del pico (140-200%) |
+| 🚀 **Pico Grande** | 200-600% 💰 | 40-90% | Período 3 del pico (200-600%) 🎉 |
 
 **💡 Tip:** Lee [ALGORITHM.md](ALGORITHM.md) para entender cómo funciona cada patrón en detalle.
 
