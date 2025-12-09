@@ -157,16 +157,16 @@ class TurnipPredictor {
     // y todos deben estar entre 85% y 40% del precio base
     return knownPrices.every((current, i) => {
       const { price, index } = current;
-      const expectedMax = this.buyPrice * (0.9 - (index * 0.03));
-      const expectedMin = this.buyPrice * 0.40;
+      const expectedMax = Math.ceil(this.buyPrice * (0.9 - (index * 0.03)));
+      const expectedMin = Math.floor(this.buyPrice * 0.40);
 
       // El precio debe estar en el rango del patrón decreciente
-      if (price > expectedMax * 1.05 || price < expectedMin * 0.85) {
+      if (price > expectedMax || price < expectedMin) {
         return false;
       }
 
-      // Verificar que no haya subidas significativas
-      if (i > 0 && price > knownPrices[i - 1].price * 1.05) {
+      // Verificar que no haya subidas (Decreasing solo baja)
+      if (i > 0 && price > knownPrices[i - 1].price) {
         return false;
       }
 
@@ -190,14 +190,16 @@ class TurnipPredictor {
     // VALIDACIÓN 1: Lunes AM (período 0) debe estar entre 85-90% del precio base
     const mondayAM = knownPrices.find(p => p.index === 0);
     if (mondayAM) {
+      const minPrice = Math.floor(this.buyPrice * 0.85);
+      const maxPrice = Math.ceil(this.buyPrice * 0.90);
       const mondayRatio = mondayAM.price / this.buyPrice;
-      // Si está muy por debajo de 85% (con 10% de margen de error), no es Large Spike
-      if (mondayRatio < 0.85 * 0.90) {
+      // Si está por debajo de 85%, no es Large Spike
+      if (mondayAM.price < minPrice) {
         this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
         return false;
       }
-      // Si está muy por encima de 90% (con 10% de margen de error), no es Large Spike
-      if (mondayRatio > 0.90 * 1.10) {
+      // Si está por encima de 90%, no es Large Spike
+      if (mondayAM.price > maxPrice) {
         this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
         return false;
       }
@@ -215,9 +217,10 @@ class TurnipPredictor {
 
       const ratio = current.price / previous.price;
       const dropPercent = Math.round((1 - ratio) * 100);
+      const minAllowed = Math.floor(previous.price * 0.95);
 
       // Si baja más de 5% por período, NO es Large Spike
-      if (ratio < 0.95 * 0.98) { // 5% de caída + 2% margen
+      if (current.price < minAllowed) {
         this.rejectionReasons.large_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Large Spike no puede bajar más de 5% por período.`);
         return false;
       }
@@ -226,7 +229,7 @@ class TurnipPredictor {
       // probablemente ya empezó el pico (pero Large Spike empieza en período 3+)
       if (current.index < 3 && ratio > 1.10) {
         const risePercent = Math.round((ratio - 1) * 100);
-        this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período 3. Large Spike no puede subir temprano (el pico empieza en Martes PM o después).`);
+        this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período 3. Large Spike no puede subir temprano. El pico solo puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
         return false;
       }
     }
@@ -262,14 +265,14 @@ class TurnipPredictor {
       // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
       // es muy probable que sea Small Spike, no Large Spike
       if (!hasRapidIncrease) {
-        this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike.`);
+        this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
         return false;
       }
     }
 
     // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
     if (maxKnownIndex >= 11 && maxRatio < 1.4) {
-      this.rejectionReasons.large_spike.push(`Es sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%.`);
+      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
       return false;
     }
 
@@ -303,10 +306,11 @@ class TurnipPredictor {
 
       const ratio = current.price / previous.price;
       const dropPercent = Math.round((1 - ratio) * 100);
+      const minAllowed = Math.floor(previous.price * 0.95);
 
       // Si baja más de 5% por período, NO es Small Spike (ni Large Spike)
       // Probablemente es Decreasing o Fluctuating
-      if (ratio < 0.95 * 0.98) { // 5% de caída + 2% margen
+      if (current.price < minAllowed) {
         this.rejectionReasons.small_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Small Spike no puede bajar más de 5% por período.`);
         return false;
       }
@@ -315,7 +319,7 @@ class TurnipPredictor {
       // podría no ser Small Spike (el pico empieza en período 2+)
       if (current.index < 2 && ratio > 1.10) {
         const risePercent = Math.round((ratio - 1) * 100);
-        this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período 2. Small Spike no puede subir temprano (el pico empieza en Martes AM o después).`);
+        this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período 2. Small Spike no puede subir temprano. El pico solo puede empezar entre Martes AM y Sábado PM (períodos 2-9).`);
         return false;
       }
     }
@@ -331,6 +335,7 @@ class TurnipPredictor {
       // El pico ya debería haber ocurrido
       // Si el precio máximo fue < 90%, es muy improbable que sea pico pequeño
       if (maxRatio < 0.90) {
+        this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre Martes AM y Sábado PM (períodos 2-9).`);
         return false;
       }
     }
