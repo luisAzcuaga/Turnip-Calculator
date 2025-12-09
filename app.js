@@ -367,6 +367,14 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           html += ' <em>Sin señales fuertes a favor o en contra</em>';
         }
+
+        // Añadir información de timing para patrones de pico
+        if (key === 'large_spike') {
+          html += '<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico de Large Spike puede empezar entre <strong>Martes PM y Sábado PM</strong> (períodos 3-9). Sigue checando los precios.</small></p>';
+        } else if (key === 'small_spike') {
+          html += '<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico de Small Spike puede empezar entre <strong>Martes AM y Sábado PM</strong> (períodos 2-9). Sigue checando los precios.</small></p>';
+        }
+
         html += '</li>';
       });
       html += '</ul>';
