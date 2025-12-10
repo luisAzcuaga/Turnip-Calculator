@@ -31,8 +31,8 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
         const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
         return {
-          min: Math.round(projected * VARIANCE.PROJECTED_MIN),
-          max: Math.round(projected * VARIANCE.PROJECTED_MAX)
+          min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
+          max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
         };
       }
 
@@ -44,8 +44,8 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
         const maxProjected = lastKnown.price * Math.pow(DECAY.BEST_CASE_MULTIPLIER, periodsAhead); // Baja 3%
 
         return {
-          min: Math.round(Math.max(base * RATES.FLOOR, minProjected)),
-          max: Math.round(Math.min(lastKnown.price, maxProjected))
+          min: Math.floor(Math.max(base * RATES.FLOOR, minProjected)),
+          max: Math.ceil(Math.min(lastKnown.price, maxProjected))
         };
       }
     }
@@ -60,8 +60,8 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
     const maxRate = Math.max(RATES.FLOOR, RATES.SMALL_SPIKE.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD));
 
     return {
-      min: Math.round(base * minRate),
-      max: Math.round(base * maxRate)
+      min: priceFloor(base, minRate),
+      max: priceCeil(base, maxRate)
     };
   }
 
@@ -98,32 +98,32 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
     if (peakPhaseIndex === 0 || peakPhaseIndex === 1) {
       // Períodos 1 y 2: 0.9-1.4
       return {
-        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MIN),
-        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MAX)
+        min: priceFloor(base, RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MIN),
+        max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MAX)
       };
     } else if (peakPhaseIndex === 3) {
       // Período 4: PICO REAL (rate * base)
       if (inferredRate) {
         return {
-          min: Math.round(base * inferredRate * VARIANCE.INFERRED_MIN),
-          max: Math.round(base * inferredRate * VARIANCE.INFERRED_MAX)
+          min: Math.floor(base * inferredRate * VARIANCE.INFERRED_MIN),
+          max: Math.ceil(base * inferredRate * VARIANCE.INFERRED_MAX)
         };
       }
       return {
-        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN),
-        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MAX)
+        min: priceFloor(base, RATES.SMALL_SPIKE.PEAK_RATE_MIN),
+        max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)
       };
     } else {
       // Períodos 3 y 5: (1.4 a rate) * base - 1 bell
       if (inferredRate) {
         return {
-          min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-          max: Math.round(base * inferredRate - 1)
+          min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
+          max: Math.ceil(base * inferredRate - 1)
         };
       }
       return {
-        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MAX - 1)
+        min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
+        max: Math.ceil(base * RATES.SMALL_SPIKE.PEAK_RATE_MAX - 1)
       };
     }
   }
@@ -143,15 +143,15 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
     if (periodsAhead > 0) {
       const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
       return {
-        min: Math.round(projected * VARIANCE.PROJECTED_MIN),
-        max: Math.round(projected * VARIANCE.PROJECTED_MAX)
+        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
+        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
       };
     }
   }
 
   // Sin datos suficientes en fase final: usar rangos del algoritmo
   return {
-    min: Math.round(base * RATES.SMALL_SPIKE.POST_PEAK_MIN),
-    max: Math.round(base * RATES.SMALL_SPIKE.POST_PEAK_MAX)
+    min: priceFloor(base, RATES.SMALL_SPIKE.POST_PEAK_MIN),
+    max: priceCeil(base, RATES.SMALL_SPIKE.POST_PEAK_MAX)
   };
 }

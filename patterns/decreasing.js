@@ -30,8 +30,8 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
     if (periodsAhead > 0) {
       const projected = lastKnown.price * Math.pow(1 - avgDecayRate, periodsAhead);
       return {
-        min: Math.round(projected * VARIANCE.INFERRED_MIN),
-        max: Math.round(projected * VARIANCE.INFERRED_MAX)
+        min: Math.floor(projected * VARIANCE.INFERRED_MIN),
+        max: Math.ceil(projected * VARIANCE.INFERRED_MAX)
       };
     } else if (periodsAhead === 0) {
       // Mismo período, devolver el precio conocido
@@ -53,7 +53,7 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   const maxRate = Math.max(RATES.FLOOR, (RATES.DECREASING.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD)));
 
   return {
-    min: Math.round(base * minRate),
-    max: Math.round(base * maxRate)
+    min: priceFloor(base, minRate),
+    max: priceCeil(base, maxRate)
   };
 }

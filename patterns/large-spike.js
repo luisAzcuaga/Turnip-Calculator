@@ -31,8 +31,8 @@ function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
 
         const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
         return {
-          min: Math.round(projected * VARIANCE.PROJECTED_MIN),
-          max: Math.round(projected * VARIANCE.PROJECTED_MAX)
+          min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
+          max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
         };
       }
 
@@ -44,8 +44,8 @@ function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
         const maxProjected = lastKnown.price * Math.pow(DECAY.BEST_CASE_MULTIPLIER, periodsAhead); // Baja 3%
 
         return {
-          min: Math.round(Math.max(base * RATES.FLOOR, minProjected)),
-          max: Math.round(Math.min(lastKnown.price, maxProjected))
+          min: Math.floor(Math.max(base * RATES.FLOOR, minProjected)),
+          max: Math.ceil(Math.min(lastKnown.price, maxProjected))
         };
       }
     }
@@ -60,8 +60,8 @@ function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
     const maxRate = Math.max(RATES.FLOOR, RATES.LARGE_SPIKE.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD));
 
     return {
-      min: Math.round(base * minRate),
-      max: Math.round(base * maxRate)
+      min: priceFloor(base, minRate),
+      max: priceCeil(base, maxRate)
     };
   }
 
@@ -72,14 +72,14 @@ function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
     // Rangos según el algoritmo del juego (desde RATES.LARGE_SPIKE.PEAK_PHASES)
     const range = RATES.LARGE_SPIKE.PEAK_PHASES[peakPhaseIndex];
     return {
-      min: Math.round(base * range.min),
-      max: Math.round(base * range.max)
+      min: priceFloor(base, range.min),
+      max: priceCeil(base, range.max)
     };
   }
 
   // Fase 3: BAJA FINAL (después del pico)
   return {
-    min: Math.round(base * RATES.LARGE_SPIKE.POST_PEAK_MIN),
-    max: Math.round(base * RATES.LARGE_SPIKE.POST_PEAK_MAX)
+    min: priceFloor(base, RATES.LARGE_SPIKE.POST_PEAK_MIN),
+    max: priceCeil(base, RATES.LARGE_SPIKE.POST_PEAK_MAX)
   };
 }
