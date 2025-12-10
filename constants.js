@@ -303,9 +303,31 @@ function isInRange(price, min, max) {
 
 /**
  * Calcula el mínimo permitido después de una caída del 5%
+ * @deprecated Usar isValidRateDrop() para validación correcta basada en rate
  */
 function minAfterDrop(previousPrice) {
   return Math.floor(previousPrice * DECAY.WORST_CASE_MULTIPLIER);
+}
+
+/**
+ * Valida si la caída entre dos precios es válida según el algoritmo del juego.
+ * El juego reduce el RATE (no el precio) entre 3-5 puntos porcentuales por período.
+ *
+ * @param {number} previousPrice - Precio del período anterior
+ * @param {number} currentPrice - Precio del período actual
+ * @param {number} buyPrice - Precio base de compra
+ * @returns {{valid: boolean, rateDrop: number}} - Si es válido y cuánto bajó el rate
+ */
+function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
+  const previousRate = previousPrice / buyPrice;
+  const currentRate = currentPrice / buyPrice;
+  const rateDrop = previousRate - currentRate;
+
+  // El rate puede bajar máximo 5 puntos porcentuales (0.05) por período
+  return {
+    valid: rateDrop <= DECAY.MAX_PER_PERIOD,
+    rateDrop: rateDrop
+  };
 }
 
 /**

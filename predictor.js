@@ -174,7 +174,7 @@ class TurnipPredictor {
     }
 
     // VALIDACIÓN 2 y 3: Validar pendiente en fase pre-pico
-    // Large Spike NO puede bajar >5% por período
+    // Large Spike NO puede bajar >5 puntos del RATE por período
     // Large Spike NO debería subir significativamente antes del pico
     const hasInvalidSlope = knownPrices.slice(1).some((current, i) => {
       const previous = knownPrices[i];
@@ -183,12 +183,15 @@ class TurnipPredictor {
       if (current.index !== previous.index + 1) return false;
 
       const ratio = priceRatio(current.price, previous.price);
-      const dropPercent = Math.round((1 - ratio) * 100);
-      const minAllowedPrice = minAfterDrop(previous.price);
 
-      // Si baja más de 5% por período, NO es Large Spike
-      if (current.price < minAllowedPrice) {
-        this.rejectionReasons.large_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Large Spike no puede bajar más de 5% por período.`);
+      // Validar usando el RATE (precio/buyPrice), no el precio directamente
+      // El juego reduce el rate 3-5 puntos por período, no el precio
+      const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+
+      // Si el rate baja más de 5 puntos porcentuales, NO es Large Spike
+      if (!rateValidation.valid) {
+        const rateDropPercent = Math.round(rateValidation.rateDrop * 100);
+        this.rejectionReasons.large_spike.push(`Rate cayó ${rateDropPercent} puntos (de ${previous.price} a ${current.price}). Large Spike no puede bajar más de 5 puntos de rate por período.`);
         return true;
       }
 
@@ -269,7 +272,7 @@ class TurnipPredictor {
     }
 
     // VALIDACIÓN: Validar pendiente en fase pre-pico
-    // Small Spike NO puede bajar >5% por período en fase decreciente
+    // Small Spike NO puede bajar >5 puntos del RATE por período en fase decreciente
     const hasInvalidSmallSpikeSlope = knownPrices.slice(1).some((current, i) => {
       const previous = knownPrices[i];
 
@@ -277,13 +280,16 @@ class TurnipPredictor {
       if (current.index !== previous.index + 1) return false;
 
       const ratio = priceRatio(current.price, previous.price);
-      const dropPercent = Math.round((1 - ratio) * 100);
-      const minAllowedPrice = minAfterDrop(previous.price);
 
-      // Si baja más de 5% por período, NO es Small Spike (ni Large Spike)
+      // Validar usando el RATE (precio/buyPrice), no el precio directamente
+      // El juego reduce el rate 3-5 puntos por período, no el precio
+      const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+
+      // Si el rate baja más de 5 puntos porcentuales, NO es Small Spike
       // Probablemente es Decreasing o Fluctuating
-      if (current.price < minAllowedPrice) {
-        this.rejectionReasons.small_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Small Spike no puede bajar más de 5% por período.`);
+      if (!rateValidation.valid) {
+        const rateDropPercent = Math.round(rateValidation.rateDrop * 100);
+        this.rejectionReasons.small_spike.push(`Rate cayó ${rateDropPercent} puntos (de ${previous.price} a ${current.price}). Small Spike no puede bajar más de 5 puntos de rate por período.`);
         return true;
       }
 

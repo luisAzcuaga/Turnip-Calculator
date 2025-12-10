@@ -165,10 +165,17 @@ Todo el código está organizado y comentado. Los parámetros del algoritmo est�
 
 ---
 
-## 🙏 Créditos
+## 🙏 Créditos y Referencias
 
-- Algoritmos basados en el **código oficial** extraído por Treeki/Ninji
-- Inspirado en la comunidad de Animal Crossing
+### Fuentes del algoritmo
+
+- **[Código fuente del algoritmo](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b)** - Ninji (Treeki), abril 2020
+- **[Nookipedia - Stalk Market](https://nookipedia.com/wiki/Stalk_Market)** - Documentación de mecánicas
+
+### Agradecimientos
+
+- **Ninji (Treeki)** - Datamining del algoritmo original
+- **Comunidad de Animal Crossing** - Documentación y verificación
 - Diseño inspirado en la estética del juego
 
 ---
