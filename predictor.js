@@ -176,12 +176,11 @@ class TurnipPredictor {
     // VALIDACIÓN 2 y 3: Validar pendiente en fase pre-pico
     // Large Spike NO puede bajar >5% por período
     // Large Spike NO debería subir significativamente antes del pico
-    for (let i = 1; i < knownPrices.length; i++) {
-      const current = knownPrices[i];
-      const previous = knownPrices[i - 1];
+    const hasInvalidSlope = knownPrices.slice(1).some((current, i) => {
+      const previous = knownPrices[i];
 
       // Solo validar si los períodos son consecutivos
-      if (current.index !== previous.index + 1) continue;
+      if (current.index !== previous.index + 1) return false;
 
       const ratio = priceRatio(current.price, previous.price);
       const dropPercent = Math.round((1 - ratio) * 100);
@@ -190,7 +189,7 @@ class TurnipPredictor {
       // Si baja más de 5% por período, NO es Large Spike
       if (current.price < minAllowedPrice) {
         this.rejectionReasons.large_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Large Spike no puede bajar más de 5% por período.`);
-        return false;
+        return true;
       }
 
       // Si sube más de 10% en fase temprana (antes de período 3),
@@ -199,9 +198,13 @@ class TurnipPredictor {
         const risePercent = Math.round((ratio - 1) * 100);
         const spikeRange = getSpikeStartRange(true);
         this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.LARGE_SPIKE_PEAK_START_MIN}. Large Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return false;
+        return true;
       }
-    }
+
+      return false;
+    });
+
+    if (hasInvalidSlope) return false;
 
     // BUG FIX: Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
     // Esto indica que el pico ya pasó y fue muy bajo para ser Large Spike
@@ -267,12 +270,11 @@ class TurnipPredictor {
 
     // VALIDACIÓN: Validar pendiente en fase pre-pico
     // Small Spike NO puede bajar >5% por período en fase decreciente
-    for (let i = 1; i < knownPrices.length; i++) {
-      const current = knownPrices[i];
-      const previous = knownPrices[i - 1];
+    const hasInvalidSmallSpikeSlope = knownPrices.slice(1).some((current, i) => {
+      const previous = knownPrices[i];
 
       // Solo validar si los períodos son consecutivos
-      if (current.index !== previous.index + 1) continue;
+      if (current.index !== previous.index + 1) return false;
 
       const ratio = priceRatio(current.price, previous.price);
       const dropPercent = Math.round((1 - ratio) * 100);
@@ -282,7 +284,7 @@ class TurnipPredictor {
       // Probablemente es Decreasing o Fluctuating
       if (current.price < minAllowedPrice) {
         this.rejectionReasons.small_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Small Spike no puede bajar más de 5% por período.`);
-        return false;
+        return true;
       }
 
       // Si sube muy temprano antes del período 2 (Martes AM),
@@ -291,9 +293,13 @@ class TurnipPredictor {
         const risePercent = Math.round((ratio - 1) * 100);
         const spikeRange = getSpikeStartRange(false);
         this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.SMALL_SPIKE_PEAK_START_MIN}. Small Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return false;
+        return true;
       }
-    }
+
+      return false;
+    });
+
+    if (hasInvalidSmallSpikeSlope) return false;
 
     // Si el pico está en el rango perfecto de Small Spike (140-200%)
     // Y ya estamos en viernes o después, es muy probable que sea Small Spike
@@ -333,27 +339,29 @@ class TurnipPredictor {
     // El patrón fluctuante debe ALTERNAR entre fases altas y bajas
     // Verificar tendencias decrecientes sostenidas
     if (knownPrices.length >= 2) {
-      let consecutiveDecreases = 0;
-      let maxConsecutiveDecreases = 0;
-      let decreasesFromStart = 0;
+      const { consecutiveDecreases, maxConsecutiveDecreases, decreasesFromStart } = knownPrices
+        .slice(1)
+        .reduce(
+          (acc, current, i) => {
+            const previous = knownPrices[i];
 
-      for (let i = 1; i < knownPrices.length; i++) {
-        const current = knownPrices[i];
-        const previous = knownPrices[i - 1];
+            // Verificar si está bajando (con margen de error del 2%)
+            if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
+              acc.consecutiveDecreases++;
+              acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
 
-        // Verificar si está bajando (con margen de error del 2%)
-        if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
-          consecutiveDecreases++;
-          maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
+              // Contar si baja desde el inicio
+              if (i + 1 === acc.decreasesFromStart + 1) {
+                acc.decreasesFromStart++;
+              }
+            } else {
+              acc.consecutiveDecreases = 0;
+            }
 
-          // Contar si baja desde el inicio
-          if (i === decreasesFromStart + 1) {
-            decreasesFromStart++;
-          }
-        } else {
-          consecutiveDecreases = 0;
-        }
-      }
+            return acc;
+          },
+          { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0 }
+        );
 
       // CRÍTICO: Si baja 2+ períodos desde el INICIO (3 precios bajando), no es Fluctuante
       // Fluctuante debe empezar con fase ALTA o alternar, no bajar desde el inicio
