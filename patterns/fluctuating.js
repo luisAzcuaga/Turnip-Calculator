@@ -1,5 +1,6 @@
 // Patrón FLUCTUANTE: alterna entre fases altas y bajas
 // Basado en el algoritmo real datamineado del juego (Pattern 0)
+// Usa constantes de constants.js (RATES, PERIODS, THRESHOLDS)
 //
 // Estructura del patrón (12 períodos totales):
 // - Fase ALTA 1: 0-6 períodos, precios 90-140%
@@ -27,7 +28,7 @@ function detectPhase(price, base) {
   const ratio = price / base;
   // Fase alta: 90-140%
   // Fase baja: 60-80% (y bajando)
-  if (ratio >= 0.85) {
+  if (ratio >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD) {
     return 'high';
   } else {
     return 'low';
@@ -50,8 +51,8 @@ function detectFluctuatingPhases(knownPrices, base) {
     const current = knownPrices[i];
     const ratio = current.price / base;
 
-    // Detectar inicio de fase baja (ratio < 0.85 y bajando)
-    if (ratio < 0.85 && i < knownPrices.length - 1) {
+    // Detectar inicio de fase baja (ratio < 85% y bajando)
+    if (ratio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && i < knownPrices.length - 1) {
       const phaseStart = current.index;
       let phaseLength = 1;
       let j = i + 1;
@@ -65,10 +66,10 @@ function detectFluctuatingPhases(knownPrices, base) {
         if (next.index !== prev.index + 1) break;
 
         // Si el precio sube significativamente (>5%), terminó la fase baja
-        if (next.price > prev.price * 1.05) break;
+        if (next.price > prev.price * THRESHOLDS.SLIGHT_RISE) break;
 
         // Si está en rango de fase alta (>85%), terminó la fase baja
-        if (next.price / base >= 0.85) break;
+        if (next.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD) break;
 
         phaseLength++;
         j++;
@@ -172,7 +173,7 @@ function analyzeFluctuatingStructure(knownPrices, base) {
   const alta3Length = 7 - alta1.length - alta2.length;
   const alta3 = {
     startIndex: baja2End + 1,
-    endIndex: 11, // Sábado PM
+    endIndex: PERIODS.LAST_PERIOD,
     length: alta3Length
   };
 
@@ -224,32 +225,32 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
       if (periodIndex >= structure.alta3.startIndex) {
         // Estamos en ALTA3
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       } else if (periodIndex >= structure.baja2.startIndex && periodIndex <= structure.baja2.endIndex) {
         // Estamos en BAJA2
         return {
-          min: Math.round(base * 0.60),
-          max: Math.round(base * 0.80)
+          min: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MAX)
         };
       } else if (periodIndex >= structure.alta2.startIndex && periodIndex < structure.baja2.startIndex) {
         // Estamos en ALTA2
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       } else if (periodIndex >= structure.baja1.startIndex && periodIndex <= structure.baja1.endIndex) {
         // Estamos en BAJA1
         return {
-          min: Math.round(base * 0.60),
-          max: Math.round(base * 0.80)
+          min: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MAX)
         };
       } else if (periodIndex < structure.baja1.startIndex) {
         // Estamos en ALTA1
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       }
     }
@@ -262,13 +263,13 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
       const lastPrice = knownPrices[knownPrices.length - 1];
       const lastRatio = lastPrice.price / base;
 
-      if (lastRatio < 0.85 && lastPrice.index > structure.baja1.endIndex) {
+      if (lastRatio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && lastPrice.index > structure.baja1.endIndex) {
         // Estamos en BAJA2 en progreso
         // Calcular dónde empieza y termina BAJA2
         let baja2Start = lastPrice.index;
         for (let i = knownPrices.length - 2; i >= 0; i--) {
           const p = knownPrices[i];
-          if (p.price / base < 0.85 && p.index > structure.baja1.endIndex && p.index === baja2Start - 1) {
+          if (p.price / base < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && p.index > structure.baja1.endIndex && p.index === baja2Start - 1) {
             baja2Start = p.index;
           } else {
             break;
@@ -281,24 +282,24 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
         if (periodIndex >= baja2Start && periodIndex <= baja2End) {
           // BAJA2
           return {
-            min: Math.round(base * 0.60),
-            max: Math.round(base * 0.80)
+            min: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MIN),
+            max: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MAX)
           };
         } else if (periodIndex > baja2End) {
           // ALTA3 (después de BAJA2)
           return {
-            min: Math.round(base * 0.90),
-            max: Math.round(base * 1.40)
+            min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+            max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
           };
         }
       }
 
       // No estamos en BAJA2 aún
       // Si estamos muy tarde (período 10-11) y ya pasó BAJA1 temprano, debe ser ALTA
-      if (periodIndex >= 10 && structure.baja1.startIndex <= 6) {
+      if (periodIndex >= PERIODS.SATURDAY_AM && structure.baja1.startIndex <= PERIODS.THURSDAY_AM) {
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       }
     }
@@ -320,8 +321,8 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
       // Si estamos dentro de una fase baja conocida, usar rango de fase baja
       if (periodIndex >= phase.startIndex && periodIndex <= phaseEnd) {
         return {
-          min: Math.round(base * 0.60),
-          max: Math.round(base * 0.80)
+          min: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MAX)
         };
       }
     }
@@ -334,8 +335,8 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
       // Si estamos después de la segunda fase baja, debe ser fase ALTA
       if (periodIndex > lastPhaseEnd) {
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       }
     }
@@ -352,7 +353,7 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
         const lastRatio = lastPrice.price / base;
 
         // Si el último precio está en fase baja (<85%) y viene DESPUÉS de BAJA1
-        if (lastRatio < 0.85 && lastPrice.index > firstPhaseEnd) {
+        if (lastRatio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && lastPrice.index > firstPhaseEnd) {
           // Buscar cuántos períodos llevamos en esta nueva fase baja
           let baja2StartIndex = lastPrice.index;
           let baja2CurrentLength = 1;
@@ -363,7 +364,7 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
             const prevRatio = prevPrice.price / base;
 
             // Si el anterior también está en fase baja y es consecutivo
-            if (prevRatio < 0.85 && prevPrice.index === baja2StartIndex - 1 && prevPrice.index > firstPhaseEnd) {
+            if (prevRatio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && prevPrice.index === baja2StartIndex - 1 && prevPrice.index > firstPhaseEnd) {
               baja2StartIndex = prevPrice.index;
               baja2CurrentLength++;
             } else {
@@ -377,16 +378,16 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
           // Si estamos prediciendo un período dentro de BAJA2
           if (periodIndex >= baja2StartIndex && periodIndex <= baja2ExpectedEnd) {
             return {
-              min: Math.round(base * 0.60),
-              max: Math.round(base * 0.80)
+              min: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MIN),
+              max: Math.round(base * RATES.FLUCTUATING.LOW_PHASE_MAX)
             };
           }
 
           // Si estamos prediciendo después de BAJA2, debe ser ALTA3
           if (periodIndex > baja2ExpectedEnd) {
             return {
-              min: Math.round(base * 0.90),
-              max: Math.round(base * 1.40)
+              min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+              max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
             };
           }
         }
@@ -395,12 +396,12 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
       // Estrategia conservadora: usar rango completo si no estamos seguros
       // pero si estamos MUY tarde en la semana (período 10-11) y ya vimos
       // una fase baja completa, es muy probable que sea fase ALTA
-      if (periodIndex >= 10 && firstPhase.startIndex <= 6) {
+      if (periodIndex >= PERIODS.SATURDAY_AM && firstPhase.startIndex <= PERIODS.THURSDAY_AM) {
         // Ya vimos la primera fase baja temprano, estamos en sábado
         // Es muy probable que ya pasaron ambas fases bajas
         return {
-          min: Math.round(base * 0.90),
-          max: Math.round(base * 1.40)
+          min: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MIN),
+          max: Math.round(base * RATES.FLUCTUATING.HIGH_PHASE_MAX)
         };
       }
     }
@@ -410,7 +411,7 @@ function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // El patrón Fluctuante es aleatorio - puede estar en cualquier punto del rango
   // Rango: 60-140% del precio base
   return {
-    min: Math.round(base * 0.60),
-    max: Math.round(base * 1.40)
+    min: Math.round(base * RATES.FLUCTUATING.MIN),
+    max: Math.round(base * RATES.FLUCTUATING.MAX)
   };
 }

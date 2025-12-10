@@ -41,42 +41,11 @@ class TurnipPredictor {
       'small_spike': []
     };
 
-    // Probabilidades por defecto (sin historial)
-    this.defaultProbabilities = {
-      'fluctuating': 0.35,
-      'large_spike': 0.25,
-      'decreasing': 0.15,
-      'small_spike': 0.25
-    };
+    // Probabilidades por defecto (sin historial) - desde constants.js
+    this.defaultProbabilities = DEFAULT_PROBABILITIES;
 
-    // Matriz de transición de patrones (basado en el código real de ACNH)
-    // [patrón_anterior][patrón_actual] = probabilidad
-    this.transitionProbabilities = {
-      'fluctuating': {
-        'fluctuating': 0.20,
-        'large_spike': 0.30,
-        'decreasing': 0.15,
-        'small_spike': 0.35
-      },
-      'large_spike': {
-        'fluctuating': 0.50,
-        'large_spike': 0.05,
-        'decreasing': 0.20,
-        'small_spike': 0.25
-      },
-      'decreasing': {
-        'fluctuating': 0.25,
-        'large_spike': 0.45,
-        'decreasing': 0.05,
-        'small_spike': 0.25
-      },
-      'small_spike': {
-        'fluctuating': 0.45,
-        'large_spike': 0.25,
-        'decreasing': 0.15,
-        'small_spike': 0.15
-      }
-    };
+    // Matriz de transición de patrones (basado en el código real de ACNH) - desde constants.js
+    this.transitionProbabilities = TRANSITION_PROBABILITIES;
   }
 
   // Validar precios conocidos
@@ -148,7 +117,7 @@ class TurnipPredictor {
     // REGLA DE DETECCIÓN TEMPRANA:
     // Si el LUNES tiene precio alto (>100%), NO puede ser Decreasing
     // Decreasing NUNCA sube del precio de compra (máx 90%)
-    const mondayPrices = knownPrices.filter(p => p.index <= 1); // Períodos 0-1 (Lunes)
+    const mondayPrices = knownPrices.filter(p => p.index <= PERIODS.MONDAY_PM);
     if (mondayPrices.some(p => p.price > this.buyPrice)) {
       return false; // Precio alto el Lunes = NO es Decreasing
     }
@@ -157,8 +126,8 @@ class TurnipPredictor {
     // y todos deben estar entre 85% y 40% del precio base
     return knownPrices.every((current, i) => {
       const { price, index } = current;
-      const expectedMax = Math.ceil(this.buyPrice * (0.9 - (index * 0.03)));
-      const expectedMin = Math.floor(this.buyPrice * 0.40);
+      const expectedMax = decreasingMaxForPeriod(this.buyPrice, index);
+      const expectedMin = decreasingMin(this.buyPrice);
 
       // El precio debe estar en el rango del patrón decreciente
       if (price > expectedMax || price < expectedMin) {
@@ -179,27 +148,26 @@ class TurnipPredictor {
     if (knownPrices.length === 0) return true;
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = maxPrice / this.buyPrice;
+    const maxRatio = priceRatio(maxPrice, this.buyPrice);
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
     // Si encuentra un precio muy alto (200%+), definitivamente es pico grande
-    if (maxRatio >= 2.0) {
+    if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
       return true;
     }
 
     // VALIDACIÓN 1: Lunes AM (período 0) debe estar entre 85-90% del precio base
-    const mondayAM = knownPrices.find(p => p.index === 0);
+    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
     if (mondayAM) {
-      const minPrice = Math.floor(this.buyPrice * 0.85);
-      const maxPrice = Math.ceil(this.buyPrice * 0.90);
-      const mondayRatio = mondayAM.price / this.buyPrice;
+      const startRange = largeSpikeStartRange(this.buyPrice);
+      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
       // Si está por debajo de 85%, no es Large Spike
-      if (mondayAM.price < minPrice) {
+      if (mondayAM.price < startRange.min) {
         this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
         return false;
       }
       // Si está por encima de 90%, no es Large Spike
-      if (mondayAM.price > maxPrice) {
+      if (mondayAM.price > startRange.max) {
         this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
         return false;
       }
@@ -215,33 +183,34 @@ class TurnipPredictor {
       // Solo validar si los períodos son consecutivos
       if (current.index !== previous.index + 1) continue;
 
-      const ratio = current.price / previous.price;
+      const ratio = priceRatio(current.price, previous.price);
       const dropPercent = Math.round((1 - ratio) * 100);
-      const minAllowed = Math.floor(previous.price * 0.95);
+      const minAllowedPrice = minAfterDrop(previous.price);
 
       // Si baja más de 5% por período, NO es Large Spike
-      if (current.price < minAllowed) {
+      if (current.price < minAllowedPrice) {
         this.rejectionReasons.large_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Large Spike no puede bajar más de 5% por período.`);
         return false;
       }
 
       // Si sube más de 10% en fase temprana (antes de período 3),
       // probablemente ya empezó el pico (pero Large Spike empieza en período 3+)
-      if (current.index < 3 && ratio > 1.10) {
+      if (current.index < PERIODS.LARGE_SPIKE_PEAK_START_MIN && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
         const risePercent = Math.round((ratio - 1) * 100);
-        this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período 3. Large Spike no puede subir temprano. El pico solo puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
+        const spikeRange = getSpikeStartRange(true);
+        this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.LARGE_SPIKE_PEAK_START_MIN}. Large Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
         return false;
       }
     }
 
     // BUG FIX: Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
     // Esto indica que el pico ya pasó y fue muy bajo para ser Large Spike
-    if (maxRatio < 1.4) {
+    if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
       const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
       if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
         const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
         // Si después del "pico" hay caída >40%, el pico ya pasó
-        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * 0.60);
+        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
         if (hasSharpDrop) {
           this.rejectionReasons.large_spike.push(`El precio máximo fue ${maxPrice} (${Math.round(maxRatio * 100)}%) y luego cayó más de 40%. El pico ya pasó y fue muy bajo para Large Spike.`);
           return false;
@@ -251,28 +220,29 @@ class TurnipPredictor {
 
     // Si el pico máximo está claramente en el rango de Small Spike (140-200%)
     // Y ya estamos tarde en la semana (viernes o después), rechazar Large Spike
-    if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
+    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
       // Buscar si hay señales claras de que es Large Spike
       // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
       const hasRapidIncrease = knownPrices.some((current, i) => {
         if (i === 0) return false;
-
         const previous = knownPrices[i - 1];
         // Subida de más de 100% en un período
-        return current.price > previous.price * 2.0;
+        return current.price > previous.price * THRESHOLDS.RAPID_INCREASE;
       });
 
       // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
       // es muy probable que sea Small Spike, no Large Spike
       if (!hasRapidIncrease) {
-        this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
+        const spikeRange = getSpikeStartRange(true);
+        this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
         return false;
       }
     }
 
     // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
-    if (maxKnownIndex >= 11 && maxRatio < 1.4) {
-      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre Martes PM y Sábado PM (períodos 3-9).`);
+    if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
+      const spikeRange = getSpikeStartRange(true);
+      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
       return false;
     }
 
@@ -285,12 +255,12 @@ class TurnipPredictor {
     if (knownPrices.length === 0) return true;
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = maxPrice / this.buyPrice;
+    const maxRatio = priceRatio(maxPrice, this.buyPrice);
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
     // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
     // (sería pico grande)
-    if (maxRatio > 2.0) {
+    if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
       this.rejectionReasons.small_spike.push(`Precio máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
       return false;
     }
@@ -304,38 +274,40 @@ class TurnipPredictor {
       // Solo validar si los períodos son consecutivos
       if (current.index !== previous.index + 1) continue;
 
-      const ratio = current.price / previous.price;
+      const ratio = priceRatio(current.price, previous.price);
       const dropPercent = Math.round((1 - ratio) * 100);
-      const minAllowed = Math.floor(previous.price * 0.95);
+      const minAllowedPrice = minAfterDrop(previous.price);
 
       // Si baja más de 5% por período, NO es Small Spike (ni Large Spike)
       // Probablemente es Decreasing o Fluctuating
-      if (current.price < minAllowed) {
+      if (current.price < minAllowedPrice) {
         this.rejectionReasons.small_spike.push(`Cayó ${dropPercent}% de ${previous.price} a ${current.price}. Small Spike no puede bajar más de 5% por período.`);
         return false;
       }
 
       // Si sube muy temprano antes del período 2 (Martes AM),
       // podría no ser Small Spike (el pico empieza en período 2+)
-      if (current.index < 2 && ratio > 1.10) {
+      if (current.index < PERIODS.SMALL_SPIKE_PEAK_START_MIN && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
         const risePercent = Math.round((ratio - 1) * 100);
-        this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período 2. Small Spike no puede subir temprano. El pico solo puede empezar entre Martes AM y Sábado PM (períodos 2-9).`);
+        const spikeRange = getSpikeStartRange(false);
+        this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.SMALL_SPIKE_PEAK_START_MIN}. Small Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
         return false;
       }
     }
 
     // Si el pico está en el rango perfecto de Small Spike (140-200%)
     // Y ya estamos en viernes o después, es muy probable que sea Small Spike
-    if (maxRatio >= 1.4 && maxRatio < 2.0 && maxKnownIndex >= 8) {
+    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
       return true; // Confirmación fuerte de Small Spike
     }
 
     // Si estamos muy tarde en la semana (sábado PM) y no hubo pico significativo
-    if (maxKnownIndex >= 11) {
+    if (maxKnownIndex >= PERIODS.LAST_PERIOD) {
       // El pico ya debería haber ocurrido
       // Si el precio máximo fue < 90%, es muy improbable que sea pico pequeño
-      if (maxRatio < 0.90) {
-        this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre Martes AM y Sábado PM (períodos 2-9).`);
+      if (maxRatio < RATES.LARGE_SPIKE.START_MAX) {
+        const spikeRange = getSpikeStartRange(false);
+        this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
         return false;
       }
     }
@@ -348,9 +320,9 @@ class TurnipPredictor {
   isPossibleFluctuating(knownPrices) {
     // El patrón fluctuante permite precios entre 60% y 140% del base
     const inRange = knownPrices.every(({ price }) => {
-      const ratio = price / this.buyPrice;
+      const ratio = priceRatio(price, this.buyPrice);
       // Si hay picos muy altos o muy bajos, probablemente no es fluctuante
-      return ratio <= 1.5 && ratio >= 0.5;
+      return ratio <= THRESHOLDS.FLUCTUATING_MAX_RATIO && ratio >= THRESHOLDS.FLUCTUATING_MIN_RATIO;
     });
 
     if (!inRange) {
@@ -370,7 +342,7 @@ class TurnipPredictor {
         const previous = knownPrices[i - 1];
 
         // Verificar si está bajando (con margen de error del 2%)
-        if (current.price < previous.price * 0.98) {
+        if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
           consecutiveDecreases++;
           maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
 
@@ -479,7 +451,7 @@ class TurnipPredictor {
       // Con 0 precios: 100% probabilidades
       // Con 4 precios: 50% probabilidades, 50% datos
       // Con 8+ precios: 70% datos, 30% probabilidades (mínimo)
-      const dataWeight = Math.min(knownPrices.length / 8, 0.7); // Max 70% peso a datos
+      const dataWeight = Math.min(knownPrices.length / CONFIDENCE.DATA_PERIODS_FOR_MAX, CONFIDENCE.MAX_DATA_WEIGHT);
       const probWeight = 1 - dataWeight; // Min 30% peso a probabilidades
 
       scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
@@ -527,7 +499,7 @@ class TurnipPredictor {
     let ratio = 0;
     if (knownPrices.length > 0) {
       const maxPrice = Math.max(...knownPrices.map(p => p.price));
-      ratio = maxPrice / this.buyPrice;
+      ratio = priceRatio(maxPrice, this.buyPrice);
     }
 
     // Decreasing: todos los precios bajando consistentemente
@@ -540,13 +512,13 @@ class TurnipPredictor {
       }
     }
 
-    // Large Spike: ratio >2.0 es confirmación definitiva
-    if (bestPattern === this.patterns.LARGE_SPIKE && ratio >= 2.0) {
+    // Large Spike: ratio >= 200% es confirmación definitiva
+    if (bestPattern === this.patterns.LARGE_SPIKE && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
       strongEvidenceBonus = 25; // Confirmación definitiva de Large Spike
     }
 
-    // Small Spike: ratio entre 1.4-2.0 sin caídas posteriores dramáticas
-    if (bestPattern === this.patterns.SMALL_SPIKE && ratio >= 1.4 && ratio < 2.0) {
+    // Small Spike: ratio entre 140-200% sin caídas posteriores dramáticas
+    if (bestPattern === this.patterns.SMALL_SPIKE && ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
       strongEvidenceBonus = 20; // Confirmación fuerte de Small Spike
     }
 
@@ -599,20 +571,20 @@ class TurnipPredictor {
         }
 
         // Bonus si el promedio es bajo
-        if (avgPrice < this.buyPrice * 0.8) {
+        if (avgPrice < this.buyPrice * THRESHOLDS.DECREASING_LOW_AVG) {
           score += 30;
-          this.scoreReasons.decreasing.push(`✅ Promedio bajo (${Math.round(avgPrice)} < 80% del base)`);
+          this.scoreReasons.decreasing.push(`✅ Promedio bajo (${Math.round(avgPrice)} < ${Math.round(THRESHOLDS.DECREASING_LOW_AVG * 100)}% del base)`);
         }
         break;
 
       case this.patterns.LARGE_SPIKE:
         // Bonus si hay un pico muy alto (200%+)
-        if (ratio >= 2.0) {
+        if (ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
           score += 100;
           this.scoreReasons.large_spike.push(`✅ ¡Pico enorme detectado! ${maxPrice} (${Math.round(ratio * 100)}%) confirma Large Spike`);
-        } else if (ratio >= 1.5 && ratio < 2.0) {
+        } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
           // Rango ambiguo: podría ser Small Spike o Large Spike
-          if (ratio < 1.9) {
+          if (ratio < THRESHOLDS.LARGE_SPIKE_NEAR_LIMIT) {
             score += 10;
             this.scoreReasons.large_spike.push(`⚠️ Precio máximo ${maxPrice} (${Math.round(ratio * 100)}%) está en rango ambiguo, más cerca de Small Spike`);
           } else {
@@ -626,7 +598,7 @@ class TurnipPredictor {
 
         // Bonus si hay fase baja seguida de pico muy rápido
         const hasLowToHigh = knownPrices.some((p, i) =>
-          i > 0 && p.price > knownPrices[i-1].price * 2.0 && knownPrices[i-1].price < this.buyPrice
+          i > 0 && p.price > knownPrices[i-1].price * THRESHOLDS.RAPID_INCREASE && knownPrices[i-1].price < this.buyPrice
         );
         if (hasLowToHigh) {
           score += 40;
@@ -641,16 +613,16 @@ class TurnipPredictor {
         let smallSpikeRejected = false;
 
         // Bonus si hay pico moderado en el rango exacto de Small Spike
-        if (ratio >= 1.4 && ratio < 2.0) {
+        if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
           // Dentro del rango perfecto de Small Spike
-          if (ratio >= 1.5 && ratio <= 1.9) {
+          if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio <= THRESHOLDS.SMALL_SPIKE_PERFECT_MAX) {
             score += 90;
             this.scoreReasons.small_spike.push(`✅ ¡Pico perfecto! ${maxPrice} (${Math.round(ratio * 100)}%) en rango ideal de Small Spike (150-190%)`);
           } else {
             score += 70;
             this.scoreReasons.small_spike.push(`✅ Pico detectado ${maxPrice} (${Math.round(ratio * 100)}%) en rango de Small Spike (140-200%)`);
           }
-        } else if (ratio >= 1.2 && ratio < 1.4) {
+        } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PRE_PEAK && ratio < THRESHOLDS.SMALL_SPIKE_MIN) {
           score += 40;
           this.scoreReasons.small_spike.push(`⚠️ Precio ${maxPrice} (${Math.round(ratio * 100)}%) podría ser pre-pico de Small Spike`);
 
@@ -658,7 +630,7 @@ class TurnipPredictor {
           const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
           if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
             const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
-            const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * 0.60);
+            const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
 
             if (hasSharpDrop) {
               smallSpikeRejected = true;
@@ -666,12 +638,12 @@ class TurnipPredictor {
               this.scoreReasons.small_spike.push(`❌ El "pico" de ${maxPrice} cayó >40% después. Small Spike necesita pico ≥140%`);
             }
           }
-        } else if (ratio >= 2.0) {
+        } else if (ratio >= THRESHOLDS.SMALL_SPIKE_MAX) {
           smallSpikeRejected = true;
           score = 0;
           this.scoreReasons.small_spike.push(`❌ Precio ${maxPrice} (${Math.round(ratio * 100)}%) excede 200% (esto es Large Spike)`);
         } else {
-          // ratio < 1.2
+          // ratio < SMALL_SPIKE_PRE_PEAK (1.2)
           this.scoreReasons.small_spike.push(`❌ No hay pico visible aún. Máximo ${maxPrice} (${Math.round(ratio * 100)}%) es muy bajo para Small Spike (necesita 140-200%)`);
         }
 
@@ -679,7 +651,7 @@ class TurnipPredictor {
         if (!smallSpikeRejected) {
           // Bonus si hay fase baja seguida de subida moderada
           const hasModerateIncrease = knownPrices.some((p, i) =>
-            i > 0 && p.price > knownPrices[i-1].price * 1.3 && p.price < knownPrices[i-1].price * 2.0
+            i > 0 && p.price > knownPrices[i-1].price * THRESHOLDS.MODERATE_RISE_MIN && p.price < knownPrices[i-1].price * THRESHOLDS.MODERATE_RISE_MAX
           );
           if (hasModerateIncrease) {
             score += 20;
@@ -695,7 +667,7 @@ class TurnipPredictor {
         // Si el LUNES tiene precio alto (>100%), es casi seguro Fluctuante
         // Los picos de Large/Small Spike empiezan en período 2+ (Martes+)
         // Decreasing nunca sube del precio base
-        const mondayPrices = knownPrices.filter(p => p.index <= 1);
+        const mondayPrices = knownPrices.filter(p => p.index <= PERIODS.MONDAY_PM);
         if (mondayPrices.some(p => p.price > this.buyPrice)) {
           score += 80;
           const highMonday = mondayPrices.find(p => p.price > this.buyPrice);
@@ -703,12 +675,12 @@ class TurnipPredictor {
         }
 
         // Bonus si los precios varían pero sin extremos
-        if (ratio < 1.5 && ratio > 0.8) {
+        if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
           score += 50;
           this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
-        } else if (ratio < 0.8) {
+        } else if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
           this.scoreReasons.fluctuating.push(`⚠️ Precio muy bajo (${Math.round(ratio * 100)}%), menos común en Fluctuante`);
-        } else if (ratio >= 1.5) {
+        } else if (ratio >= THRESHOLDS.FLUCTUATING_MODERATE_MAX) {
           this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
         }
 
@@ -721,7 +693,7 @@ class TurnipPredictor {
         // Verificar si baja desde el inicio (sin fase alta previa)
         let allDecreasingFromStart = true;
         for (let i = 1; i < knownPrices.length; i++) {
-          if (knownPrices[i].price < knownPrices[i - 1].price * 0.98) {
+          if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
             consecutiveDecreases++;
             maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
             if (i === decreasesFromStart + 1) {
@@ -836,9 +808,9 @@ class TurnipPredictor {
     const secondLast = prices[prices.length - 2];
 
     // Detectar tendencia reciente
-    if (last > secondLast * 1.2) return 'rising';  // Subiendo rápido
+    if (last > secondLast * THRESHOLDS.RISING_THRESHOLD) return 'rising';  // Subiendo rápido
     if (last > secondLast) return 'increasing';    // Subiendo
-    if (last < secondLast * 0.9) return 'falling'; // Bajando rápido
+    if (last < secondLast * THRESHOLDS.FALLING_THRESHOLD) return 'falling'; // Bajando rápido
     if (last < secondLast) return 'decreasing';    // Bajando
     return 'stable';                               // Estable
   }

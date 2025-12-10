@@ -1,5 +1,6 @@
 // Patrón DECRECIENTE: bajada constante
 // Basado en el algoritmo real datamineado del juego (Pattern 2)
+// Usa constantes de constants.js (RATES, DECAY, VARIANCE)
 //
 // Algoritmo del juego:
 // - Tasa inicial: 90% menos 0-5% aleatorio (85-90%)
@@ -29,8 +30,8 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
     if (periodsAhead > 0) {
       const projected = lastKnown.price * Math.pow(1 - avgDecayRate, periodsAhead);
       return {
-        min: Math.round(projected * 0.95),
-        max: Math.round(projected * 1.05)
+        min: Math.round(projected * VARIANCE.INFERRED_MIN),
+        max: Math.round(projected * VARIANCE.INFERRED_MAX)
       };
     } else if (periodsAhead === 0) {
       // Mismo período, devolver el precio conocido
@@ -45,14 +46,11 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // Tasa inicial: 0.85-0.90
   // Decrecimiento por período: 0.03-0.05
 
-  const minDecayPerPeriod = 0.03;
-  const maxDecayPerPeriod = 0.05;
-
   // Calcular rango mínimo y máximo
   // Peor caso: empieza en 0.85 y baja 0.05 por período
   // Mejor caso: empieza en 0.90 y baja 0.03 por período
-  const minRate = Math.max(0.40, (0.85 - (periodIndex * maxDecayPerPeriod)));
-  const maxRate = Math.max(0.40, (0.90 - (periodIndex * minDecayPerPeriod)));
+  const minRate = Math.max(RATES.FLOOR, (RATES.DECREASING.START_MIN - (periodIndex * DECAY.MAX_PER_PERIOD)));
+  const maxRate = Math.max(RATES.FLOOR, (RATES.DECREASING.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD)));
 
   return {
     min: Math.round(base * minRate),

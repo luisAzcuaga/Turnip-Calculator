@@ -1,5 +1,6 @@
 // Utilidades compartidas para los patrones de precios
 // Funciones auxiliares usadas por múltiples patrones
+// Usa constantes de constants.js (THRESHOLDS, PERIODS, etc.)
 
 /**
  * Detecta dinámicamente dónde empieza la fase de pico en patrones de Spike
@@ -11,7 +12,7 @@
  */
 function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike) {
   if (knownPrices.length === 0) {
-    return 6; // Default: miércoles PM (período típico)
+    return PERIODS.WEDNESDAY_PM; // Default: miércoles PM (período típico)
   }
 
   // Buscar el primer precio que sube significativamente desde fase baja
@@ -20,7 +21,7 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
 
     const previous = knownPrices[i - 1];
     // Detectar subida significativa (transición a fase de pico)
-    return current.price > previous.price * 1.3;
+    return current.price > previous.price * THRESHOLDS.MODERATE_RISE_MIN;
   });
 
   if (firstSignificantRise !== -1) {
@@ -38,14 +39,14 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
     const ratio = maxPrice / baseEstimate;
 
     // Large Spike: pico máximo en 200-600%
-    if (isLargeSpike && ratio >= 2.0) {
+    if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
       // El pico máximo está en peakStart+2
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 2);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }
 
     // Small Spike: pico máximo en 140-200%
-    if (!isLargeSpike && ratio >= 1.4) {
+    if (!isLargeSpike && ratio >= THRESHOLDS.SMALL_SPIKE_MIN) {
       // El pico máximo está en peakStart+3 (período 4 del pico)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
       return Math.min(maxPeakStart, estimatedPeakStart);
@@ -53,10 +54,10 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
   }
 
   // Si hay tendencia decreciente, el pico probablemente ya pasó o está cerca
-  const lastKnownIndex = knownPrices[knownPrices.length - 1]?.index || 5;
+  const lastKnownIndex = knownPrices[knownPrices.length - 1]?.index || PERIODS.WEDNESDAY_PM;
 
   // Si estamos en fase baja tardía, asumir que el pico será pronto
-  if (lastKnownIndex >= 4) {
+  if (lastKnownIndex >= PERIODS.WEDNESDAY_AM) {
     return Math.max(minPeakStart, Math.min(maxPeakStart, lastKnownIndex));
   }
 

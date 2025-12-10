@@ -1,5 +1,6 @@
 // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
 // Basado en el algoritmo real datamineado del juego (Pattern 3)
+// Usa constantes de constants.js (RATES, DECAY, VARIANCE, PERIODS)
 
 /**
  * Calcula el rango de precios para el patrón Small Spike
@@ -10,7 +11,7 @@
  */
 function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   // peakStart puede ser 2-9 según el algoritmo del juego
-  const peakStart = detectSpikePeakStart(knownPrices, 2, 9, false);
+  const peakStart = detectSpikePeakStart(knownPrices, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false);
 
   // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
   // Empieza en 40-90%, baja 3-5% cada período
@@ -30,8 +31,8 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
         const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
         return {
-          min: Math.round(projected * 0.90),
-          max: Math.round(projected * 1.10)
+          min: Math.round(projected * VARIANCE.PROJECTED_MIN),
+          max: Math.round(projected * VARIANCE.PROJECTED_MAX)
         };
       }
 
@@ -39,11 +40,11 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
       // el máximo no puede ser mayor al último precio conocido (está bajando)
       if (periodsAhead > 0) {
         // Usar tasa de decrecimiento del algoritmo (3-5% por período)
-        const minProjected = lastKnown.price * Math.pow(0.95, periodsAhead); // Baja 5%
-        const maxProjected = lastKnown.price * Math.pow(0.97, periodsAhead); // Baja 3%
+        const minProjected = lastKnown.price * Math.pow(DECAY.WORST_CASE_MULTIPLIER, periodsAhead); // Baja 5%
+        const maxProjected = lastKnown.price * Math.pow(DECAY.BEST_CASE_MULTIPLIER, periodsAhead); // Baja 3%
 
         return {
-          min: Math.round(Math.max(base * 0.40, minProjected)),
+          min: Math.round(Math.max(base * RATES.FLOOR, minProjected)),
           max: Math.round(Math.min(lastKnown.price, maxProjected))
         };
       }
@@ -51,14 +52,12 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
     // Sin datos suficientes: usar rangos del algoritmo del juego
     // Fase decreciente pre-pico: empieza 40-90%, baja 3-5% por período
-    const minDecayPerPeriod = 0.03; // Baja mínima por período
-    const maxDecayPerPeriod = 0.05; // Baja máxima por período
 
     // Calcular rango para este período
-    // Peor caso: empieza en 40% y baja 5% por período
-    const minRate = Math.max(0.40, 0.40); // Mínimo fijo del juego
+    // Peor caso: empieza en 40% (mínimo fijo del juego)
+    const minRate = RATES.SMALL_SPIKE.START_MIN; // Mínimo fijo del juego
     // Mejor caso: empieza en 90% y baja 3% por período
-    const maxRate = Math.max(0.40, 0.90 - (periodIndex * minDecayPerPeriod));
+    const maxRate = Math.max(RATES.FLOOR, RATES.SMALL_SPIKE.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD));
 
     return {
       min: Math.round(base * minRate),
@@ -92,39 +91,39 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
       const maxInPeak = Math.max(...peakPrices.map(p => p.price));
       inferredRate = maxInPeak / base;
       // Asegurar que esté en el rango válido
-      inferredRate = Math.max(1.4, Math.min(2.0, inferredRate));
+      inferredRate = Math.max(RATES.SMALL_SPIKE.PEAK_RATE_MIN, Math.min(RATES.SMALL_SPIKE.PEAK_RATE_MAX, inferredRate));
     }
 
     // Rangos según el algoritmo exacto del juego
     if (peakPhaseIndex === 0 || peakPhaseIndex === 1) {
       // Períodos 1 y 2: 0.9-1.4
       return {
-        min: Math.round(base * 0.90),
-        max: Math.round(base * 1.40)
+        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MIN),
+        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MAX)
       };
     } else if (peakPhaseIndex === 3) {
       // Período 4: PICO REAL (rate * base)
       if (inferredRate) {
         return {
-          min: Math.round(base * inferredRate * 0.95),
-          max: Math.round(base * inferredRate * 1.05)
+          min: Math.round(base * inferredRate * VARIANCE.INFERRED_MIN),
+          max: Math.round(base * inferredRate * VARIANCE.INFERRED_MAX)
         };
       }
       return {
-        min: Math.round(base * 1.40),
-        max: Math.round(base * 2.00)
+        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN),
+        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MAX)
       };
     } else {
       // Períodos 3 y 5: (1.4 a rate) * base - 1 bell
       if (inferredRate) {
         return {
-          min: Math.round(base * 1.40 - 1),
+          min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
           max: Math.round(base * inferredRate - 1)
         };
       }
       return {
-        min: Math.round(base * 1.40 - 1),
-        max: Math.round(base * 2.00 - 1)
+        min: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
+        max: Math.round(base * RATES.SMALL_SPIKE.PEAK_RATE_MAX - 1)
       };
     }
   }
@@ -144,15 +143,15 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
     if (periodsAhead > 0) {
       const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
       return {
-        min: Math.round(projected * 0.90),
-        max: Math.round(projected * 1.10)
+        min: Math.round(projected * VARIANCE.PROJECTED_MIN),
+        max: Math.round(projected * VARIANCE.PROJECTED_MAX)
       };
     }
   }
 
   // Sin datos suficientes en fase final: usar rangos del algoritmo
   return {
-    min: Math.round(base * 0.40),
-    max: Math.round(base * 0.90)
+    min: Math.round(base * RATES.SMALL_SPIKE.POST_PEAK_MIN),
+    max: Math.round(base * RATES.SMALL_SPIKE.POST_PEAK_MAX)
   };
 }
