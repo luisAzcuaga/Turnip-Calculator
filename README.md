@@ -150,9 +150,10 @@ Los nabos son el "mercado de valores" de Animal Crossing:
 Puedes modificar:
 - **Colores y estilos**: `styles.css`
 - **Textos e interfaz**: `index.html`
-- **Algoritmos de predicción**: Archivos en `patterns/`
+- **Parámetros del algoritmo**: `constants.js` (ratios, umbrales, probabilidades)
+- **Lógica de predicción**: Archivos en `patterns/`
 
-Todo el código está organizado y comentado.
+Todo el código está organizado y comentado. Los parámetros del algoritmo están centralizados en `constants.js` para fácil ajuste.
 
 ---
 

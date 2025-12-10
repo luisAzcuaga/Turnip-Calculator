@@ -300,4 +300,22 @@ Estos algoritmos están basados en el **código real del juego** que la comunida
 
 ---
 
+## 🔧 Constantes del algoritmo
+
+Todos los parámetros del algoritmo están centralizados en `constants.js`:
+
+| Constante | Descripción |
+|-----------|-------------|
+| `RATES` | Ratios de precio por patrón (ej: 85-90% inicio Large Spike) |
+| `DECAY` | Tasas de decrecimiento (3-5% por período) |
+| `THRESHOLDS` | Umbrales de detección (ej: 200% = Large Spike confirmado) |
+| `PERIODS` | Índices de días (0=Lunes AM, 11=Sábado PM) |
+| `VARIANCE` | Márgenes de proyección (±5% a ±10%) |
+| `DEFAULT_PROBABILITIES` | Probabilidades sin historial |
+| `TRANSITION_PROBABILITIES` | Matriz de transición entre patrones |
+
+Si quieres ajustar algún parámetro del algoritmo, modifica `constants.js` y todos los cálculos se actualizarán automáticamente.
+
+---
+
 **💡 Para una guía de uso más simple:** Este documento explica cómo funciona el juego por dentro. Si solo quieres usar el predictor sin conocer los detalles técnicos, lee el [README.md](README.md).
