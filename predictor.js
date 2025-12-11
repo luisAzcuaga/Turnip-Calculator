@@ -220,8 +220,10 @@ class TurnipPredictor {
 
       // Si el rate baja más de 5 puntos porcentuales, NO es Large Spike
       if (!rateValidation.valid) {
-        const rateDropPercent = Math.round(rateValidation.rateDrop * 100);
-        this.rejectionReasons.large_spike.push(`Rate cayó ${rateDropPercent} puntos (de ${previous.price} a ${current.price}). Large Spike no puede bajar más de 5 puntos de rate por período.`);
+        const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
+        const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
+        const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+        this.rejectionReasons.large_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Large Spike solo puede bajar máximo 5% por período.`);
         return true;
       }
 
@@ -325,8 +327,10 @@ class TurnipPredictor {
       // Si el rate baja más de 5 puntos porcentuales, NO es Small Spike
       // Probablemente es Decreasing o Fluctuating
       if (!rateValidation.valid) {
-        const rateDropPercent = Math.round(rateValidation.rateDrop * 100);
-        this.rejectionReasons.small_spike.push(`Rate cayó ${rateDropPercent} puntos (de ${previous.price} a ${current.price}). Small Spike no puede bajar más de 5 puntos de rate por período.`);
+        const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
+        const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
+        const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+        this.rejectionReasons.small_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Small Spike solo puede bajar máximo 5% por período.`);
         return true;
       }
 

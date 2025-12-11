@@ -198,6 +198,7 @@ header h1 {
   align-items: center;
   gap: 10px;
   margin: 0 0 10px;
+  position: relative;
 }
 
 .price-input:last-child {
@@ -257,6 +258,41 @@ header h1 {
 .price-input input.confirmed-value:hover {
   background: #c8e6c9;
   border-color: #66bb6a;
+}
+
+/* Rate badge */
+.rate-badge {
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  text-align: center;
+  display: inline-block;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.rate-badge.rising {
+  background: #c8e6c9;
+  color: #2e7d32;
+}
+
+.rate-badge.falling {
+  background: #ffcdd2;
+  color: #c62828;
+}
+
+.rate-badge.neutral {
+  background: #e0e0e0;
+  color: #616161;
+}
+
+.rate-badge:empty {
+  display: none;
 }
 
 /* Indicador de rango */

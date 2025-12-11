@@ -77,6 +77,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (input) utils.addEventListeners(input, ['input', 'change'], saveDataIfNotLoading);
   });
 
+  // Agregar listeners para actualizar rate badges
+  utils.addEventListeners(buyPriceInput, ['input', 'change'], updateRateBadges);
+  PRICE_INPUT_IDS.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) utils.addEventListeners(input, ['input', 'change'], updateRateBadges);
+  });
+
   // Evento del botón calcular
   calculateBtn.addEventListener('click', calculatePrediction);
 
@@ -369,10 +376,52 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Añadir información de timing para patrones de pico
-        if (key === 'large_spike') {
-          html += '<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico de Large Spike puede empezar entre <strong>Martes PM y Sábado PM</strong> (períodos 3-9). Sigue checando los precios.</small></p>';
-        } else if (key === 'small_spike') {
-          html += '<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico de Small Spike puede empezar entre <strong>Martes AM y Sábado PM</strong> (períodos 2-9). Sigue checando los precios.</small></p>';
+        if (key === 'large_spike' || key === 'small_spike') {
+          // Detectar si ya comenzó el pico (subida significativa >10%)
+          const pricesArray = PRICE_INPUT_IDS.map(id => {
+            const val = document.getElementById(id)?.value;
+            return val ? parseInt(val) : null;
+          }).filter(p => p !== null);
+
+          let spikeStarted = false;
+          let spikeStartIndex = -1;
+          let lastKnownIndex = -1;
+
+          for (let i = 1; i < pricesArray.length; i++) {
+            if (pricesArray[i] > pricesArray[i-1] * 1.10) {
+              spikeStarted = true;
+              spikeStartIndex = i;
+              break;
+            }
+          }
+
+          // Encontrar último período con precio conocido
+          for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
+            const val = document.getElementById(PRICE_INPUT_IDS[i])?.value;
+            if (val && parseInt(val)) {
+              lastKnownIndex = i;
+            }
+          }
+
+          if (spikeStarted && spikeStartIndex >= 0) {
+            const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
+            // Large Spike: máximo en Fase 2 (peakStart + 2)
+            // Small Spike: máximo en Fase 3 (peakStart + 3)
+            const peaksInPhase = key === 'large_spike' ? 2 : 3;
+            const maxPeriodIndex = spikeStartIndex + peaksInPhase;
+            const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
+
+            if (periodsUntilMax > 0) {
+              const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
+              const maxRange = key === 'large_spike' ? '200-600%' : '140-200%';
+              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
+            } else {
+              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El máximo ya debería haber ocurrido o está ocurriendo ahora.</small></p>`;
+            }
+          } else {
+            const period = key === 'large_spike' ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
+            html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${period}</strong>. Sigue checando los precios.</small></p>`;
+          }
         }
 
         html += '</li>';
@@ -470,12 +519,68 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Función para actualizar badges de rate
+  function updateRateBadges() {
+    const buyPrice = parseInt(buyPriceInput.value);
+    if (!buyPrice || buyPrice < 90 || buyPrice > 110) {
+      // Limpiar todos los badges si no hay precio base válido
+      document.querySelectorAll('.rate-badge').forEach(badge => {
+        badge.textContent = '';
+        badge.className = 'rate-badge';
+      });
+      return;
+    }
+
+    let previousPrice = null;
+    PRICE_INPUT_IDS.forEach((id, index) => {
+      const input = document.getElementById(id);
+      const badge = document.querySelector(`.rate-badge[data-for="${id}"]`);
+
+      if (!input || !badge) return;
+
+      const price = parseInt(input.value);
+
+      if (!price || price < 9 || price > 660) {
+        // Limpiar badge si no hay precio válido
+        badge.textContent = '';
+        badge.className = 'rate-badge';
+        return;
+      }
+
+      // Calcular rate respecto al precio base
+      const rate = (price / buyPrice);
+      const ratePercent = (rate * 100).toFixed(1);
+
+      // Determinar flecha y clase según precio anterior
+      let arrow = '';
+      let className = 'rate-badge neutral';
+
+      if (previousPrice !== null && index > 0) {
+        if (price > previousPrice) {
+          arrow = '↑';
+          className = 'rate-badge rising';
+        } else if (price < previousPrice) {
+          arrow = '↓';
+          className = 'rate-badge falling';
+        }
+      }
+
+      // Actualizar badge
+      badge.textContent = `${arrow}${ratePercent}%`;
+      badge.className = className;
+
+      // Guardar precio para siguiente iteración
+      previousPrice = price;
+    });
+  }
+
   // Auto-calcular si hay datos guardados al cargar
   const savedData = localStorage.getItem('turnipData');
   if (savedData && buyPriceInput.value) {
     // Pequeño delay para que se vea la animación
     setTimeout(() => {
       calculatePrediction();
+      updateRateBadges(); // Actualizar badges también
     }, 500);
   }
 });
