@@ -1,6 +1,125 @@
 // Utilidades compartidas para los patrones de precios
 // Funciones auxiliares usadas por múltiples patrones
-// Usa constantes de constants.js (THRESHOLDS, PERIODS, etc.)
+// Usa constantes de constants.js (THRESHOLDS, PERIODS, RATES, DECAY, etc.)
+
+// ============================================================================
+// FUNCIONES HELPER DE CÁLCULO DE PRECIOS
+// ============================================================================
+
+/**
+ * Calcula el precio mínimo usando floor (redondea hacia abajo)
+ * Usar para límites inferiores
+ */
+function priceFloor(basePrice, rate) {
+  return Math.floor(basePrice * rate);
+}
+
+/**
+ * Calcula el precio máximo usando ceil (redondea hacia arriba)
+ * Usar para límites superiores
+ */
+function priceCeil(basePrice, rate) {
+  return Math.ceil(basePrice * rate);
+}
+
+/**
+ * Calcula un precio usando round (redondeo estándar)
+ * Usar para estimaciones generales
+ */
+function priceRound(basePrice, rate) {
+  return Math.round(basePrice * rate);
+}
+
+/**
+ * Calcula el ratio de un precio respecto al precio base
+ */
+function priceRatio(price, basePrice) {
+  return price / basePrice;
+}
+
+/**
+ * Verifica si un precio está dentro de un rango
+ */
+function isInRange(price, min, max) {
+  return price >= min && price <= max;
+}
+
+/**
+ * Calcula el mínimo permitido después de una caída del 5%
+ * @deprecated Usar isValidRateDrop() para validación correcta basada en rate
+ */
+function minAfterDrop(previousPrice) {
+  return Math.floor(previousPrice * DECAY.WORST_CASE_MULTIPLIER);
+}
+
+/**
+ * Valida si la caída entre dos precios es válida según el algoritmo del juego.
+ * El juego reduce el RATE (no el precio) entre 3-5 puntos porcentuales por período.
+ *
+ * @param {number} previousPrice - Precio del período anterior
+ * @param {number} currentPrice - Precio del período actual
+ * @param {number} buyPrice - Precio base de compra
+ * @returns {{valid: boolean, rateDrop: number}} - Si es válido y cuánto bajó el rate
+ */
+function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
+  const previousRate = previousPrice / buyPrice;
+  const currentRate = currentPrice / buyPrice;
+  const rateDrop = previousRate - currentRate;
+
+  // El rate puede bajar máximo 5 puntos porcentuales (0.05) por período
+  return {
+    valid: rateDrop <= DECAY.MAX_PER_PERIOD,
+    rateDrop: rateDrop
+  };
+}
+
+/**
+ * Calcula el máximo esperado para patrón Decreasing en un período dado
+ */
+function decreasingMaxForPeriod(basePrice, periodIndex) {
+  const rate = RATES.DECREASING.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD);
+  return Math.ceil(basePrice * Math.max(RATES.FLOOR, rate));
+}
+
+/**
+ * Calcula el mínimo esperado para patrón Decreasing
+ */
+function decreasingMin(basePrice) {
+  return Math.floor(basePrice * RATES.FLOOR);
+}
+
+/**
+ * Calcula el rango de Large Spike para Lunes AM
+ */
+function largeSpikeStartRange(basePrice) {
+  return {
+    min: Math.floor(basePrice * RATES.LARGE_SPIKE.START_MIN),
+    max: Math.ceil(basePrice * RATES.LARGE_SPIKE.START_MAX),
+  };
+}
+
+/**
+ * Obtiene el nombre legible de un período
+ */
+function getPeriodName(periodIndex) {
+  return DAYS_CONFIG[periodIndex]?.name || `Período ${periodIndex}`;
+}
+
+/**
+ * Obtiene el rango de períodos donde puede empezar un pico
+ */
+function getSpikeStartRange(isLargeSpike) {
+  return {
+    min: isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN,
+    max: PERIODS.SPIKE_PEAK_START_MAX,
+    minName: isLargeSpike ? 'Martes PM' : 'Martes AM',
+    maxName: 'Sábado PM',
+  };
+}
+
+// ============================================================================
+// FUNCIONES HELPER DE PROYECCIÓN
+// ============================================================================
 
 /**
  * Calcula el promedio de caída del rate entre precios conocidos consecutivos.
