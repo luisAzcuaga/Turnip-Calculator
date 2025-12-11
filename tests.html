@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head><title>Tests</title></head>
+<body>
+<h1>Tests</h1>
+<div id="test1"></div>
+<hr>
+<div id="test2"></div>
+
+<script src="constants.js"></script>
+<script src="patterns/utils.js"></script>
+<script src="patterns/decreasing.js"></script>
+<script src="patterns/large-spike.js"></script>
+<script src="patterns/small-spike.js"></script>
+<script src="patterns/fluctuating.js"></script>
+<script src="predictor.js"></script>
+
+<script>
+// Test 1: Temporal validation - Thursday PM without rise
+const pred1 = new TurnipPredictor(107, {
+  mon_am: 97, mon_pm: 92, tue_am: 87, tue_pm: 84,
+  wed_am: 80, wed_pm: 75, thu_am: 70, thu_pm: 68
+}, 'fluctuating');
+
+const result1 = pred1.predict();
+
+document.getElementById('test1').innerHTML = `
+  <h2>Test 1: Temporal Validation (Thursday PM without rise)</h2>
+  <p>Large Spike: ${result1.allProbabilities.large_spike}% (expected: 0%) ${result1.allProbabilities.large_spike === 0 ? '✅' : '❌'}</p>
+  <p>Small Spike: ${result1.allProbabilities.small_spike}% (expected: 0%) ${result1.allProbabilities.small_spike === 0 ? '✅' : '❌'}</p>
+  <p>Decreasing: ${result1.allProbabilities.decreasing}% (expected: 100%) ${result1.allProbabilities.decreasing === 100 ? '✅' : '❌'}</p>
+  <h3>Rejection reasons:</h3>
+  <pre>Large: ${pred1.rejectionReasons.large_spike.join('\n')}</pre>
+  <pre>Small: ${pred1.rejectionReasons.small_spike.join('\n')}</pre>
+`;
+
+// Test 2: Rate drop validation (6 points)
+const pred2 = new TurnipPredictor(107, {
+  mon_am: 96, mon_pm: 91, tue_am: 87, tue_pm: 84,
+  wed_am: 80, wed_pm: 76, thu_am: 73, thu_pm: 67
+}, '');
+
+const result2 = pred2.predict();
+
+const thu_am_rate = 73 / 107;
+const thu_pm_rate = 67 / 107;
+const rateDrop = thu_am_rate - thu_pm_rate;
+
+document.getElementById('test2').innerHTML = `
+  <h2>Test 2: Rate Drop Validation (6 points)</h2>
+  <h3>Calculation:</h3>
+  <pre>Thu AM: 73 / 107 = ${thu_am_rate.toFixed(6)} (${(thu_am_rate * 100).toFixed(2)}%)
+Thu PM: 67 / 107 = ${thu_pm_rate.toFixed(6)} (${(thu_pm_rate * 100).toFixed(2)}%)
+Rate Drop: ${rateDrop.toFixed(6)} = ${(rateDrop * 100).toFixed(4)} points
+Maximum: 0.05 (5 points)
+Status: ${rateDrop > 0.05 ? '❌ EXCEEDS by ' + ((rateDrop - 0.05) * 100).toFixed(4) + ' points' : '✅ OK'}</pre>
+
+  <h3>Results:</h3>
+  <p>Pattern: ${result2.patternName} (${result2.confidence}%)</p>
+  <p>Large Spike: ${result2.allProbabilities.large_spike}% (expected: 0%) ${result2.allProbabilities.large_spike === 0 ? '✅' : '❌'}</p>
+  <p>Small Spike: ${result2.allProbabilities.small_spike}% (expected: 0%) ${result2.allProbabilities.small_spike === 0 ? '✅' : '❌'}</p>
+  <p>Decreasing: ${result2.allProbabilities.decreasing}%</p>
+  <p>Fluctuating: ${result2.allProbabilities.fluctuating}%</p>
+
+  <h3>Rejection reasons:</h3>
+  <pre>Large: ${pred2.rejectionReasons.large_spike.join('\n') || 'None'}</pre>
+  <pre>Small: ${pred2.rejectionReasons.small_spike.join('\n') || 'None'}</pre>
+`;
+</script>
+</body>
+</html>
