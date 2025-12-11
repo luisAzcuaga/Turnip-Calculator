@@ -112,6 +112,29 @@ class TurnipPredictor {
     return possiblePatterns.length > 0 ? possiblePatterns : [this.patterns.FLUCTUATING];
   }
 
+  // Helper: Verifica si llegamos tarde para un spike (sin subidas significativas)
+  isTooLateForSpike(knownPrices, spikeType) {
+    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+
+    // Si llegamos a Jueves PM o después, verificar si hubo subida significativa
+    if (maxKnownIndex >= PERIODS.THURSDAY_PM) {
+      const hasSignificantRise = knownPrices.some((current, i) => {
+        if (i === 0) return false;
+        const previous = knownPrices[i - 1];
+        return current.price > previous.price * THRESHOLDS.SIGNIFICANT_RISE;
+      });
+
+      if (!hasSignificantRise) {
+        return {
+          tooLate: true,
+          reason: `Llegamos a ${getPeriodName(maxKnownIndex)} sin ninguna subida. ${spikeType} necesita empezar antes de Viernes AM (período 8) para que quepan los 5 períodos de pico.`
+        };
+      }
+    }
+
+    return { tooLate: false };
+  }
+
   // Verificar si el patrón DECRECIENTE es posible
   isPossibleDecreasing(knownPrices) {
     // REGLA DE DETECCIÓN TEMPRANA:
@@ -146,6 +169,13 @@ class TurnipPredictor {
   // Verificar si el patrón PICO GRANDE es posible
   isPossibleLargeSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
+
+    // VALIDACIÓN CRÍTICA: Si llegamos tarde sin subida, rechazar
+    const lateCheck = this.isTooLateForSpike(knownPrices, 'Large Spike');
+    if (lateCheck.tooLate) {
+      this.rejectionReasons.large_spike.push(lateCheck.reason);
+      return false;
+    }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const maxRatio = priceRatio(maxPrice, this.buyPrice);
@@ -259,6 +289,13 @@ class TurnipPredictor {
   // Verificar si el patrón PICO PEQUEÑO es posible
   isPossibleSmallSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
+
+    // VALIDACIÓN CRÍTICA: Si llegamos tarde sin subida, rechazar
+    const lateCheck = this.isTooLateForSpike(knownPrices, 'Small Spike');
+    if (lateCheck.tooLate) {
+      this.rejectionReasons.small_spike.push(lateCheck.reason);
+      return false;
+    }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const maxRatio = priceRatio(maxPrice, this.buyPrice);
