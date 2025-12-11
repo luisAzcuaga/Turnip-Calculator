@@ -45,20 +45,34 @@ header h1 {
   padding: 10px;
 }
 
+.main-content .upper-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+}
+
 /* Sección de precio de compra */
 .buy-price-section {
   background: #bbd4ff;
   padding: 15px;
   border-radius: 15px;
-  max-width: 50%;
   margin: 0 auto 15px;
   border: 3px solid #4d8eff;
 }
 
-.buy-price-section h2 {
+h2.buy-price-title {
   color: #005eff;
   margin: 0 0 15px;
   font-size: 1.5rem;
+}
+
+.buy-price-section .helper-text {
+  display: block;
+  margin: 10px 0 0;
+  color: #005eff;
+  font-size: 0.9rem;
+  text-align: center;
+  font-style: italic;
 }
 
 .input-group {
@@ -91,12 +105,11 @@ header h1 {
   background: #ffe6b3;
   padding: 15px;
   border-radius: 15px;
-  max-width: 50%;
   margin: 0 auto 15px;
   border: 3px solid #ff9800;
 }
 
-.previous-pattern-section h2 {
+h2.previous-pattern-title {
   color: #e65100;
   margin: 0 0 15px;
   font-size: 1.5rem;
@@ -131,55 +144,14 @@ header h1 {
   font-size: 1.5rem;
 }
 
-/* Leyenda */
-.legend {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin: 0 0 10px;
-  padding: 10px;
-  background: #f5f5f5;
-  border-radius: 10px;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend-box {
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
-  border: 2px solid;
-}
-
-.legend-box.estimated {
-  background: #fff3e0;
-  border-color: #ffb74d;
-}
-
-.legend-box.confirmed {
-  background: #e8f5e9;
-  border-color: #81c784;
-}
-
-.legend-text {
-  font-size: 0.9rem;
-  color: #424242;
-  font-weight: 500;
-}
-
 .prices-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin: 0 0 25px;
 }
 
 .day-group {
+  width: 150px;
   background: #f1f8e9;
   padding: 5px 10px;
   border-radius: 12px;
@@ -264,15 +236,16 @@ header h1 {
 .rate-badge {
   position: absolute;
   top: -8px;
-  right: 8px;
-  font-size: 0.65rem;
+  right: 0;
+  transform: translateX(35%);
+  font-size: 0.55rem;
   font-weight: bold;
   padding: 3px 8px;
   border-radius: 12px;
   white-space: nowrap;
   text-align: center;
   display: inline-block;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
 
@@ -306,10 +279,10 @@ header h1 {
 
 /* Botones */
 .button-group {
+  margin-top: 15px;
   display: flex;
   gap: 15px;
   justify-content: center;
-  margin: 20px 0 0;
 }
 
 button {
@@ -760,6 +733,16 @@ footer p {
 /* Responsive */
 /* Tablets: 2 columnas */
 @media (max-width: 1024px) {
+
+  .inputs-section {
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .day-group {
+    width: auto;
+  }
+
   .confidence-panel {
     position: static;
   }
@@ -767,18 +750,20 @@ footer p {
   .results-section {
     max-width: none;
   }
+
+  .main-content .upper-container {
+    flex-direction: column;
+    align-items: unset;
+  }
+}
+@media (max-width: 878px) {
+
+  .inputs-section {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 768px) {
-
-  .prices-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .buy-price-section,
-  .previous-pattern-section {
-    max-width: none;
-  }
 
 }
 
@@ -864,7 +849,7 @@ footer p {
   margin: 0 0 20px 0;
 }
 
-.rejection-list > li {
+.rejection-list>li {
   background: white;
   border-left: 3px solid #6c757d;
   padding: 10px 15px;
@@ -872,7 +857,7 @@ footer p {
   border-radius: 4px;
 }
 
-.rejection-list > li > ul {
+.rejection-list>li>ul {
   margin-top: 8px;
   margin-bottom: 0;
   padding-left: 20px;
@@ -880,6 +865,6 @@ footer p {
   font-size: 0.9em;
 }
 
-.rejection-list > li > ul > li {
+.rejection-list>li>ul>li {
   margin-bottom: 4px;
 }
