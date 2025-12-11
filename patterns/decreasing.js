@@ -14,13 +14,14 @@
  * @returns {{min: number, max: number}} - Rango de precios
  */
 function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
-  // Si tenemos datos conocidos, estimar la tasa de decrecimiento real
+  // Si tenemos datos conocidos, estimar la tasa de decrecimiento real del RATE
   if (knownPrices.length >= 2) {
-    // Calcular tasa de decrecimiento promedio entre precios conocidos
-    const avgDecayRate = knownPrices.slice(1).reduce((totalRate, current, i) => {
-      const prevPrice = knownPrices[i].price;
-      const rate = (prevPrice - current.price) / prevPrice;
-      return totalRate + rate;
+    // Calcular tasa de decrecimiento promedio del rate entre precios conocidos
+    const avgRateDrop = knownPrices.slice(1).reduce((totalDrop, current, i) => {
+      const prevRate = knownPrices[i].price / base;
+      const currRate = current.price / base;
+      const rateDrop = prevRate - currRate;
+      return totalDrop + rateDrop;
     }, 0) / (knownPrices.length - 1);
 
     // Proyectar desde el último precio conocido
@@ -28,7 +29,9 @@ function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
     const periodsAhead = periodIndex - lastKnown.index;
 
     if (periodsAhead > 0) {
-      const projected = lastKnown.price * Math.pow(1 - avgDecayRate, periodsAhead);
+      const lastKnownRate = lastKnown.price / base;
+      const projectedRate = lastKnownRate - (avgRateDrop * periodsAhead);
+      const projected = base * projectedRate;
       return {
         min: Math.floor(projected * VARIANCE.INFERRED_MIN),
         max: Math.ceil(projected * VARIANCE.INFERRED_MAX)

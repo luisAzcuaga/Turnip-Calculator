@@ -22,14 +22,18 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
       const lastKnown = decreasingPhase[decreasingPhase.length - 1];
       const periodsAhead = periodIndex - lastKnown.index;
 
-      // Si tenemos al menos 2 precios, calcular tasa de decrecimiento observada
+      // Si tenemos al menos 2 precios, calcular tasa de decrecimiento observada del RATE
       if (decreasingPhase.length >= 2 && periodsAhead > 0) {
-        const avgRate = decreasingPhase.slice(1).reduce((totalRate, current, i) => {
-          const rate = (decreasingPhase[i].price - current.price) / decreasingPhase[i].price;
-          return totalRate + rate;
+        const avgRateDrop = decreasingPhase.slice(1).reduce((totalDrop, current, i) => {
+          const prevRate = decreasingPhase[i].price / base;
+          const currRate = current.price / base;
+          const rateDrop = prevRate - currRate;
+          return totalDrop + rateDrop;
         }, 0) / (decreasingPhase.length - 1);
 
-        const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
+        const lastKnownRate = lastKnown.price / base;
+        const projectedRate = lastKnownRate - (avgRateDrop * periodsAhead);
+        const projected = base * projectedRate;
         return {
           min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
           max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
@@ -39,9 +43,12 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
       // Si solo tenemos 1 precio o estamos prediciendo después del último conocido,
       // el máximo no puede ser mayor al último precio conocido (está bajando)
       if (periodsAhead > 0) {
-        // Usar tasa de decrecimiento del algoritmo (3-5% por período)
-        const minProjected = lastKnown.price * Math.pow(DECAY.WORST_CASE_MULTIPLIER, periodsAhead); // Baja 5%
-        const maxProjected = lastKnown.price * Math.pow(DECAY.BEST_CASE_MULTIPLIER, periodsAhead); // Baja 3%
+        // Usar tasa de decrecimiento del algoritmo (3-5 puntos del rate por período)
+        const lastKnownRate = lastKnown.price / base;
+        const minProjectedRate = lastKnownRate - (DECAY.MAX_PER_PERIOD * periodsAhead); // Baja 5 puntos
+        const maxProjectedRate = lastKnownRate - (DECAY.MIN_PER_PERIOD * periodsAhead); // Baja 3 puntos
+        const minProjected = base * Math.max(RATES.FLOOR, minProjectedRate);
+        const maxProjected = base * maxProjectedRate;
 
         return {
           min: Math.floor(Math.max(base * RATES.FLOOR, minProjected)),
