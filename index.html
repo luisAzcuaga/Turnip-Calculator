@@ -16,136 +16,132 @@
     </header>
 
     <div class="main-content">
-      <!-- Sección de precio de compra -->
-      <section class="buy-price-section">
-        <h2>Precio de compra <small>(Domingo)</small></h2>
-        <div class="input-group">
-          <input type="number" id="buyPrice" placeholder="Ej: 92" min="90" max="110">
-          <span class="bayas">bayas</span>
-        </div>
+      <section class="upper-container">
+        <section class="inputs-section">
+          <!-- Sección de precio de compra -->
+          <div class="buy-price-group">
+            <h2 class="buy-price-title">Precio de compra <small>(Domingo)</small></h2>
+            <section class="buy-price-section">
+              <div class="input-group">
+                <input type="number" id="buyPrice" placeholder="Ej: 92" min="90" max="110">
+                <span class="bayas">bayas</span>
+              </div>
+              <small class="helper-text">Conocer el precio es la base para hacer todos los cálculos.</small>
+            </section>
+          </div>
+
+          <!-- Sección de patrón anterior -->
+           <div class="previous-pattern-group">
+             <h2 class="previous-pattern-title">Patrón de la semana anterior <small>(opcional)</small></h2>
+             <section class="previous-pattern-section">
+               <div class="input-group">
+                 <select id="previousPattern">
+                   <option value="">No sé / Primera semana</option>
+                   <option value="fluctuating">Fluctuante</option>
+                   <option value="large_spike">Pico Grande</option>
+                   <option value="decreasing">Decreciente</option>
+                   <option value="small_spike">Pico Pequeño</option>
+                 </select>
+               </div>
+               <small class="helper-text">Conocer el patrón anterior mejora significativamente la precisión</small>
+             </section>
+           </div>
+        </section>
+
+        <!-- Sección de precios de la semana -->
+        <section class="week-prices-section">
+          <h2>Precios de la semana</h2>
+          <div class="prices-grid">
+            <div class="day-group">
+              <h3>Lunes</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="mon_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="mon_am"></span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="mon_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="mon_pm"></span>
+              </div>
+            </div>
+
+            <div class="day-group">
+              <h3>Martes</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="tue_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="tue_am"></span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="tue_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="tue_pm"></span>
+              </div>
+            </div>
+
+            <div class="day-group">
+              <h3>Miércoles</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="wed_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="wed_am"></span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="wed_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="wed_pm"></span>
+              </div>
+            </div>
+
+            <div class="day-group">
+              <h3>Jueves</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="thu_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="thu_am"></span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="thu_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="thu_pm"></span>
+              </div>
+            </div>
+
+            <div class="day-group">
+              <h3>Viernes</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="fri_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="fri_am"></span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="fri_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="fri_pm"></span>
+              </div>
+            </div>
+
+            <div class="day-group">
+              <h3>Sábado</h3>
+              <div class="price-input">
+                <label>AM</label>
+                <input type="number" id="sat_am" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="sat_am">a</span>
+              </div>
+              <div class="price-input">
+                <label>PM</label>
+                <input type="number" id="sat_pm" placeholder="-" min="9" max="660">
+                <span class="rate-badge" data-for="sat_pm"></span>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
-
-      <!-- Sección de patrón anterior -->
-      <section class="previous-pattern-section">
-        <h2>Patrón de la semana anterior <small>(opcional)</small></h2>
-        <div class="input-group">
-          <select id="previousPattern">
-            <option value="">No sé / Primera semana</option>
-            <option value="fluctuating">Fluctuante</option>
-            <option value="large_spike">Pico Grande</option>
-            <option value="decreasing">Decreciente</option>
-            <option value="small_spike">Pico Pequeño</option>
-          </select>
-        </div>
-        <small class="helper-text">Conocer el patrón anterior mejora significativamente la precisión</small>
-      </section>
-
-      <!-- Sección de precios de la semana -->
-      <section class="week-prices-section">
-        <h2>Precios de la semana</h2>
-
-        <div class="legend">
-          <div class="legend-item">
-            <span class="legend-box estimated"></span>
-            <span class="legend-text">Valor estimado <small>(click para editar)</small></span>
-          </div>
-          <div class="legend-item">
-            <span class="legend-box confirmed"></span>
-            <span class="legend-text">Valor confirmado</span>
-          </div>
-        </div>
-
-        <div class="prices-grid">
-          <div class="day-group">
-            <h3>🌙 Lunes</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="mon_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="mon_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="mon_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="mon_pm"></span>
-            </div>
-          </div>
-
-          <div class="day-group">
-            <h3>🌙 Martes</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="tue_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="tue_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="tue_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="tue_pm"></span>
-            </div>
-          </div>
-
-          <div class="day-group">
-            <h3>🌙 Miércoles</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="wed_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="wed_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="wed_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="wed_pm"></span>
-            </div>
-          </div>
-
-          <div class="day-group">
-            <h3>🌙 Jueves</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="thu_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="thu_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="thu_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="thu_pm"></span>
-            </div>
-          </div>
-
-          <div class="day-group">
-            <h3>🌙 Viernes</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="fri_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="fri_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="fri_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="fri_pm"></span>
-            </div>
-          </div>
-
-          <div class="day-group">
-            <h3>🌙 Sábado</h3>
-            <div class="price-input">
-              <label>AM</label>
-              <input type="number" id="sat_am" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="sat_am"></span>
-            </div>
-            <div class="price-input">
-              <label>PM</label>
-              <input type="number" id="sat_pm" placeholder="-" min="9" max="660">
-              <span class="rate-badge" data-for="sat_pm"></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="button-group">
-          <button id="calculateBtn" class="btn-primary">Calcular Pronóstico</button>
-          <button id="clearBtn" class="btn-secondary">Limpiar</button>
-        </div>
-      </section>
+      <div class="button-group">
+        <button id="calculateBtn" class="btn-primary">Calcular Pronóstico</button>
+        <button id="clearBtn" class="btn-secondary">Limpiar</button>
+      </div>
 
       <!-- Sección de resultados -->
       <section class="results-section" id="resultsSection" style="display: none;">
