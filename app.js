@@ -411,10 +411,25 @@ document.addEventListener('DOMContentLoaded', function () {
             const maxPeriodIndex = spikeStartIndex + peaksInPhase;
             const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
 
+            // Detectar si estamos en Fase 0 (inicio del pico) y aún no vimos Fase 1
+            const phase1Index = spikeStartIndex + 1;
+            const isInPhase0 = lastKnownIndex === spikeStartIndex;
+            const hasPhase1Data = lastKnownIndex >= phase1Index;
+
             if (periodsUntilMax > 0) {
               const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
               const maxRange = key === 'large_spike' ? '200-600%' : '140-200%';
-              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
+
+              // Si estamos en Fase 0 y no hemos visto Fase 1, mencionar que Fase 1 es decisiva
+              if (isInPhase0 && !hasPhase1Data) {
+                const buyPrice = parseInt(buyPriceInput.value);
+                const phase1Threshold = Math.round(buyPrice * 1.40);
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (Fase 1) será decisivo:<br>`;
+                html += `• Si sube a <strong>≥${phase1Threshold} bayas (140%)</strong> → Large Spike confirmado<br>`;
+                html += `• Si sube a <strong>&lt;${phase1Threshold} bayas (&lt;140%)</strong> → Small Spike confirmado</small></p>`;
+              } else {
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
+              }
             } else {
               html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El máximo ya debería haber ocurrido o está ocurriendo ahora.</small></p>`;
             }

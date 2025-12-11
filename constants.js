@@ -45,7 +45,7 @@ const PERIODS = {
   // Alias semánticos
   SMALL_SPIKE_PEAK_START_MIN: 2,  // Martes AM
   LARGE_SPIKE_PEAK_START_MIN: 3,  // Martes PM
-  SPIKE_PEAK_START_MAX: 9,        // Sábado PM (ambos)
+  SPIKE_PEAK_START_MAX: 7,        // Jueves PM (ambos) - último inicio posible para 5 períodos
   LATE_WEEK_START: 8,             // Viernes AM
   LAST_PERIOD: 11,                // Sábado PM
 };

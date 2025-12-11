@@ -113,7 +113,7 @@ function getSpikeStartRange(isLargeSpike) {
     min: isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN,
     max: PERIODS.SPIKE_PEAK_START_MAX,
     minName: isLargeSpike ? 'Martes PM' : 'Martes AM',
-    maxName: 'Sábado PM',
+    maxName: 'Jueves PM',
   };
 }
 

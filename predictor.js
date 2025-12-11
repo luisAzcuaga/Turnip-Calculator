@@ -135,6 +135,55 @@ class TurnipPredictor {
     return { tooLate: false };
   }
 
+  // Helper: Detecta Fase 1 del pico para diferenciar Large vs Small Spike
+  // Fase 1 Large Spike: 140-200% (sin overlap con Small Spike)
+  // Fase 1 Small Spike: 90-140% (sin overlap con Large Spike)
+  detectPhase1Spike(knownPrices) {
+    if (knownPrices.length < 2) return { detected: false };
+
+    // Buscar el inicio del pico (primera subida significativa >10%)
+    let spikeStartIndex = -1;
+    for (let i = 1; i < knownPrices.length; i++) {
+      const current = knownPrices[i];
+      const previous = knownPrices[i - 1];
+      if (current.price > previous.price * THRESHOLDS.SIGNIFICANT_RISE) {
+        spikeStartIndex = current.index;
+        break;
+      }
+    }
+
+    if (spikeStartIndex === -1) return { detected: false };
+
+    // Buscar Fase 1 (segundo período del pico, peakStart + 1)
+    const phase1Index = spikeStartIndex + 1;
+    const phase1Data = knownPrices.find(p => p.index === phase1Index);
+
+    if (!phase1Data) return { detected: false };
+
+    const phase1Rate = phase1Data.price / this.buyPrice;
+    const phase1Percent = (phase1Rate * 100).toFixed(1);
+
+    // Fase 1 ≥ 140% = Large Spike confirmado
+    if (phase1Rate >= 1.40) {
+      return {
+        detected: true,
+        isLargeSpike: true,
+        phase1Price: phase1Data.price,
+        phase1Percent: phase1Percent,
+        phase1Day: getPeriodName(phase1Index)
+      };
+    }
+
+    // Fase 1 < 140% = Small Spike confirmado
+    return {
+      detected: true,
+      isLargeSpike: false,
+      phase1Price: phase1Data.price,
+      phase1Percent: phase1Percent,
+      phase1Day: getPeriodName(phase1Index)
+    };
+  }
+
   // Verificar si el patrón DECRECIENTE es posible
   isPossibleDecreasing(knownPrices) {
     // REGLA DE DETECCIÓN TEMPRANA:
@@ -175,6 +224,17 @@ class TurnipPredictor {
     if (lateCheck.tooLate) {
       this.rejectionReasons.large_spike.push(lateCheck.reason);
       return false;
+    }
+
+    // VALIDACIÓN FASE 1: Si detectamos Fase 1, podemos confirmar o rechazar definitivamente
+    const phase1Check = this.detectPhase1Spike(knownPrices);
+    if (phase1Check.detected) {
+      if (!phase1Check.isLargeSpike) {
+        // Fase 1 < 140% = definitivamente Small Spike, no Large Spike
+        this.rejectionReasons.large_spike.push(`Fase 1 en ${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en Fase 1. Esto es Small Spike.`);
+        return false;
+      }
+      // Si isLargeSpike = true, continuar con más validaciones (puede ser Large Spike)
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -258,22 +318,26 @@ class TurnipPredictor {
 
     // Si el pico máximo está claramente en el rango de Small Spike (140-200%)
     // Y ya estamos tarde en la semana (viernes o después), rechazar Large Spike
+    // PERO: Si Phase 1 ya confirmó que es Large Spike, respetar esa confirmación
     if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      // Buscar si hay señales claras de que es Large Spike
-      // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
-      const hasRapidIncrease = knownPrices.some((current, i) => {
-        if (i === 0) return false;
-        const previous = knownPrices[i - 1];
-        // Subida de más de 100% en un período
-        return current.price > previous.price * THRESHOLDS.RAPID_INCREASE;
-      });
+      // Si Phase 1 confirmó Large Spike, no aplicar esta validación
+      if (!phase1Check.detected || !phase1Check.isLargeSpike) {
+        // Buscar si hay señales claras de que es Large Spike
+        // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
+        const hasRapidIncrease = knownPrices.some((current, i) => {
+          if (i === 0) return false;
+          const previous = knownPrices[i - 1];
+          // Subida de más de 100% en un período
+          return current.price > previous.price * THRESHOLDS.RAPID_INCREASE;
+        });
 
-      // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
-      // es muy probable que sea Small Spike, no Large Spike
-      if (!hasRapidIncrease) {
-        const spikeRange = getSpikeStartRange(true);
-        this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return false;
+        // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
+        // es muy probable que sea Small Spike, no Large Spike
+        if (!hasRapidIncrease) {
+          const spikeRange = getSpikeStartRange(true);
+          this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
+          return false;
+        }
       }
     }
 
@@ -297,6 +361,17 @@ class TurnipPredictor {
     if (lateCheck.tooLate) {
       this.rejectionReasons.small_spike.push(lateCheck.reason);
       return false;
+    }
+
+    // VALIDACIÓN FASE 1: Si detectamos Fase 1, podemos confirmar o rechazar definitivamente
+    const phase1Check = this.detectPhase1Spike(knownPrices);
+    if (phase1Check.detected) {
+      if (phase1Check.isLargeSpike) {
+        // Fase 1 ≥ 140% = definitivamente Large Spike, no Small Spike
+        this.rejectionReasons.small_spike.push(`Fase 1 en ${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} (${phase1Check.phase1Percent}%). Small Spike debe ser <140% en Fase 1. Esto es Large Spike.`);
+        return false;
+      }
+      // Si isLargeSpike = false, continuar con más validaciones (puede ser Small Spike)
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
