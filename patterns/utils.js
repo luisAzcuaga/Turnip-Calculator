@@ -3,6 +3,44 @@
 // Usa constantes de constants.js (THRESHOLDS, PERIODS, etc.)
 
 /**
+ * Calcula el promedio de caída del rate entre precios conocidos consecutivos.
+ * El juego reduce el rate (no el precio) en 3-5 puntos por período.
+ *
+ * @param {Array} knownPrices - Array de precios conocidos con {index, price}
+ * @param {number} base - Precio base de compra
+ * @returns {number} - Promedio de puntos que baja el rate por período
+ */
+function calculateAvgRateDrop(knownPrices, base) {
+  if (knownPrices.length < 2) {
+    return 0;
+  }
+
+  const totalDrop = knownPrices.slice(1).reduce((sum, current, i) => {
+    const prevRate = knownPrices[i].price / base;
+    const currRate = current.price / base;
+    const rateDrop = prevRate - currRate;
+    return sum + rateDrop;
+  }, 0);
+
+  return totalDrop / (knownPrices.length - 1);
+}
+
+/**
+ * Proyecta un precio futuro basándose en el rate actual y caída promedio del rate.
+ *
+ * @param {number} lastKnownPrice - Último precio conocido
+ * @param {number} base - Precio base de compra
+ * @param {number} avgRateDrop - Promedio de caída del rate por período
+ * @param {number} periodsAhead - Cuántos períodos hacia adelante proyectar
+ * @returns {number} - Precio proyectado
+ */
+function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
+  const lastKnownRate = lastKnownPrice / base;
+  const projectedRate = lastKnownRate - (avgRateDrop * periodsAhead);
+  return base * projectedRate;
+}
+
+/**
  * Detecta dinámicamente dónde empieza la fase de pico en patrones de Spike
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @param {number} minPeakStart - Índice mínimo donde puede empezar el pico

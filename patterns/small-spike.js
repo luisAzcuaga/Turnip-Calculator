@@ -24,16 +24,8 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
 
       // Si tenemos al menos 2 precios, calcular tasa de decrecimiento observada del RATE
       if (decreasingPhase.length >= 2 && periodsAhead > 0) {
-        const avgRateDrop = decreasingPhase.slice(1).reduce((totalDrop, current, i) => {
-          const prevRate = decreasingPhase[i].price / base;
-          const currRate = current.price / base;
-          const rateDrop = prevRate - currRate;
-          return totalDrop + rateDrop;
-        }, 0) / (decreasingPhase.length - 1);
-
-        const lastKnownRate = lastKnown.price / base;
-        const projectedRate = lastKnownRate - (avgRateDrop * periodsAhead);
-        const projected = base * projectedRate;
+        const avgRateDrop = calculateAvgRateDrop(decreasingPhase, base);
+        const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
         return {
           min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
           max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
