@@ -40,8 +40,8 @@ Todos tus datos se guardan en el navegador. No necesitas hacer nada.
 |--------|------|------|---------------|
 | 📊 **Fluctuante** | 90-140% | 60-80% | Fase alta (90-140%) |
 | 📉 **Decreciente** | 85-90% (solo inicio) | 40-90% (bajando) | Lunes AM 😢 |
-| 📈 **Pico Chico** | 140-200% | 40-90% | Período 4 del pico (140-200%) |
-| 🚀 **Pico Grande** | 200-600% 💰 | 40-90% | Período 3 del pico (200-600%) 🎉 |
+| 📈 **Pico Chico** | 140-200% | 40-90% | Período 4 del pico (máximo 140-200%) |
+| 🚀 **Pico Grande** | 200-600% 💰 | 40-90% | Período 3 del pico (máximo 200-600%) 🎉 |
 
 **💡 Tip:** Lee [ALGORITHM.md](ALGORITHM.md) para entender cómo funciona cada patrón en detalle.
 

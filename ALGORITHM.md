@@ -108,42 +108,43 @@ Sábado:     ???, ???  → PREDICCIÓN: 90-140% (solo fase ALTA)
 
 **¿Cómo funciona?**
 - Hay un **pico moderado** durante la semana
-- El pico puede empezar entre **martes y sábado** (período 2-9)
+- El pico puede empezar entre **martes AM y jueves PM**
 - El pico dura **5 períodos** con precios creciendo y luego bajando
 
 **Estructura del pico:**
 ```
-Fase BAJA     → 40-90% (antes del pico)
-Pico período 1 → 90-140%
-Pico período 2 → 90-140%
-Pico período 3 → 140-200% menos 1 baya
-Pico período 4 → 140-200%  ← PICO MÁXIMO
-Pico período 5 → 140-200% menos 1 baya
-Después       → 40-90% (baja)
+Antes del pico    → 40-90% (precios bajos)
+Período 1 (inicio) → 90-140%
+Período 2          → 90-140%  ← Se queda en el mismo rango
+Período 3          → 140-200% menos 1 baya
+Período 4          → 140-200%  ← PICO MÁXIMO ⭐
+Período 5 (final)  → 140-200% menos 1 baya
+Después del pico  → 40-90% (baja otra vez)
 ```
 
 **Ejemplo práctico:**
 ```
 Compraste a: 100 bayas
 
-Lunes:      85-75    (fase baja)
-Martes AM:  70       (aún bajo)
-Martes PM:  90       (empieza pico - período 1)
-Miércoles AM: 120    (período 2)
-Miércoles PM: 169    (período 3 - cerca del máximo menos 1)
-Jueves AM:  170      ← MÁXIMO (período 4 - 170%)
-Jueves PM:  169      (período 5 - cerca del máximo menos 1)
-Viernes:    80-70    (ya pasó)
-Sábado:     65-55    (terminó)
+Lunes:        85-75    (antes del pico)
+Martes AM:    70       (aún bajo)
+Martes PM:    95       (período 1 - empieza el pico)
+Miércoles AM: 120      (período 2 - se mantiene 90-140%)
+Miércoles PM: 169      (período 3 - cerca del máximo menos 1)
+Jueves AM:    170      ← MÁXIMO (período 4 - 170%) ⭐
+Jueves PM:    169      (período 5 - cerca del máximo menos 1)
+Viernes:      80-70    (ya pasó)
+Sábado:       65-55    (terminó)
 ```
 
 **¿Cuándo vender?**
-- En el **cuarto período del pico** (es el más alto)
+- En el **período 4 del pico** (es el más alto, 140-200%)
 - Si ves un precio entre **140-200%**, probablemente estás en el pico
 - No esperes más después del pico, baja rápido
 
-**💡 Cómo identificarlo:**
-- Si ves un precio de **150-190%** y es jueves/viernes, es muy probable que sea Pico Chico
+**💡 Cómo identificarlo rápido:**
+- **El período 2 se queda entre 90-140%** (no sube dramáticamente)
+- Si ves un precio de **150-190%** y es miércoles/jueves, es muy probable que sea Pico Chico
 
 ---
 
@@ -151,42 +152,72 @@ Sábado:     65-55    (terminó)
 
 **¿Cómo funciona?**
 - Hay un **pico ENORME** durante la semana
-- El pico puede empezar entre **miércoles y sábado** (período 3-9)
+- El pico puede empezar entre **martes PM y jueves PM**
 - El pico dura **5 períodos** con precios MUY altos
 
 **Estructura del pico:**
 ```
-Fase BAJA     → 40-90% (antes del pico)
-Pico período 1 → 90-140%
-Pico período 2 → 140-200%
-Pico período 3 → 200-600%  ← PICO MÁXIMO 💰
-Pico período 4 → 140-200%
-Pico período 5 → 90-140%
-Después       → 40-90% (baja)
+Antes del pico     → 40-90% (precios bajos)
+Período 1 (inicio) → 90-140%
+Período 2          → 140-200%  ← SUBE DRAMÁTICAMENTE ⭐
+Período 3          → 200-600%  ← PICO MÁXIMO 💰
+Período 4          → 140-200%
+Período 5 (final)  → 90-140%
+Después del pico   → 40-90% (baja otra vez)
 ```
 
 **Ejemplo práctico:**
 ```
 Compraste a: 100 bayas
 
-Lunes:      80-75    (fase baja)
-Martes:     70-65    (aún bajo)
-Miércoles AM: 90     (empieza pico)
-Miércoles PM: 150    (subiendo rápido)
-Jueves AM:  450      ← MÁXIMO (450%) 💰💰💰
-Jueves PM:  180      (ya bajó)
-Viernes:    95-85    (terminó)
-Sábado:     70-60    (ya pasó)
+Lunes:        80-75    (antes del pico)
+Martes:       70-65    (aún bajo)
+Martes PM:    110      (período 1 - empieza el pico)
+Miércoles AM: 160      (período 2 - SUBE A 140-200%!) ⭐
+Miércoles PM: 450      ← MÁXIMO (período 3 - 450%) 💰💰💰
+Jueves AM:    180      (período 4 - ya bajó)
+Jueves PM:    120      (período 5 - terminando)
+Viernes:      95-85    (terminó)
+Sábado:       70-60    (ya pasó)
 ```
 
 **¿Cuándo vender?**
-- En el **tercer período del pico** (200-600%)
+- En el **período 3 del pico** (200-600%)
 - Si ves un precio sobre **200%**, ¡VENDE! Ese es el momento
 - Es el mejor patrón para ganar bayas
 
-**💡 Cómo identificarlo:**
+**💡 Cómo identificarlo rápido:**
+- **El período 2 sube a 140-200%** (sube dramáticamente, no se queda en 90-140%)
 - Si ves un precio **sobre 200%** (el doble de lo que pagaste), es Pico Grande
-- Usualmente el pico es a mitad de semana (miércoles-jueves)
+- Usualmente el pico es a mitad de semana (martes-jueves)
+
+---
+
+## 🔍 Diferencia clave entre Pico Grande y Pico Chico
+
+La forma más fácil de saber si tienes **Pico Grande** o **Pico Chico** es mirar el **período 2 del pico**:
+
+### 📊 Comparación lado a lado:
+
+| Aspecto | Pico Chico | Pico Grande |
+|---------|------------|-------------|
+| **Período 1** | 90-140% | 90-140% |
+| **Período 2** ⭐ | **90-140%** (se mantiene) | **140-200%** (¡sube mucho!) |
+| **Período 3** | 140-200% menos 1 | 200-600% 💰 |
+| **Período 4** | 140-200% (máximo) | 140-200% |
+| **Período 5** | 140-200% menos 1 | 90-140% |
+
+### 💡 Regla simple:
+
+**Cuando veas que el pico comienza (período 1), espera al siguiente precio (período 2):**
+
+- **Si sube a 140% o más** → Es **Pico Grande** 🚀
+  - Ejemplo: Compraste a 100, período 2 es ≥140 bayas → ¡Pico Grande confirmado!
+
+- **Si se queda debajo de 140%** → Es **Pico Chico** 📈
+  - Ejemplo: Compraste a 100, período 2 es <140 bayas → Pico Chico confirmado
+
+El predictor detecta esto automáticamente y te avisa cuál es cuál.
 
 ---
 
@@ -209,12 +240,13 @@ El predictor analiza los precios que ingresas y **descarta** patrones imposibles
 
 **Pico Chico se descarta si:**
 - Hay precios sobre 200% (eso es Pico Grande)
+- **El período 2 del pico es ≥140%** (eso confirma Pico Grande)
 - Ya que su máximo es 200%
 
 **Pico Grande se descarta si:**
-- Es tarde en la semana (después del jueves) y no hay picos altos
+- **El período 2 del pico es <140%** (eso confirma Pico Chico)
+- Es tarde en la semana (después del jueves PM) sin que haya empezado un pico
 - El pico máximo es entre 140-200% sin aumentos rápidos
-- **El "pico" es bajo (<140%) y después hay caída dramática (>40%)**
 - Ya que necesita tener el pico grande de 200-600%
 
 ---
