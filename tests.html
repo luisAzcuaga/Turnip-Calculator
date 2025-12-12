@@ -71,7 +71,7 @@ Status: ${rateDrop > 0.05 ? '❌ EXCEEDS by ' + ((rateDrop - 0.05) * 100).toFixe
   <pre>Small: ${pred2.rejectionReasons.small_spike.join('\n') || 'None'}</pre>
 `;
 
-// Test 3: Phase 1 Detection (Large Spike: Fase 1 >= 140%)
+// Test 3: Período 2 Detection (Large Spike: Período 2 >= 140%)
 const pred3 = new TurnipPredictor(107, {
   mon_am: 97,
   mon_pm: 92,
@@ -80,29 +80,29 @@ const pred3 = new TurnipPredictor(107, {
   wed_am: 80,
   wed_pm: 76,
   thu_am: 73,
-  thu_pm: 120,  // Inicio del pico (subida >10%)
-  fri_am: 160   // Fase 1: 160/107 = 149.5% >= 140% -> Large Spike!
+  thu_pm: 120,  // Período 1 del pico (inicio, subida >10%)
+  fri_am: 160   // Período 2: 160/107 = 149.5% >= 140% -> Large Spike!
 }, '');
 
 const result3 = pred3.predict();
 
 document.getElementById('test3').innerHTML = `
-  <h2>Test 3: Phase 1 Detection (Large Spike)</h2>
+  <h2>Test 3: Período 2 Detection (Large Spike)</h2>
   <h3>Scenario:</h3>
-  <pre>Thu PM: 120 (inicio pico, subida de 73 -> 120)
-Fri AM: 160 (Fase 1 = 149.5% >= 140%)</pre>
+  <pre>Thu PM: 120 (Período 1 del pico, subida de 73 -> 120)
+Fri AM: 160 (Período 2 = 149.5% >= 140%)</pre>
 
   <h3>Results:</h3>
   <p>Pattern: ${result3.patternName} (${result3.confidence}%)</p>
-  <p>Large Spike: ${result3.allProbabilities.large_spike}% (expected: high, Fase 1 >= 140%)</p>
+  <p>Large Spike: ${result3.allProbabilities.large_spike}% (expected: high, Período 2 >= 140%)</p>
   <p>Small Spike: ${result3.allProbabilities.small_spike}% (expected: 0%, should be rejected) ${result3.allProbabilities.small_spike === 0 ? '✅' : '❌'}</p>
 
   <h3>Rejection reasons:</h3>
   <pre>Large: ${pred3.rejectionReasons.large_spike.join('\n') || 'None'}</pre>
-  <pre>Small: ${pred3.rejectionReasons.small_spike.join('\n') || 'None (should show: Fase 1 >= 140% = Large Spike)'}</pre>
+  <pre>Small: ${pred3.rejectionReasons.small_spike.join('\n') || 'None (should show: Período 2 >= 140% = Large Spike)'}</pre>
 
   <h3>Expected:</h3>
-  <p>✅ Small Spike should be rejected because Fase 1 (160) is 149.5% >= 140%</p>
+  <p>✅ Small Spike should be rejected because Período 2 (160) is 149.5% >= 140%</p>
   <p>✅ Large Spike should remain possible or be confirmed</p>
 `;
 

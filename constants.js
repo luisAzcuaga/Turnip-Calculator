@@ -84,11 +84,11 @@ const RATES = {
 
     // Fases del pico (5 períodos)
     PEAK_PHASES: [
-      { min: 0.90, max: 1.40 },  // Fase 0: subida inicial
-      { min: 1.40, max: 2.00 },  // Fase 1: subida fuerte
-      { min: 2.00, max: 6.00 },  // Fase 2: PICO MÁXIMO ⭐
-      { min: 1.40, max: 2.00 },  // Fase 3: bajada
-      { min: 0.90, max: 1.40 },  // Fase 4: bajada final
+      { min: 0.90, max: 1.40 },  // Período 1: subida inicial
+      { min: 1.40, max: 2.00 },  // Período 2: subida fuerte
+      { min: 2.00, max: 6.00 },  // Período 3: PICO MÁXIMO ⭐
+      { min: 1.40, max: 2.00 },  // Período 4: bajada
+      { min: 0.90, max: 1.40 },  // Período 5: bajada final
     ],
 
     // Fase post-pico
@@ -108,10 +108,10 @@ const RATES = {
     PEAK_RATE_MAX: 2.00,  // 200%
 
     // Fases del pico
-    // Fase 0 y 1: 0.9-1.4
-    // Fase 2: (1.4 a rate) - 1 bell (intermedio)
-    // Fase 3: rate (PICO REAL) ⭐
-    // Fase 4: (1.4 a rate) - 1 bell (intermedio)
+    // Período 1 y 2: 0.9-1.4
+    // Período 3: (1.4 a rate) - 1 bell (intermedio)
+    // Período 4: rate (PICO REAL) ⭐
+    // Período 5: (1.4 a rate) - 1 bell (intermedio)
     PEAK_PHASE_INITIAL_MIN: 0.90,
     PEAK_PHASE_INITIAL_MAX: 1.40,
 

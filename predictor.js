@@ -135,9 +135,9 @@ class TurnipPredictor {
     return { tooLate: false };
   }
 
-  // Helper: Detecta Fase 1 del pico para diferenciar Large vs Small Spike
-  // Fase 1 Large Spike: 140-200% (sin overlap con Small Spike)
-  // Fase 1 Small Spike: 90-140% (sin overlap con Large Spike)
+  // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
+  // Período 2 Large Spike: 140-200% (sin overlap con Small Spike)
+  // Período 2 Small Spike: 90-140% (sin overlap con Large Spike)
   detectPhase1Spike(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
@@ -154,7 +154,7 @@ class TurnipPredictor {
 
     if (spikeStartIndex === -1) return { detected: false };
 
-    // Buscar Fase 1 (segundo período del pico, peakStart + 1)
+    // Buscar Período 2 (segundo período del pico, peakStart + 1)
     const phase1Index = spikeStartIndex + 1;
     const phase1Data = knownPrices.find(p => p.index === phase1Index);
 
@@ -163,7 +163,7 @@ class TurnipPredictor {
     const phase1Rate = phase1Data.price / this.buyPrice;
     const phase1Percent = (phase1Rate * 100).toFixed(1);
 
-    // Fase 1 ≥ 140% = Large Spike confirmado
+    // Período 2 ≥ 140% = Large Spike confirmado
     if (phase1Rate >= 1.40) {
       return {
         detected: true,
@@ -174,7 +174,7 @@ class TurnipPredictor {
       };
     }
 
-    // Fase 1 < 140% = Small Spike confirmado
+    // Período 2 < 140% = Small Spike confirmado
     return {
       detected: true,
       isLargeSpike: false,
@@ -226,12 +226,12 @@ class TurnipPredictor {
       return false;
     }
 
-    // VALIDACIÓN FASE 1: Si detectamos Fase 1, podemos confirmar o rechazar definitivamente
+    // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
     const phase1Check = this.detectPhase1Spike(knownPrices);
     if (phase1Check.detected) {
       if (!phase1Check.isLargeSpike) {
-        // Fase 1 < 140% = definitivamente Small Spike, no Large Spike
-        this.rejectionReasons.large_spike.push(`Fase 1 en ${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en Fase 1. Esto es Small Spike.`);
+        // Período 2 < 140% = definitivamente Small Spike, no Large Spike
+        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2. Esto es Small Spike.`);
         return false;
       }
       // Si isLargeSpike = true, continuar con más validaciones (puede ser Large Spike)
@@ -363,12 +363,12 @@ class TurnipPredictor {
       return false;
     }
 
-    // VALIDACIÓN FASE 1: Si detectamos Fase 1, podemos confirmar o rechazar definitivamente
+    // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
     const phase1Check = this.detectPhase1Spike(knownPrices);
     if (phase1Check.detected) {
       if (phase1Check.isLargeSpike) {
-        // Fase 1 ≥ 140% = definitivamente Large Spike, no Small Spike
-        this.rejectionReasons.small_spike.push(`Fase 1 en ${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} (${phase1Check.phase1Percent}%). Small Spike debe ser <140% en Fase 1. Esto es Large Spike.`);
+        // Período 2 ≥ 140% = definitivamente Large Spike, no Small Spike
+        this.rejectionReasons.small_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Small Spike debe ser <140% en el Período 2. Esto es Large Spike.`);
         return false;
       }
       // Si isLargeSpike = false, continuar con más validaciones (puede ser Small Spike)

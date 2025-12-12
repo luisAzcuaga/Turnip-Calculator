@@ -417,28 +417,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
           if (spikeStarted && spikeStartIndex >= 0) {
             const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
-            // Large Spike: máximo en Fase 2 (peakStart + 2)
-            // Small Spike: máximo en Fase 3 (peakStart + 3)
+            // Large Spike: máximo en Período 3 (peakStart + 2, zero-indexed)
+            // Small Spike: máximo en Período 4 (peakStart + 3, zero-indexed)
             const peaksInPhase = key === 'large_spike' ? 2 : 3;
             const maxPeriodIndex = spikeStartIndex + peaksInPhase;
             const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
 
-            // Detectar si estamos en Fase 0 (inicio del pico) y aún no vimos Fase 1
-            const phase1Index = spikeStartIndex + 1;
-            const isInPhase0 = lastKnownIndex === spikeStartIndex;
-            const hasPhase1Data = lastKnownIndex >= phase1Index;
+            // Detectar si estamos en Período 1 (inicio del pico) y aún no vimos Período 2
+            const period2Index = spikeStartIndex + 1;
+            const isInPeriod1 = lastKnownIndex === spikeStartIndex;
+            const hasPeriod2Data = lastKnownIndex >= period2Index;
 
             if (periodsUntilMax > 0) {
               const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
               const maxRange = key === 'large_spike' ? '200-600%' : '140-200%';
 
-              // Si estamos en Fase 0 y no hemos visto Fase 1, mencionar que Fase 1 es decisiva
-              if (isInPhase0 && !hasPhase1Data) {
+              // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
+              if (isInPeriod1 && !hasPeriod2Data) {
                 const buyPrice = parseInt(buyPriceInput.value);
-                const phase1Threshold = Math.round(buyPrice * 1.40);
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (Fase 1) será decisivo:<br>`;
-                html += `• Si sube a <strong>≥${phase1Threshold} bayas (140%)</strong> → Large Spike confirmado<br>`;
-                html += `• Si sube a <strong>&lt;${phase1Threshold} bayas (&lt;140%)</strong> → Small Spike confirmado</small></p>`;
+                const period2Threshold = Math.round(buyPrice * 1.40);
+                const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (${nextDay}) será decisivo:<br>`;
+                html += `• Si sube a <strong>≥${period2Threshold} bayas (140%)</strong> → Large Spike confirmado<br>`;
+                html += `• Si sube a <strong>&lt;${period2Threshold} bayas (&lt;140%)</strong> → Small Spike confirmado</small></p>`;
               } else {
                 html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
               }
