@@ -156,9 +156,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Mostrar recomendaciones
     displayRecommendations(results.recommendation);
 
-    // Mostrar mejor momento
-    displayBestTime(results.bestTime);
-
     // Mostrar razones de rechazo/baja probabilidad
     displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern);
   }
@@ -306,33 +303,6 @@ document.addEventListener('DOMContentLoaded', function () {
       li.textContent = rec;
       ul.appendChild(li);
     });
-  }
-
-  function displayBestTime(bestTime) {
-    const bestTimeDiv = document.getElementById('bestTime');
-
-    // Caso especial: patrón Fluctuante (aleatorio)
-    if (bestTime.pattern === 'fluctuating') {
-      bestTimeDiv.innerHTML = `
-                <h3>⚠️ Patrón Fluctuante Detectado</h3>
-                <p>No hay momento óptimo predecible. Los precios son aleatorios.</p>
-                <p><strong>Consejo:</strong> Vende cuando veas un precio que te satisfaga.</p>
-            `;
-      return;
-    }
-
-    // Patrones predecibles (Spikes, Decreasing)
-    if (bestTime.isConfirmed) {
-      bestTimeDiv.innerHTML = `
-                <h3>⭐ Mejor precio confirmado</h3>
-                <p>${bestTime.day}: ${bestTime.price} bayas</p>
-            `;
-    } else {
-      bestTimeDiv.innerHTML = `
-                <h3>⭐ Mejor momento estimado para vender</h3>
-                <p>${bestTime.day}: hasta ${bestTime.price} bayas (estimado)</p>
-            `;
-    }
   }
 
   function markBestSellingTime(bestTime) {
