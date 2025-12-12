@@ -295,6 +295,25 @@ header h1 {
   display: none;
 }
 
+/* Best selling time glow */
+input.best-selling-time {
+  animation: golden-glow 2s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes golden-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5),
+                0 0 12px rgba(255, 215, 0, 0.3);
+    border-color: #ffd700;
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.8),
+                0 0 24px rgba(255, 215, 0, 0.4);
+    border-color: #ffed4e;
+  }
+}
+
 /* Indicador de rango */
 .range-indicator {
   font-size: 0.75rem;

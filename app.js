@@ -150,6 +150,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
 
+    // Marcar el mejor momento para vender
+    markBestSellingTime(results.bestTime);
+
     // Mostrar recomendaciones
     displayRecommendations(results.recommendation);
 
@@ -330,6 +333,45 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p>${bestTime.day}: hasta ${bestTime.price} bayas (estimado)</p>
             `;
     }
+  }
+
+  function markBestSellingTime(bestTime) {
+    // Limpiar clase de "mejor momento" de todos los inputs
+    document.querySelectorAll('.best-selling-time').forEach(input => {
+      input.classList.remove('best-selling-time');
+    });
+
+    // Solo marcar para patrones predecibles
+    if (bestTime.pattern === 'fluctuating' || !bestTime.day) {
+      return;
+    }
+
+    // Convertir nombre del día a input ID
+    // ej: "Sábado AM" → "sat_am"
+    const dayToId = {
+      'Lunes AM': 'mon_am',
+      'Lunes PM': 'mon_pm',
+      'Martes AM': 'tue_am',
+      'Martes PM': 'tue_pm',
+      'Miércoles AM': 'wed_am',
+      'Miércoles PM': 'wed_pm',
+      'Jueves AM': 'thu_am',
+      'Jueves PM': 'thu_pm',
+      'Viernes AM': 'fri_am',
+      'Viernes PM': 'fri_pm',
+      'Sábado AM': 'sat_am',
+      'Sábado PM': 'sat_pm'
+    };
+
+    const inputId = dayToId[bestTime.day];
+    if (!inputId) return;
+
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    // Añadir clase para aplicar glow animado
+    input.classList.add('best-selling-time');
+    input.title = `⭐ Mejor momento para vender: hasta ${bestTime.price} bayas`;
   }
 
   function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern) {
