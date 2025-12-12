@@ -77,21 +77,24 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
     // Período 4: (1.4 a rate) - 1 bell
 
     // Intentar inferir el "rate" de los datos conocidos
-    // IMPORTANTE: Solo inferir si ya vimos el período 3 (pico real) o posterior
     const peakPrices = knownPrices.filter(p =>
       p.index >= peakStart && p.index < peakStart + 5
     );
 
     let inferredRate = null;
-    const hasPeakData = peakPrices.some(p => p.index >= peakStart + 3);
+    const hasPeakData = peakPrices.length > 0;
 
     if (hasPeakData) {
-      // Ya pasó el pico real, podemos inferir el rate
+      // Inferir el rate del precio máximo observado en el pico
       const maxInPeak = Math.max(...peakPrices.map(p => p.price));
       inferredRate = maxInPeak / base;
-      // Asegurar que esté en el rango válido
+      // Asegurar que esté en el rango válido (1.4-2.0)
       inferredRate = Math.max(RATES.SMALL_SPIKE.PEAK_RATE_MIN, Math.min(RATES.SMALL_SPIKE.PEAK_RATE_MAX, inferredRate));
     }
+
+    // Obtener precios conocidos de períodos específicos
+    const period3Price = knownPrices.find(p => p.index === peakStart + 2);
+    const period4Price = knownPrices.find(p => p.index === peakStart + 3);
 
     // Rangos según el algoritmo exacto del juego
     if (peakPhaseIndex === 0 || peakPhaseIndex === 1) {
@@ -101,13 +104,35 @@ function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
         max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MAX)
       };
     } else if (peakPhaseIndex === 3) {
-      // Período 4: PICO REAL (rate * base)
-      if (inferredRate) {
+      // Período 4: PICO REAL (rate * base) - SIN varianza, es el rate exacto
+
+      // Si ya vimos el período 4, usar ese valor exacto
+      if (period4Price) {
         return {
-          min: Math.floor(base * inferredRate * VARIANCE.INFERRED_MIN),
-          max: Math.ceil(base * inferredRate * VARIANCE.INFERRED_MAX)
+          min: period4Price.price,
+          max: period4Price.price
         };
       }
+
+      // Si vimos el período 3, sabemos que período 4 >= período 3 + 1
+      if (period3Price) {
+        return {
+          min: period3Price.price + 1,
+          max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)
+        };
+      }
+
+      // Si tenemos datos del pico pero no del período 3, usar el rate inferido
+      if (inferredRate) {
+        // El período 4 es exactamente rate * base (sin varianza)
+        const exactPrice = Math.round(base * inferredRate);
+        return {
+          min: exactPrice,
+          max: exactPrice
+        };
+      }
+
+      // Sin datos: rango teórico completo
       return {
         min: priceFloor(base, RATES.SMALL_SPIKE.PEAK_RATE_MIN),
         max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)

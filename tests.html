@@ -8,6 +8,8 @@
 <div id="test2"></div>
 <hr>
 <div id="test3"></div>
+<hr>
+<div id="test4"></div>
 
 <script src="constants.js"></script>
 <script src="patterns/utils.js"></script>
@@ -102,6 +104,68 @@ Fri AM: 160 (Fase 1 = 149.5% >= 140%)</pre>
   <h3>Expected:</h3>
   <p>✅ Small Spike should be rejected because Fase 1 (160) is 149.5% >= 140%</p>
   <p>✅ Large Spike should remain possible or be confirmed</p>
+`;
+
+// Test 4: Small Spike - Period 4 calculation directa
+// Testear directamente la función de cálculo de Small Spike
+const knownPrices4 = [
+  { index: 0, price: 85 },  // mon_am
+  { index: 1, price: 81 },  // mon_pm (caída de 4% del rate: 85->81)
+  { index: 2, price: 77 },  // tue_am (caída de 4% del rate: 81->77)
+  { index: 3, price: 101 }, // tue_pm - pico empieza (período 1, subida 31% >= 30%)
+  { index: 4, price: 120 }, // wed_am - período 2 (120% < 140%)
+  { index: 5, price: 149 }, // wed_pm - período 3
+];
+
+// Calcular directamente para período 4 (thu_am = index 6)
+const period4Range = calculateSmallSpikePattern(6, 100, knownPrices4);
+
+// Debug: detectar peakStart
+const detectedPeakStart = detectSpikePeakStart(knownPrices4, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false);
+
+// También probar con predictor completo
+const pred4 = new TurnipPredictor(100, {
+  mon_am: 85,
+  mon_pm: 81,
+  tue_am: 77,
+  tue_pm: 101,
+  wed_am: 120,
+  wed_pm: 149,
+}, '');
+
+const result4 = pred4.predict();
+
+document.getElementById('test4').innerHTML = `
+  <h2>Test 4: Small Spike - Período 4 ajustado según Período 3</h2>
+  <h3>Scenario:</h3>
+  <pre>Base: 100 bayas
+Mon AM: 85  (85%, fase baja)
+Mon PM: 81  (81%, caída de 4% del rate)
+Tue AM: 77  (77%, caída de 4% del rate)
+Tue PM: 101 (101%, Período 1 del pico, subida 31%)
+Wed AM: 120 (120%, Período 2 < 140% → Small Spike)
+Wed PM: 149 (149%, Período 3)
+Thu AM: ??? (Período 4: DEBE ser >= 150)</pre>
+
+  <h3>Debug Info:</h3>
+  <p>Detected peakStart: ${detectedPeakStart} (expected: 3 = Tue PM)</p>
+  <p>Period 3 should be at index: ${detectedPeakStart + 2} = ${detectedPeakStart + 2 === 5 ? '✅ (index 5 = Wed PM)' : '❌'}</p>
+
+  <h3>Direct Calculation (calculateSmallSpikePattern):</h3>
+  <p>Período 4 Min: ${period4Range.min} bayas ${period4Range.min >= 150 ? '✅' : '❌ (expected >= 150)'}</p>
+  <p>Período 4 Max: ${period4Range.max} bayas ${period4Range.max <= 200 ? '✅' : '❌ (expected <= 200)'}</p>
+
+  <h3>Full Predictor Results:</h3>
+  <p>Pattern: ${result4.patternName} (${result4.confidence}%)</p>
+  <p>Small Spike: ${result4.allProbabilities.small_spike}%</p>
+  <p>Large Spike: ${result4.allProbabilities.large_spike}%</p>
+
+  <h3>Small Spike Rejection Reasons:</h3>
+  <pre>${pred4.rejectionReasons.small_spike.join('\\n') || 'None'}</pre>
+
+  <h3>Expected:</h3>
+  <p>✅ Cálculo directo debe mostrar min >= 150</p>
+  <p>✅ Período 3 (149) + 1 = 150 mínimo</p>
 `;
 </script>
 </body>

@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
     confidencePanel.innerHTML = html;
   }
 
-  function fillInputsWithPredictions(predictions) {
+  function fillInputsWithPredictions(predictions, bestTimeKey = null) {
     Object.entries(predictions).forEach(([key, data]) => {
       const input = document.getElementById(key);
       if (!input) return;
