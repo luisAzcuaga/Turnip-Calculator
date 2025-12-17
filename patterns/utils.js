@@ -55,6 +55,7 @@ function minAfterDrop(previousPrice) {
 /**
  * Valida si la caída entre dos precios es válida según el algoritmo del juego.
  * El juego reduce el RATE (no el precio) entre 3-5 puntos porcentuales por período.
+ * Usamos truncate porque el juego usa aritmética de enteros internamente.
  *
  * @param {number} previousPrice - Precio del período anterior
  * @param {number} currentPrice - Precio del período actual
@@ -64,7 +65,10 @@ function minAfterDrop(previousPrice) {
 function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
   const previousRate = previousPrice / buyPrice;
   const currentRate = currentPrice / buyPrice;
-  const rateDrop = previousRate - currentRate;
+  // Truncar a 2 decimales para simular aritmética de enteros del juego
+  // Esto evita descartar patrones por errores de precisión flotante
+  // Ej: 5.3% → 5% (válido), 6.1% → 6% (inválido)
+  const rateDrop = Math.trunc((previousRate - currentRate) * 100) / 100;
 
   // El rate puede bajar máximo 5 puntos porcentuales (0.05) por período
   return {
@@ -172,42 +176,61 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
     return PERIODS.WEDNESDAY_PM; // Default: miércoles PM (período típico)
   }
 
-  // Buscar el primer precio que sube significativamente desde fase baja
-  const firstSignificantRise = knownPrices.findIndex((current, i) => {
-    if (i === 0) return false;
-
-    const previous = knownPrices[i - 1];
-    // Detectar subida significativa (transición a fase de pico)
-    return current.price > previous.price * THRESHOLDS.MODERATE_RISE_MIN;
-  });
-
-  if (firstSignificantRise !== -1) {
-    // Este es probablemente el inicio de la fase de pico
-    const estimatedStart = Math.max(minPeakStart, knownPrices[firstSignificantRise].index);
-    return Math.min(maxPeakStart, estimatedStart);
-  }
-
-  // Buscar el precio máximo conocido
+  // Buscar el precio máximo conocido primero (más confiable si existe)
   const maxPrice = Math.max(...knownPrices.map(p => p.price));
   const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+  const baseEstimate = knownPrices[0]?.price || 100;
 
   if (maxPriceData) {
-    const baseEstimate = knownPrices[0]?.price || 100;
     const ratio = maxPrice / baseEstimate;
 
-    // Large Spike: pico máximo en 200-600%
+    // Large Spike: pico máximo en período 3 del pico (200-600%)
     if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-      // El pico máximo está en peakStart+2
+      // El pico máximo está en peakStart+2 (período 3)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 2);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }
 
-    // Small Spike: pico máximo en 140-200%
+    // Small Spike: pico máximo en período 4 del pico (140-200%)
     if (!isLargeSpike && ratio >= THRESHOLDS.SMALL_SPIKE_MIN) {
       // El pico máximo está en peakStart+3 (período 4 del pico)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }
+  }
+
+  // Buscar inversión de tendencia: estaba bajando y ahora sube
+  // Esto es más confiable que buscar solo una subida grande
+  const trendReversal = knownPrices.findIndex((current, i) => {
+    if (i < 2) return false; // Necesitamos al menos 3 puntos
+
+    const prev = knownPrices[i - 1];
+    const prevPrev = knownPrices[i - 2];
+
+    // Estaba bajando (prevPrev > prev) y ahora sube (current > prev)
+    const wasFalling = prevPrev.price > prev.price;
+    const nowRising = current.price > prev.price;
+
+    return wasFalling && nowRising;
+  });
+
+  if (trendReversal !== -1) {
+    // La inversión ocurre en el período actual, el pico empezó en el anterior
+    const estimatedStart = Math.max(minPeakStart, knownPrices[trendReversal - 1].index);
+    return Math.min(maxPeakStart, estimatedStart);
+  }
+
+  // Buscar el primer precio que sube significativamente (>30%)
+  const firstSignificantRise = knownPrices.findIndex((current, i) => {
+    if (i === 0) return false;
+
+    const previous = knownPrices[i - 1];
+    return current.price > previous.price * THRESHOLDS.MODERATE_RISE_MIN;
+  });
+
+  if (firstSignificantRise !== -1) {
+    const estimatedStart = Math.max(minPeakStart, knownPrices[firstSignificantRise].index);
+    return Math.min(maxPeakStart, estimatedStart);
   }
 
   // Si hay tendencia decreciente, el pico probablemente ya pasó o está cerca
