@@ -723,7 +723,7 @@ class TurnipPredictor {
           }
         } else {
           score += 5;
-          this.scoreReasons.large_spike.push(`❌ No hay pico visible aún. Máximo ${maxPrice} (${Math.round(ratio * 100)}%) es muy bajo para Large Spike (necesita 200-600%)`);
+          this.scoreReasons.large_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} (${Math.round(ratio * 100)}%) es válido para fase inicial, el siguiente período debe estar entre 140-200% para confirmar Pico Grande`);
         }
 
         // Bonus si hay fase baja seguida de pico muy rápido
@@ -774,7 +774,7 @@ class TurnipPredictor {
           this.scoreReasons.small_spike.push(`❌ Precio ${maxPrice} (${Math.round(ratio * 100)}%) excede 200% (esto es Large Spike)`);
         } else {
           // ratio < SMALL_SPIKE_PRE_PEAK (1.2)
-          this.scoreReasons.small_spike.push(`❌ No hay pico visible aún. Máximo ${maxPrice} (${Math.round(ratio * 100)}%) es muy bajo para Small Spike (necesita 140-200%)`);
+          this.scoreReasons.small_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} (${Math.round(ratio * 100)}%) es válido para fase inicial. Si el siguiente período se mantiene en 90-140%, sugiere Pico Pequeño`);
         }
 
         // Solo aplicar bonuses si el patrón no fue rechazado

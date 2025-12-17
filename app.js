@@ -437,9 +437,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 const buyPrice = parseInt(buyPriceInput.value);
                 const period2Threshold = Math.round(buyPrice * 1.40);
                 const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (${nextDay}) será decisivo:<br>`;
-                html += `• Si sube a <strong>≥${period2Threshold} bayas (140%)</strong> → Large Spike confirmado<br>`;
-                html += `• Si sube a <strong>&lt;${period2Threshold} bayas (&lt;140%)</strong> → Small Spike confirmado</small></p>`;
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (${nextDay}) será decisivo:<br/>&emsp;&emsp;&emsp;`;
+
+                if (key === 'large_spike') {
+                  html += `• Si sube a <strong>≥${period2Threshold} bayas (≥140%)</strong> → Large Spike confirmado</small></p>`;
+                } else { // small_spike
+                  const minThreshold = Math.floor(buyPrice * 0.90);
+                  const maxThreshold = period2Threshold - 1; // < 140%
+                  html += `• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado</small></p>`;
+                }
+                html += `</small>`
               } else {
                 html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
               }
