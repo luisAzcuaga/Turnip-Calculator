@@ -274,17 +274,24 @@ class TurnipPredictor {
 
       const ratio = priceRatio(current.price, previous.price);
 
-      // Validar usando el RATE (precio/buyPrice), no el precio directamente
-      // El juego reduce el rate 3-5 puntos por período, no el precio
-      const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+      // Detectar si ya empezó el pico: si algún precio anterior fue ≥90% del buyPrice
+      // Si ya estamos en el pico, NO validar caída del rate (el pico puede bajar >5%)
+      const spikeStarted = knownPrices.slice(0, i + 1).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
 
-      // Si el rate baja más de 5 puntos porcentuales, NO es Large Spike
-      if (!rateValidation.valid) {
-        const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
-        const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
-        const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
-        this.rejectionReasons.large_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Large Spike solo puede bajar máximo 5% por período.`);
-        return true;
+      // Solo validar caída del rate en fase PRE-PICO
+      if (!spikeStarted) {
+        // Validar usando el RATE (precio/buyPrice), no el precio directamente
+        // El juego reduce el rate 3-5 puntos por período, no el precio
+        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+
+        // Si el rate baja más de 5 puntos porcentuales, NO es Large Spike
+        if (!rateValidation.valid) {
+          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
+          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
+          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+          this.rejectionReasons.large_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Large Spike solo puede bajar máximo 5% por período en fase pre-pico.`);
+          return true;
+        }
       }
 
       // Si sube más de 10% en fase temprana (antes de período 3),
@@ -395,18 +402,25 @@ class TurnipPredictor {
 
       const ratio = priceRatio(current.price, previous.price);
 
-      // Validar usando el RATE (precio/buyPrice), no el precio directamente
-      // El juego reduce el rate 3-5 puntos por período, no el precio
-      const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+      // Detectar si ya empezó el pico: si algún precio anterior fue ≥90% del buyPrice
+      // Si ya estamos en el pico, NO validar caída del rate (el pico puede bajar >5%)
+      const spikeStarted = knownPrices.slice(0, i + 1).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
 
-      // Si el rate baja más de 5 puntos porcentuales, NO es Small Spike
-      // Probablemente es Decreasing o Fluctuating
-      if (!rateValidation.valid) {
-        const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
-        const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
-        const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
-        this.rejectionReasons.small_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Small Spike solo puede bajar máximo 5% por período.`);
-        return true;
+      // Solo validar caída del rate en fase PRE-PICO
+      if (!spikeStarted) {
+        // Validar usando el RATE (precio/buyPrice), no el precio directamente
+        // El juego reduce el rate 3-5 puntos por período, no el precio
+        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+
+        // Si el rate baja más de 5 puntos porcentuales, NO es Small Spike
+        // Probablemente es Decreasing o Fluctuating
+        if (!rateValidation.valid) {
+          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
+          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
+          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+          this.rejectionReasons.small_spike.push(`Precio cayó de ${previous.price} (${prevPercent}%) a ${current.price} (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Small Spike solo puede bajar máximo 5% por período en fase pre-pico.`);
+          return true;
+        }
       }
 
       // Si sube muy temprano antes del período 2 (Martes AM),

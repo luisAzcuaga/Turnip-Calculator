@@ -30,8 +30,8 @@ const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
 
 const PERIODS = {
   MONDAY_AM: 0,
-  MONDAY_PM: 1,
-  TUESDAY_AM: 2,    // Inicio mínimo Small Spike
+  MONDAY_PM: 1,     // Inicio mínimo Small Spike
+  TUESDAY_AM: 2,
   TUESDAY_PM: 3,    // Inicio mínimo Large Spike
   WEDNESDAY_AM: 4,
   WEDNESDAY_PM: 5,
@@ -43,7 +43,7 @@ const PERIODS = {
   SATURDAY_PM: 11,  // Último período
 
   // Alias semánticos
-  SMALL_SPIKE_PEAK_START_MIN: 2,  // Martes AM
+  SMALL_SPIKE_PEAK_START_MIN: 1,  // Lunes PM
   LARGE_SPIKE_PEAK_START_MIN: 2,  // Martes AM
   SPIKE_PEAK_START_MAX: 7,        // Jueves PM (ambos) - último inicio posible para 5 períodos
   LATE_WEEK_START: 8,             // Viernes AM
