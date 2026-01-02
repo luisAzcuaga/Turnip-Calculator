@@ -215,8 +215,8 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
   });
 
   if (trendReversal !== -1) {
-    // La inversión ocurre en el período actual, el pico empezó en el anterior
-    const estimatedStart = Math.max(minPeakStart, knownPrices[trendReversal - 1].index);
+    // La inversión ocurre en el período actual, ese es el inicio del pico (Período 1 = 90-140%)
+    const estimatedStart = Math.max(minPeakStart, knownPrices[trendReversal].index);
     return Math.min(maxPeakStart, estimatedStart);
   }
 
