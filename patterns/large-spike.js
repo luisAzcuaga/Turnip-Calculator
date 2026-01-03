@@ -11,7 +11,7 @@
  */
 function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
   // peakStart puede ser 3-9 según el algoritmo del juego
-  const peakStart = detectSpikePeakStart(knownPrices, PERIODS.LARGE_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, true);
+  const peakStart = detectSpikePeakStart(knownPrices, PERIODS.LARGE_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, true, base);
 
   // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
   // Empieza en 85-90%, baja 3-5% cada período hasta mínimo 40%

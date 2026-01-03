@@ -121,7 +121,7 @@ const knownPrices4 = [
 const period4Range = calculateSmallSpikePattern(6, 100, knownPrices4);
 
 // Debug: detectar peakStart
-const detectedPeakStart = detectSpikePeakStart(knownPrices4, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false);
+const detectedPeakStart = detectSpikePeakStart(knownPrices4, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false, 100);
 
 // También probar con predictor completo
 const pred4 = new TurnipPredictor(100, {

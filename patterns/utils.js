@@ -169,9 +169,10 @@ function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
  * @param {number} minPeakStart - Índice mínimo donde puede empezar el pico
  * @param {number} maxPeakStart - Índice máximo donde puede empezar el pico
  * @param {boolean} isLargeSpike - True si es pico grande, false si es pequeño
+ * @param {number} buyPrice - Precio base de compra
  * @returns {number} - Índice estimado donde empieza el pico
  */
-function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike) {
+function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike, buyPrice) {
   if (knownPrices.length === 0) {
     return PERIODS.WEDNESDAY_PM; // Default: miércoles PM (período típico)
   }
@@ -179,10 +180,9 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
   // Buscar el precio máximo conocido primero (más confiable si existe)
   const maxPrice = Math.max(...knownPrices.map(p => p.price));
   const maxPriceData = knownPrices.find(p => p.price === maxPrice);
-  const baseEstimate = knownPrices[0]?.price || 100;
 
   if (maxPriceData) {
-    const ratio = maxPrice / baseEstimate;
+    const ratio = maxPrice / buyPrice;
 
     // Large Spike: pico máximo en período 3 del pico (200-600%)
     if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
