@@ -60,7 +60,7 @@ Maximum: 0.05 (5 points)
 Status: ${rateDrop > 0.05 ? '❌ EXCEEDS by ' + ((rateDrop - 0.05) * 100).toFixed(4) + ' points' : '✅ OK'}</pre>
 
   <h3>Results:</h3>
-  <p>Pattern: ${result2.patternName} (${result2.confidence}%)</p>
+  <p>Pattern: ${result2.patternName}</p>
   <p>Large Spike: ${result2.allProbabilities.large_spike}% (expected: 0%) ${result2.allProbabilities.large_spike === 0 ? '✅' : '❌'}</p>
   <p>Small Spike: ${result2.allProbabilities.small_spike}% (expected: 0%) ${result2.allProbabilities.small_spike === 0 ? '✅' : '❌'}</p>
   <p>Decreasing: ${result2.allProbabilities.decreasing}%</p>
@@ -93,7 +93,7 @@ document.getElementById('test3').innerHTML = `
 Fri AM: 160 (Período 2 = 149.5% >= 140%)</pre>
 
   <h3>Results:</h3>
-  <p>Pattern: ${result3.patternName} (${result3.confidence}%)</p>
+  <p>Pattern: ${result3.patternName}</p>
   <p>Large Spike: ${result3.allProbabilities.large_spike}% (expected: high, Período 2 >= 140%)</p>
   <p>Small Spike: ${result3.allProbabilities.small_spike}% (expected: 0%, should be rejected) ${result3.allProbabilities.small_spike === 0 ? '✅' : '❌'}</p>
 
@@ -156,7 +156,7 @@ Thu AM: ??? (Período 4: DEBE ser >= 150)</pre>
   <p>Período 4 Max: ${period4Range.max} bayas ${period4Range.max <= 200 ? '✅' : '❌ (expected <= 200)'}</p>
 
   <h3>Full Predictor Results:</h3>
-  <p>Pattern: ${result4.patternName} (${result4.confidence}%)</p>
+  <p>Pattern: ${result4.patternName}</p>
   <p>Small Spike: ${result4.allProbabilities.small_spike}%</p>
   <p>Large Spike: ${result4.allProbabilities.large_spike}%</p>
 

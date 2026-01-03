@@ -144,8 +144,8 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.style.display = 'block';
     resultsSection.classList.add('fade-in');
 
-    // Mostrar patrón con confianza y alternativas
-    displayPattern(results.patternName, results.confidence, results.allProbabilities);
+    // Mostrar distribución de probabilidades de patrones
+    displayPattern(results.patternName, results.allProbabilities);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -153,59 +153,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Marcar el mejor momento para vender
     markBestSellingTime(results.bestTime);
 
-    // Mostrar recomendaciones
-    displayRecommendations(results.recommendation);
-
-    // Mostrar razones de rechazo/baja probabilidad
-    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern);
+    // Mostrar debug info con recomendaciones integradas
+    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendation);
   }
 
-  function displayPattern(patternName, confidence, allProbabilities) {
-    // Panel de confianza (lateral derecho) - shows all pattern info
-    displayConfidencePanel(confidence, patternName, allProbabilities);
+  function displayPattern(patternName, allProbabilities) {
+    displayProbabilityPanel(patternName, allProbabilities);
   }
 
-  function displayConfidencePanel(confidence, patternName, allProbabilities) {
-    const confidencePanel = document.getElementById('confidencePanel');
-
-    // Determinar nivel de confianza
-    let confidenceClass = 'confidence-low';
-    let confidenceLabel = 'Baja';
-    let confidenceIcon = '🔴';
-    let confidenceMessage = 'Ingresa más precios para mejorar la precisión';
-
-    if (confidence >= 70) {
-      confidenceClass = 'confidence-high';
-      confidenceLabel = 'Alta';
-      confidenceIcon = '🟢';
-      confidenceMessage = 'Predicción muy confiable';
-    } else if (confidence >= 50) {
-      confidenceClass = 'confidence-medium';
-      confidenceLabel = 'Media';
-      confidenceIcon = '🟡';
-      confidenceMessage = 'Predicción moderadamente confiable';
-    }
-
-    let html = `
-      <div class="confidence-meter ${confidenceClass}">
-      <div class="confidence-header">
-        <h3>Confianza del Cálculo</h3>
-      </div>
-        <div class="confidence-percentage">${confidenceIcon} ${confidence}%</div>
-        <div class="confidence-bar">
-          <div class="confidence-bar-fill" style="width: ${confidence}%"></div>
-        </div>
-        <div class="confidence-level">${confidenceLabel}</div>
-        <div class="confidence-message">${confidenceMessage}</div>
-        <p class="probability-explanation">
-          <small>Los porcentajes (%) indican la probabilidad de cada patrón.
-          La confianza muestra qué tan precisas son estas estimaciones (más datos = mayor confianza).</small>
-        </p>
-      </div>
-    `;
+  function displayProbabilityPanel(patternName, allProbabilities) {
+    const panel = document.getElementById('confidencePanel');
 
     // Mostrar distribución de probabilidades - SIEMPRE LOS 4 PATRONES
-    html += `<div class="probability-distribution">
+    let html = `<div class="probability-distribution">
       <h4>Todos los Patrones Posibles</h4>
       <div class="probability-list">`;
 
@@ -251,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
       </p>
     </div>`;
 
-    confidencePanel.innerHTML = html;
+    panel.innerHTML = html;
   }
 
   function fillInputsWithPredictions(predictions, bestTimeKey = null) {
@@ -290,18 +250,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         input.dataset.hasEstimateListener = 'true';
       }
-    });
-  }
-
-  function displayRecommendations(recommendations) {
-    const recommendationsDiv = document.getElementById('recommendations');
-    recommendationsDiv.innerHTML = '<h3>💡 Recomendaciones</h3><ul></ul>';
-
-    const ul = recommendationsDiv.querySelector('ul');
-    recommendations.forEach(rec => {
-      const li = document.createElement('li');
-      li.textContent = rec;
-      ul.appendChild(li);
     });
   }
 
@@ -344,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
     input.title = `⭐ Mejor momento para vender: hasta ${bestTime.price} bayas`;
   }
 
-  function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern) {
+  function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern, recommendations) {
     const debugDiv = document.getElementById('debugInfo');
     if (!debugDiv) return;
 
@@ -356,6 +304,19 @@ document.addEventListener('DOMContentLoaded', function () {
       'fluctuating': 'Fluctuante'
     };
 
+    let html = '';
+
+    // Sección 0: Recomendaciones (al inicio)
+    if (recommendations && recommendations.length > 0) {
+      const primaryPatternName = patternNames[primaryPattern] || 'Desconocido';
+      html += `<h3>💡 Recomendaciones para ${primaryPatternName}</h3>`;
+      html += '<ul class="rejection-list">';
+      recommendations.forEach(rec => {
+        html += `<li>${rec}</li>`;
+      });
+      html += '</ul>';
+    }
+
     // Separar patrones descartados (0%) vs improbables (>0%)
     const patternsToShow = Object.keys(patternNames).filter(key => key !== primaryPattern);
     const rejected = patternsToShow.filter(key => allProbabilities[key] === 0);
@@ -363,8 +324,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Ordenar improbables por probabilidad descendente
     unlikely.sort((a, b) => allProbabilities[b] - allProbabilities[a]);
-
-    let html = '';
 
     // Sección 1 Patrones improbables (>0%)
     if (unlikely.length > 0) {

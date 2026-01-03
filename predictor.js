@@ -570,12 +570,8 @@ class TurnipPredictor {
       );
       const primaryPattern = sortedByProb[0];
 
-      // Confianza base dependiendo de si conocemos el patrón anterior
-      const baseConfidence = this.previousPattern ? 50 : 35;
-
       return {
         primary: primaryPattern,
-        confidence: baseConfidence,
         alternatives: sortedByProb.slice(1, 3).map(p => ({
           pattern: p,
           percentage: percentages[p]
@@ -604,72 +600,6 @@ class TurnipPredictor {
     // Ordenar patrones por score
     const sortedPatterns = possiblePatterns.sort((a, b) => scores[b] - scores[a]);
     const bestPattern = sortedPatterns[0];
-    const bestScore = scores[bestPattern];
-
-    // Calcular confianza basada en la cantidad de datos y la diferencia de scores
-    const dataConfidence = Math.min(knownPrices.length * 8, 40); // Max 40% por cantidad de datos
-
-    // Bonus de confianza si conocemos el patrón anterior
-    const historyBonus = this.previousPattern ? 15 : 0;
-
-    let scoreConfidence = 30; // Base
-    if (sortedPatterns.length > 1) {
-      const secondScore = scores[sortedPatterns[1]];
-      const scoreDiff = bestScore - secondScore;
-      scoreConfidence = Math.min(scoreDiff, 60); // Max 60% por diferencia de score
-    }
-
-    // Bonus: si los top 2 patrones son ambos picos (large/small), sabemos que ES un pico
-    const spikePatterns = [this.patterns.LARGE_SPIKE, this.patterns.SMALL_SPIKE];
-    let patternFamilyBonus = 0;
-    if (sortedPatterns.length > 1) {
-      const topTwo = [sortedPatterns[0], sortedPatterns[1]];
-      const bothAreSpikes = topTwo.every(p => spikePatterns.includes(p));
-      if (bothAreSpikes) {
-        patternFamilyBonus = 25; // Sabemos que es un pico, solo dudamos del tamaño
-      }
-    }
-
-    // Bonus: si el mejor score es alto (>70), dar confianza base por certeza absoluta
-    let absoluteScoreBonus = 0;
-    if (bestScore > 70) {
-      absoluteScoreBonus = Math.min(Math.round((bestScore - 70) / 2), 15);
-    }
-
-    // MEJORA #4: Bonus por evidencia fuerte de patrones claramente identificables
-    let strongEvidenceBonus = 0;
-
-    // Calcular ratio si hay precios conocidos
-    let ratio = 0;
-    if (knownPrices.length > 0) {
-      const maxPrice = Math.max(...knownPrices.map(p => p.price));
-      ratio = priceRatio(maxPrice, this.buyPrice);
-    }
-
-    // Decreasing: todos los precios bajando consistentemente
-    if (bestPattern === this.patterns.DECREASING && knownPrices.length >= 3) {
-      const allDecreasing = knownPrices.every((p, i) =>
-        i === 0 || p.price <= knownPrices[i - 1].price
-      );
-      if (allDecreasing) {
-        strongEvidenceBonus = 20; // Confirmación fuerte de Decreasing
-      }
-    }
-
-    // Large Spike: ratio >= 200% es confirmación definitiva
-    if (bestPattern === this.patterns.LARGE_SPIKE && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-      strongEvidenceBonus = 25; // Confirmación definitiva de Large Spike
-    }
-
-    // Small Spike: ratio entre 140-200% sin caídas posteriores dramáticas
-    if (bestPattern === this.patterns.SMALL_SPIKE && ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
-      strongEvidenceBonus = 20; // Confirmación fuerte de Small Spike
-    }
-
-    const totalConfidence = Math.min(
-      dataConfidence + scoreConfidence + historyBonus + patternFamilyBonus + absoluteScoreBonus + strongEvidenceBonus,
-      100
-    );
 
     // Convertir scores a porcentajes
     const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
@@ -680,7 +610,6 @@ class TurnipPredictor {
 
     return {
       primary: bestPattern,
-      confidence: Math.round(totalConfidence),
       alternatives: sortedPatterns.slice(1, 3).map(p => ({
         pattern: p,
         percentage: percentages[p]
@@ -907,7 +836,6 @@ class TurnipPredictor {
     return {
       pattern: pattern,
       patternName: this.patternNames[pattern],
-      confidence: patternResult.confidence,
       primaryPercentage: patternResult.percentages[pattern],
       allProbabilities: allProbabilities,
       alternatives: patternResult.alternatives.map(alt => ({

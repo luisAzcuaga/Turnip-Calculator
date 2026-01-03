@@ -378,33 +378,6 @@ button {
   font-size: 1.2rem;
 }
 
-.confidence-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: bold;
-  border: 2px solid;
-}
-
-.confidence-high {
-  background: #c8e6c9;
-  color: #2e7d32;
-  border-color: #66bb6a;
-}
-
-.confidence-medium {
-  background: #fff9c4;
-  color: #f57f17;
-  border-color: #ffeb3b;
-}
-
-.confidence-low {
-  background: #ffcdd2;
-  color: #c62828;
-  border-color: #ef5350;
-}
-
 .pattern-alternatives {
   margin: 12px 0 0;
   text-align: center;
@@ -435,7 +408,7 @@ button {
   color: #424242;
 }
 
-/* Panel de confianza */
+/* Panel de probabilidades */
 .confidence-panel {
   background: white;
   border-radius: 12px;
@@ -443,108 +416,6 @@ button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 20px;
-}
-
-.confidence-header h3 {
-  font-size: 1.1rem;
-  margin: 0 0 15px;
-  text-align: center;
-}
-
-.confidence-meter.confidence-high .confidence-header h3 {
-  color: #2e7d32;
-}
-
-.confidence-meter.confidence-medium .confidence-header h3 {
-  color: #f57f17;
-}
-
-.confidence-meter.confidence-low .confidence-header h3 {
-  color: #c62828;
-}
-
-.confidence-meter {
-  background: #f5f5f5;
-  padding: 15px;
-  border-radius: 10px;
-  margin: 0 0 20px;
-  border: 2px solid;
-}
-
-.confidence-meter.confidence-high {
-  border-color: #66bb6a;
-  background: #f1f8e9;
-}
-
-.confidence-meter.confidence-medium {
-  border-color: #ffeb3b;
-  background: #fffde7;
-}
-
-.confidence-meter.confidence-low {
-  border-color: #ef5350;
-  background: #ffebee;
-}
-
-.confidence-percentage {
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  margin: 0 0 15px;
-}
-
-.confidence-meter.confidence-high .confidence-percentage {
-  color: #2e7d32;
-}
-
-.confidence-meter.confidence-medium .confidence-percentage {
-  color: #f57f17;
-}
-
-.confidence-meter.confidence-low .confidence-percentage {
-  color: #c62828;
-}
-
-.confidence-bar {
-  width: 100%;
-  height: 20px;
-  background: #e0e0e0;
-  border-radius: 10px;
-  overflow: hidden;
-  margin: 0 0 10px;
-}
-
-.confidence-bar-fill {
-  height: 100%;
-  transition: width 0.5s ease;
-  border-radius: 10px;
-}
-
-.confidence-meter.confidence-high .confidence-bar-fill {
-  background: linear-gradient(90deg, #66bb6a 0%, #81c784 100%);
-}
-
-.confidence-meter.confidence-medium .confidence-bar-fill {
-  background: linear-gradient(90deg, #ffeb3b 0%, #fff176 100%);
-}
-
-.confidence-meter.confidence-low .confidence-bar-fill {
-  background: linear-gradient(90deg, #ef5350 0%, #e57373 100%);
-}
-
-.confidence-level {
-  text-align: center;
-  font-weight: bold;
-  font-size: 1.1rem;
-  margin: 0 0 8px;
-  color: #424242;
-}
-
-.confidence-message {
-  text-align: center;
-  font-size: 0.9rem;
-  color: #616161;
-  line-height: 1.4;
 }
 
 /* Distribución de probabilidades */
@@ -571,28 +442,6 @@ button {
   margin: 15px auto 12px;
   color: #616161;
   line-height: 1.4;
-}
-
-.confidence-meter .probability-explanation {
-  margin: 15px 0 0;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  font-size: 0.85rem;
-}
-
-.confidence-meter.confidence-high .probability-explanation {
-  color: #558b2f;
-  border-top-color: rgba(102, 187, 106, 0.3);
-}
-
-.confidence-meter.confidence-medium .probability-explanation {
-  color: #e65100;
-  border-top-color: rgba(255, 235, 59, 0.3);
-}
-
-.confidence-meter.confidence-low .probability-explanation {
-  color: #c62828;
-  border-top-color: rgba(239, 83, 80, 0.3);
 }
 
 .probability-list {
@@ -681,36 +530,6 @@ button {
   text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
-/* Recomendaciones */
-.recommendations {
-  background: white;
-  padding: 10px;
-  border-radius: 10px;
-  margin: 25px 0 20px;
-  border-left: 5px solid #66bb6a;
-}
-
-.recommendations h3 {
-  color: #2e7d32;
-  margin: 0 0 15px;
-  font-size: 1.3rem;
-}
-
-.recommendations ul {
-  list-style: none;
-}
-
-.recommendations li {
-  padding: 10px 0;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 1.05rem;
-  line-height: 1.6;
-}
-
-.recommendations li:last-child {
-  border-bottom: none;
-}
-
 /* Mejor momento para vender */
 .best-time {
   background: linear-gradient(135deg, #fff9c4 0%, #ffeb3b 100%);
@@ -784,6 +603,9 @@ footer p {
 
 @media (max-width: 768px) {
 
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Móviles: 1 columna */
@@ -794,10 +616,6 @@ footer p {
 
   .prices-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .results-grid {
-    grid-template-columns: 1fr;
   }
 
   .button-group {
@@ -842,7 +660,7 @@ footer p {
   border: 1px solid #dee2e6;
   border-radius: 12px;
   padding: 20px;
-  margin-top: 20px;
+  margin: 0;
 }
 
 .debug-info h3 {
