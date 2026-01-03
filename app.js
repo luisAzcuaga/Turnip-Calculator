@@ -309,11 +309,16 @@ document.addEventListener('DOMContentLoaded', function () {
     // Sección 0: Recomendaciones (al inicio)
     if (recommendations && recommendations.length > 0) {
       const primaryPatternName = patternNames[primaryPattern] || 'Desconocido';
-      html += `<h3>💡 Recomendaciones para ${primaryPatternName}</h3>`;
+      const primaryProbability = allProbabilities[primaryPattern] || 0;
+      html += `<h3>💡 Recomendaciones</h3>`;
       html += '<ul class="rejection-list">';
+      html += `<li><strong>${primaryPatternName}</strong> (${primaryProbability}%):`;
+      html += '<ul>';
       recommendations.forEach(rec => {
         html += `<li>${rec}</li>`;
       });
+      html += '</ul>';
+      html += '</li>';
       html += '</ul>';
     }
 
