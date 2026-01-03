@@ -408,16 +408,6 @@ button {
   color: #424242;
 }
 
-/* Panel de probabilidades */
-.confidence-panel {
-  background: white;
-  border-radius: 12px;
-  padding: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 20px;
-}
-
 /* Distribución de probabilidades */
 .probability-distribution {
   background: #f9fbe7;
@@ -579,10 +569,6 @@ footer p {
 
   .day-group {
     width: auto;
-  }
-
-  .confidence-panel {
-    position: static;
   }
 
   .results-section {
