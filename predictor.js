@@ -473,9 +473,9 @@ class TurnipPredictor {
     }
 
     // El patrón fluctuante debe ALTERNAR entre fases altas y bajas
-    // Verificar tendencias decrecientes sostenidas
+    // Verificar tendencias sostenidas (subidas o bajadas)
     if (knownPrices.length >= 2) {
-      const { consecutiveDecreases, maxConsecutiveDecreases, decreasesFromStart } = knownPrices
+      const { consecutiveDecreases, maxConsecutiveDecreases, decreasesFromStart, consecutiveIncreases, maxConsecutiveIncreases } = knownPrices
         .slice(1)
         .reduce(
           (acc, current, i) => {
@@ -485,18 +485,26 @@ class TurnipPredictor {
             if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
               acc.consecutiveDecreases++;
               acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
+              acc.consecutiveIncreases = 0; // Reset increases
 
               // Contar si baja desde el inicio
               if (i + 1 === acc.decreasesFromStart + 1) {
                 acc.decreasesFromStart++;
               }
+            } else if (current.price > previous.price * THRESHOLDS.FLUCTUATING_RISE) {
+              // Verificar si está subiendo (margen del 2% para evitar falsos positivos)
+              acc.consecutiveIncreases++;
+              acc.maxConsecutiveIncreases = Math.max(acc.maxConsecutiveIncreases, acc.consecutiveIncreases);
+              acc.consecutiveDecreases = 0; // Reset decreases
             } else {
+              // Precio estable (±2%)
               acc.consecutiveDecreases = 0;
+              acc.consecutiveIncreases = 0;
             }
 
             return acc;
           },
-          { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0 }
+          { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0, consecutiveIncreases: 0, maxConsecutiveIncreases: 0 }
         );
 
       // CRÍTICO: Si baja 2+ períodos desde el INICIO (3 precios bajando), no es Fluctuante
@@ -507,9 +515,16 @@ class TurnipPredictor {
         return false;
       }
 
-      // Si hay 4+ períodos consecutivos bajando en cualquier punto, no es fluctuante
-      if (maxConsecutiveDecreases >= 4) {
-        this.rejectionReasons.fluctuating.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx 3 en una fase baja.`);
+      // Si hay demasiados períodos consecutivos bajando, no es fluctuante
+      if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
+        this.rejectionReasons.fluctuating.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
+        return false;
+      }
+
+      // Si hay demasiados períodos consecutivos subiendo, probablemente es un pico (Small/Large Spike)
+      // Fluctuante debe alternar, no subir constantemente
+      if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
+        this.rejectionReasons.fluctuating.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
         return false;
       }
     }

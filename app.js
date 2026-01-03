@@ -292,6 +292,89 @@ document.addEventListener('DOMContentLoaded', function () {
     input.title = `⭐ Mejor momento para vender: hasta ${bestTime.price} bayas`;
   }
 
+  // Helper: Generar mensajes de timing para patrones de pico
+  function generateSpikeTimingMessages(patternKey, isPrimary) {
+    let messages = '';
+
+    if (patternKey !== 'large_spike' && patternKey !== 'small_spike') {
+      return messages;
+    }
+
+    // Detectar si ya comenzó el pico (subida significativa >10%)
+    const pricesArray = PRICE_INPUT_IDS.map(id => {
+      const val = document.getElementById(id)?.value;
+      return val ? parseInt(val) : null;
+    }).filter(p => p !== null);
+
+    let spikeStarted = false;
+    let spikeStartIndex = -1;
+    let lastKnownIndex = -1;
+
+    for (let i = 1; i < pricesArray.length; i++) {
+      if (pricesArray[i] > pricesArray[i-1] * 1.10) {
+        spikeStarted = true;
+        spikeStartIndex = i;
+        break;
+      }
+    }
+
+    // Encontrar último período con precio conocido
+    for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
+      const val = document.getElementById(PRICE_INPUT_IDS[i])?.value;
+      if (val && parseInt(val)) {
+        lastKnownIndex = i;
+      }
+    }
+
+    if (spikeStarted && spikeStartIndex >= 0) {
+      const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
+      // Large Spike: máximo en Período 3 (peakStart + 2, zero-indexed)
+      // Small Spike: máximo en Período 4 (peakStart + 3, zero-indexed)
+      const peaksInPhase = patternKey === 'large_spike' ? 2 : 3;
+      const maxPeriodIndex = spikeStartIndex + peaksInPhase;
+      const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
+
+      // Detectar si estamos en Período 1 (inicio del pico) y aún no vimos Período 2
+      const period2Index = spikeStartIndex + 1;
+      const isInPeriod1 = lastKnownIndex === spikeStartIndex;
+      const hasPeriod2Data = lastKnownIndex >= period2Index;
+
+      const uncertaintyPrefix = isPrimary ? '' : 'Puede que ';
+      const conditionalPhrase = isPrimary ? '' : ' Si es correcto,';
+
+      if (periodsUntilMax > 0) {
+        const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
+        const maxRange = patternKey === 'large_spike' ? '200-600%' : '140-200%';
+
+        // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
+        if (isInPeriod1 && !hasPeriod2Data) {
+          const buyPrice = parseInt(buyPriceInput.value);
+          const period2Threshold = Math.round(buyPrice * 1.40);
+          const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
+          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;
+
+          if (patternKey === 'large_spike') {
+            messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${period2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
+          } else { // small_spike
+            const minThreshold = Math.floor(buyPrice * 0.90);
+            const maxThreshold = period2Threshold - 1; // < 140%
+            messages += `<br/>&emsp;&emsp;• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado`;
+          }
+          messages += `</li>`;
+        } else {
+          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo (${maxRange}) será en <strong>${periodText} más</strong>.</li>`;
+        }
+      } else {
+        messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
+      }
+    } else {
+      const period = patternKey === 'large_spike' ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
+      messages += `<li style="color: #4a90e2;">💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${period}</strong>. Sigue checando los precios.</li>`;
+    }
+
+    return messages;
+  }
+
   function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern, recommendations) {
     const debugDiv = document.getElementById('debugInfo');
     if (!debugDiv) return;
@@ -317,6 +400,8 @@ document.addEventListener('DOMContentLoaded', function () {
       recommendations.forEach(rec => {
         html += `<li>${rec}</li>`;
       });
+      // Agregar mensajes de timing para patrones de pico
+      html += generateSpikeTimingMessages(primaryPattern, true);
       html += '</ul>';
       html += '</li>';
       html += '</ul>';
@@ -349,80 +434,9 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           html += '<li>Sin señales fuertes a favor o en contra</li>';
         }
-        html += '</ul>';
-
         // Añadir información de timing para patrones de pico
-        if (key === 'large_spike' || key === 'small_spike') {
-          // Detectar si ya comenzó el pico (subida significativa >10%)
-          const pricesArray = PRICE_INPUT_IDS.map(id => {
-            const val = document.getElementById(id)?.value;
-            return val ? parseInt(val) : null;
-          }).filter(p => p !== null);
-
-          let spikeStarted = false;
-          let spikeStartIndex = -1;
-          let lastKnownIndex = -1;
-
-          for (let i = 1; i < pricesArray.length; i++) {
-            if (pricesArray[i] > pricesArray[i-1] * 1.10) {
-              spikeStarted = true;
-              spikeStartIndex = i;
-              break;
-            }
-          }
-
-          // Encontrar último período con precio conocido
-          for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
-            const val = document.getElementById(PRICE_INPUT_IDS[i])?.value;
-            if (val && parseInt(val)) {
-              lastKnownIndex = i;
-            }
-          }
-
-          if (spikeStarted && spikeStartIndex >= 0) {
-            const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
-            // Large Spike: máximo en Período 3 (peakStart + 2, zero-indexed)
-            // Small Spike: máximo en Período 4 (peakStart + 3, zero-indexed)
-            const peaksInPhase = key === 'large_spike' ? 2 : 3;
-            const maxPeriodIndex = spikeStartIndex + peaksInPhase;
-            const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
-
-            // Detectar si estamos en Período 1 (inicio del pico) y aún no vimos Período 2
-            const period2Index = spikeStartIndex + 1;
-            const isInPeriod1 = lastKnownIndex === spikeStartIndex;
-            const hasPeriod2Data = lastKnownIndex >= period2Index;
-
-            if (periodsUntilMax > 0) {
-              const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
-              const maxRange = key === 'large_spike' ? '200-600%' : '140-200%';
-
-              // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
-              if (isInPeriod1 && !hasPeriod2Data) {
-                const buyPrice = parseInt(buyPriceInput.value);
-                const period2Threshold = Math.round(buyPrice * 1.40);
-                const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:<br/>&emsp;&emsp;&emsp;`;
-
-                if (key === 'large_spike') {
-                  html += `• Si sube a <strong>≥${period2Threshold} bayas (≥140%)</strong> → Large Spike confirmado</small></p>`;
-                } else { // small_spike
-                  const minThreshold = Math.floor(buyPrice * 0.90);
-                  const maxThreshold = period2Threshold - 1; // < 140%
-                  html += `• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado</small></p>`;
-                }
-                html += `</small>`
-              } else {
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> Si es correcto, el máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
-              }
-            } else {
-              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> Si es correcto, el máximo ya debería haber ocurrido o está ocurriendo ahora.</small></p>`;
-            }
-          } else {
-            const period = key === 'large_spike' ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
-            html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${period}</strong>. Sigue checando los precios.</small></p>`;
-          }
-        }
-
+        html += generateSpikeTimingMessages(key, false);
+        html += '</ul>';
         html += '</li>';
       });
       html += '</ul>';
