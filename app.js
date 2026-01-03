@@ -310,9 +310,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (recommendations && recommendations.length > 0) {
       const primaryPatternName = patternNames[primaryPattern] || 'Desconocido';
       const primaryProbability = allProbabilities[primaryPattern] || 0;
-      html += `<h3>💡 Recomendaciones</h3>`;
+      html += `<h3>⭐ Patrón más probable</h3>`;
       html += '<ul class="rejection-list">';
-      html += `<li><strong>${primaryPatternName}</strong> (${primaryProbability}%):`;
+      html += `<li class="primary-pattern"><strong>${primaryPatternName}</strong> (${primaryProbability}%):`;
       html += '<ul>';
       recommendations.forEach(rec => {
         html += `<li>${rec}</li>`;
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Sección 1 Patrones improbables (>0%)
     if (unlikely.length > 0) {
-      html += '<h3>🔍 Patrones menos probables</h3>';
+      html += '<h3>📊 Patrones menos probables</h3>';
       html += '<p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>';
       html += '<ul class="rejection-list">';
       unlikely.forEach(key => {
@@ -340,16 +340,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const prob = allProbabilities[key];
         const scores = scoreReasons[key] || [];
 
-        html += `<li><strong>${name}</strong> (${prob}%):`;
+        html += `<li class="unlikely-pattern"><strong>${name}</strong> (${prob}%):`;
+        html += '<ul>';
         if (scores.length > 0) {
-          html += '<ul>';
           scores.forEach(reason => {
             html += `<li>${reason}</li>`;
           });
-          html += '</ul>';
         } else {
-          html += ' <em>Sin señales fuertes a favor o en contra</em>';
+          html += '<li>Sin señales fuertes a favor o en contra</li>';
         }
+        html += '</ul>';
 
         // Añadir información de timing para patrones de pico
         if (key === 'large_spike' || key === 'small_spike') {
@@ -438,15 +438,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const rejections = rejectionReasons[key] || [];
 
         html += `<li><strong>${name}</strong>:`;
+        html += '<ul>';
         if (rejections.length > 0) {
-          html += '<ul>';
           rejections.forEach(reason => {
             html += `<li>${reason}</li>`;
           });
-          html += '</ul>';
         } else {
-          html += ' <em>Incompatible con los datos actuales</em>';
+          html += '<li>Incompatible con los datos actuales</li>';
         }
+        html += '</ul>';
         html += '</li>';
       });
       html += '</ul>';

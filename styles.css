@@ -694,6 +694,14 @@ footer p {
   border-radius: 4px;
 }
 
+.rejection-list>li.primary-pattern {
+  border-left-color: #66bb6a;
+}
+
+.rejection-list>li.unlikely-pattern {
+  border-left-color: #ffa726;
+}
+
 .rejection-list>li>ul {
   margin-top: 8px;
   margin-bottom: 0;
