@@ -963,15 +963,13 @@ class TurnipPredictor {
         break;
 
       case this.patterns.LARGE_SPIKE:
-        rec.push('💰 Espera un pico altísimo (puede llegar a 400-600 bayas)');
-        rec.push('📅 El pico suele ser miércoles-jueves');
+        rec.push('💰 Espera un pico altísimo (puede llegar a 400-600%)');
         rec.push('⏰ ¡Revisa los precios cada turno!');
         rec.push('✨ Este es el MEJOR patrón posible');
         break;
 
       case this.patterns.SMALL_SPIKE:
-        rec.push('💵 Espera un pico moderado (140-200 bayas)');
-        rec.push('📅 El pico suele ser jueves-viernes');
+        rec.push('💵 Espera un pico moderado (140-200%)');
         rec.push('👍 Buena oportunidad para ganancias');
         break;
 
