@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const buyPrice = parseInt(buyPriceInput.value);
                 const period2Threshold = Math.round(buyPrice * 1.40);
                 const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El siguiente precio (${nextDay}) será decisivo:<br/>&emsp;&emsp;&emsp;`;
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:<br/>&emsp;&emsp;&emsp;`;
 
                 if (key === 'large_spike') {
                   html += `• Si sube a <strong>≥${period2Threshold} bayas (≥140%)</strong> → Large Spike confirmado</small></p>`;
@@ -412,10 +412,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 html += `</small>`
               } else {
-                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> Espera que suba más. El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
+                html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> Si es correcto, el máximo (${maxRange}) será en <strong>${periodText} más</strong>.</small></p>`;
               }
             } else {
-              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>¡El pico comenzó en ${spikeStartDay}!</strong> El máximo ya debería haber ocurrido o está ocurriendo ahora.</small></p>`;
+              html += `<p style="margin-top: 8px; color: #4a90e2;"><small>💡 <strong>Puede que el pico haya comenzado en ${spikeStartDay}.</strong> Si es correcto, el máximo ya debería haber ocurrido o está ocurriendo ahora.</small></p>`;
             }
           } else {
             const period = key === 'large_spike' ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
