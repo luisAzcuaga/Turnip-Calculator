@@ -10,7 +10,7 @@ Predice cuándo vender tus nabos para ganar el máximo de bayas.
 
 - 🎯 **Predicciones precisas** basadas en los algoritmos del juego (datamining)
 - 🧠 **Sistema inteligente** que aprende de tus precios y descarta patrones imposibles
-- 📊 **Nivel de confianza** te dice qué tan seguras son las predicciones
+- 📊 **Probabilidades en tiempo real** muestra qué tan probable es cada patrón
 - 🔄 **Probabilidades de transición** usa el patrón de la semana anterior para predecir mejor
 - 💾 **Guardado automático** en tu navegador
 - ⚡ **100% offline** - no necesita internet después de cargar
@@ -94,17 +94,12 @@ El pico dura 5 períodos y alcanza su máximo en el **tercer período** (200-600
 2. **Selecciona el patrón de la semana anterior** (si lo recuerdas) → Mejora mucho la precisión
 3. Ingresa precios conforme los veas en tu isla
 4. Haz clic en **"Calcular Pronóstico"**
-5. Revisa las predicciones y el **nivel de confianza**
+5. Revisa las **probabilidades** de cada patrón
 
-### Nivel de Confianza:
-- 🟢 **Alta (≥70%)**: Puedes confiar en las predicciones
-- 🟡 **Media (50-69%)**: Necesitas más datos
-- 🔴 **Baja (<50%)**: Muy poca información, ingresa más precios
-
-### Cómo aumentar la confianza:
-1. **Ingresa más precios** (especialmente lunes-martes)
-2. **Selecciona el patrón anterior** si lo sabes
-3. Espera a tener ≥70% antes de tomar decisiones importantes
+### Cómo mejorar las predicciones:
+1. **Ingresa más precios** (especialmente lunes-martes) - cada precio ayuda a descartar patrones
+2. **Selecciona el patrón anterior** si lo sabes - cambia las probabilidades base
+3. **Espera tener varios precios** antes de tomar decisiones importantes
 
 ---
 
@@ -149,7 +144,7 @@ Por eso es importante **anotar el patrón cada semana** y seleccionarlo en el pr
 ### Qué NO hacer:
 - ❌ No esperes al sábado si tienes Decreciente
 - ❌ No vendas muy temprano si ves señales de pico
-- ❌ No tomes decisiones con confianza <50%
+- ❌ No tomes decisiones con pocos datos (ingresa varios precios primero)
 - ❌ No olvides anotar el patrón cada semana
 
 ---
