@@ -44,11 +44,51 @@ const utils = {
     delete input.dataset.min;
     delete input.dataset.max;
     input.title = '';
+  },
+
+  // Encode data to base64 for URL
+  encodeToBase64(data) {
+    try {
+      const jsonString = JSON.stringify(data);
+      return btoa(encodeURIComponent(jsonString));
+    } catch (e) {
+      console.error('Error encoding data to base64:', e);
+      return null;
+    }
+  },
+
+  // Decode base64 from URL to data
+  decodeFromBase64(base64String) {
+    try {
+      const jsonString = decodeURIComponent(atob(base64String));
+      return JSON.parse(jsonString);
+    } catch (e) {
+      console.error('Error decoding data from base64:', e);
+      return null;
+    }
+  },
+
+  // Update URL with encoded data
+  updateURL(data) {
+    const encoded = this.encodeToBase64(data);
+    if (encoded) {
+      const url = new URL(window.location);
+      url.searchParams.set('turnipData', encoded);
+      window.history.replaceState({}, '', url);
+    }
+  },
+
+  // Get data from URL
+  getDataFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const encoded = urlParams.get('turnipData');
+    return encoded ? this.decodeFromBase64(encoded) : null;
   }
 };
 
 document.addEventListener('DOMContentLoaded', function () {
   const calculateBtn = document.getElementById('calculateBtn');
+  const shareBtn = document.getElementById('shareBtn');
   const clearBtn = document.getElementById('clearBtn');
   const buyPriceInput = document.getElementById('buyPrice');
   const previousPatternSelect = document.getElementById('previousPattern');
@@ -90,6 +130,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // Evento del botón limpiar
   clearBtn.addEventListener('click', clearAllData);
 
+  // Configurar botón compartir/guardar según estado inicial
+  updateShareButton();
+
   // Permitir calcular con Enter en el campo de precio de compra
   buyPriceInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
@@ -128,6 +171,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mostrar resultados
     displayResults(results);
+
+    // Recopilar datos actuales del DOM
+    const data = {
+      buyPrice: buyPriceInput.value,
+      previousPattern: previousPatternSelect.value
+    };
+
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      // Solo incluir valores confirmados, NO los estimados
+      if (input?.value && input.dataset.isEstimated !== 'true') {
+        data[id] = input.value;
+      }
+    });
+
+    // Verificar si ya hay query param
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasQueryParam = urlParams.has('turnipData');
+
+    if (hasQueryParam) {
+      // Ya hay query param: solo actualizar URL, NO localStorage
+      utils.updateURL(data);
+    } else {
+      // No hay query param: solo guardar en localStorage, NO actualizar URL
+      localStorage.setItem('turnipData', JSON.stringify(data));
+    }
   }
 
   function clearEstimatedValues() {
@@ -476,6 +545,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function saveData() {
+    // No guardar en localStorage si hay query param en el URL
+    // (estamos viendo datos compartidos por alguien más)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('turnipData')) {
+      return;
+    }
+
     const data = {
       buyPrice: buyPriceInput.value,
       previousPattern: previousPatternSelect.value
@@ -493,12 +569,23 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function loadSavedData() {
-    const savedData = localStorage.getItem('turnipData');
-    if (!savedData) return;
+    // Intentar cargar primero desde URL, luego desde localStorage
+    let data = utils.getDataFromURL();
 
+    if (!data) {
+      const savedData = localStorage.getItem('turnipData');
+      if (!savedData) return;
+
+      try {
+        data = JSON.parse(savedData);
+      } catch (e) {
+        console.error('Error al cargar datos guardados:', e);
+        return;
+      }
+    }
+
+    // Cargar datos en los inputs
     try {
-      const data = JSON.parse(savedData);
-
       if (data.buyPrice) buyPriceInput.value = data.buyPrice;
       if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
 
@@ -507,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (data[id] && input) input.value = data[id];
       });
     } catch (e) {
-      console.error('Error al cargar datos guardados:', e);
+      console.error('Error al aplicar datos:', e);
     }
   }
 
@@ -530,6 +617,89 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Scroll al inicio
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function shareData() {
+    const buyPrice = parseInt(buyPriceInput.value);
+
+    if (!buyPrice || buyPrice < 90 || buyPrice > 110) {
+      alert('⚠️ Por favor ingresa un precio de compra válido antes de compartir');
+      buyPriceInput.focus();
+      return;
+    }
+
+    // Recopilar datos actuales del DOM
+    const data = {
+      buyPrice: buyPriceInput.value,
+      previousPattern: previousPatternSelect.value
+    };
+
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      // Solo incluir valores confirmados, NO los estimados
+      if (input?.value && input.dataset.isEstimated !== 'true') {
+        data[id] = input.value;
+      }
+    });
+
+    // Actualizar URL con query params
+    utils.updateURL(data);
+
+    // Actualizar botón a "Guardar"
+    updateShareButton();
+
+    // Copiar URL al portapapeles
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('✅ URL copiado al portapapeles!\n\nAhora puedes compartirlo con tus amigos.');
+    }).catch(() => {
+      // Fallback si no se puede copiar
+      alert('🔗 URL generado:\n\n' + url + '\n\nCopia este link para compartir tus datos.');
+    });
+  }
+
+  function saveToLocalStorage() {
+    // Recopilar datos actuales del DOM
+    const data = {
+      buyPrice: buyPriceInput.value,
+      previousPattern: previousPatternSelect.value
+    };
+
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      // Solo incluir valores confirmados, NO los estimados
+      if (input?.value && input.dataset.isEstimated !== 'true') {
+        data[id] = input.value;
+      }
+    });
+
+    // Guardar en localStorage
+    localStorage.setItem('turnipData', JSON.stringify(data));
+
+    // Limpiar query param del URL
+    const url = new URL(window.location);
+    url.searchParams.delete('turnipData');
+    window.history.replaceState({}, '', url);
+
+    // Actualizar botón a "Compartir"
+    updateShareButton();
+
+    alert('💾 Datos guardados!\n\nEstos datos ahora son tuyos y se guardarán automáticamente.');
+  }
+
+  function updateShareButton() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasQueryParam = urlParams.has('turnipData');
+
+    if (hasQueryParam) {
+      shareBtn.textContent = 'Guardar';
+      shareBtn.onclick = saveToLocalStorage;
+      shareBtn.title = 'Guardar estos datos como tuyos';
+    } else {
+      shareBtn.textContent = 'Compartir';
+      shareBtn.onclick = shareData;
+      shareBtn.title = 'Generar URL para compartir';
+    }
   }
 
   // Función para actualizar badges de rate
@@ -587,9 +757,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Auto-calcular si hay datos guardados al cargar
-  const savedData = localStorage.getItem('turnipData');
-  if (savedData && buyPriceInput.value) {
+  // Auto-calcular si hay datos guardados al cargar (localStorage o URL)
+  if (buyPriceInput.value) {
     // Pequeño delay para que se vea la animación
     setTimeout(() => {
       calculatePrediction();
