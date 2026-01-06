@@ -60,22 +60,22 @@ const utils = {
       };
 
       // Build compact string
-      const parts = [
+      const chunks = [
         data.buyPrice || '',
         patternMap[data.previousPattern] || ''
       ];
 
       // Add prices in order
       PRICE_INPUT_IDS.forEach(id => {
-        parts.push(data[id] || '');
+        chunks.push(data[id] || '');
       });
 
       // Remove trailing empty values to save space
-      while (parts.length > 2 && parts[parts.length - 1] === '') {
-        parts.pop();
+      while (chunks.length > 2 && chunks[chunks.length - 1] === '') {
+        chunks.pop();
       }
 
-      const compactString = parts.join('|');
+      const compactString = chunks.join('|');
       return btoa(compactString);
     } catch (e) {
       console.error('Error encoding data to base64:', e);
@@ -84,75 +84,36 @@ const utils = {
   },
 
   // Decode base64 from URL to data
-  // Supports: compact format (buyPrice|pattern|...) and legacy formats (JSON array/object)
+  // Compact format: buyPrice|pattern|price1|price2|...|price12
   decodeFromBase64(base64String) {
     try {
       if (!base64String || typeof base64String !== 'string') {
         return null;
       }
 
-      let decoded = atob(base64String);
+      const decoded = atob(base64String);
+      const chunks = decoded.split('|');
 
-      // Try compact format first (no JSON, just pipe-separated values)
-      if (decoded.indexOf('|') !== -1 && decoded.indexOf('{') === -1 && decoded.indexOf('[') === -1) {
-        const parts = decoded.split('|');
-
-        if (parts.length < 2) {
-          return null;
-        }
-
-        // Map single letters back to pattern names
-        const patternMap = {
-          'f': 'fluctuating',
-          'l': 'large_spike',
-          's': 'small_spike',
-          'd': 'decreasing'
-        };
-
-        const data = {
-          buyPrice: parts[0] || '',
-          previousPattern: patternMap[parts[1]] || ''
-        };
-
-        // Reconstruct prices from remaining parts
-        PRICE_INPUT_IDS.forEach((id, index) => {
-          const value = parts[index + 2];
-          if (value) {
-            data[id] = value;
-          }
-        });
-
-        return data;
-      }
-
-      // Legacy format: JSON-encoded
-      const jsonString = decodeURIComponent(decoded);
-      const parsed = JSON.parse(jsonString);
-
-      if (!parsed) {
+      if (chunks.length < 2) {
         return null;
       }
 
-      // Legacy object format
-      if (!Array.isArray(parsed)) {
-        if (typeof parsed !== 'object') {
-          return null;
-        }
-        return parsed;
-      }
-
-      // Legacy array format
-      if (parsed.length < 2) {
-        return null;
-      }
-
-      const data = {
-        buyPrice: parsed[0] || '',
-        previousPattern: parsed[1] || ''
+      // Map single letters back to pattern names
+      const patternMap = {
+        'f': 'fluctuating',
+        'l': 'large_spike',
+        's': 'small_spike',
+        'd': 'decreasing'
       };
 
+      const data = {
+        buyPrice: chunks[0] || '',
+        previousPattern: patternMap[chunks[1]] || ''
+      };
+
+      // Reconstruct prices from remaining chunks
       PRICE_INPUT_IDS.forEach((id, index) => {
-        const value = parsed[index + 2];
+        const value = chunks[index + 2];
         if (value) {
           data[id] = value;
         }
