@@ -47,10 +47,36 @@ const utils = {
   },
 
   // Encode data to base64 for URL
+  // Compact format: buyPrice|pattern|price1|price2|...|price12
+  // pattern: f=fluctuating, l=large_spike, s=small_spike, d=decreasing, empty=none
   encodeToBase64(data) {
     try {
-      const jsonString = JSON.stringify(data);
-      return btoa(encodeURIComponent(jsonString));
+      // Map pattern names to single letters
+      const patternMap = {
+        'fluctuating': 'f',
+        'large_spike': 'l',
+        'small_spike': 's',
+        'decreasing': 'd'
+      };
+
+      // Build compact string
+      const parts = [
+        data.buyPrice || '',
+        patternMap[data.previousPattern] || ''
+      ];
+
+      // Add prices in order
+      PRICE_INPUT_IDS.forEach(id => {
+        parts.push(data[id] || '');
+      });
+
+      // Remove trailing empty values to save space
+      while (parts.length > 2 && parts[parts.length - 1] === '') {
+        parts.pop();
+      }
+
+      const compactString = parts.join('|');
+      return btoa(compactString);
     } catch (e) {
       console.error('Error encoding data to base64:', e);
       return null;
@@ -58,10 +84,81 @@ const utils = {
   },
 
   // Decode base64 from URL to data
+  // Supports: compact format (buyPrice|pattern|...) and legacy formats (JSON array/object)
   decodeFromBase64(base64String) {
     try {
-      const jsonString = decodeURIComponent(atob(base64String));
-      return JSON.parse(jsonString);
+      if (!base64String || typeof base64String !== 'string') {
+        return null;
+      }
+
+      let decoded = atob(base64String);
+
+      // Try compact format first (no JSON, just pipe-separated values)
+      if (decoded.indexOf('|') !== -1 && decoded.indexOf('{') === -1 && decoded.indexOf('[') === -1) {
+        const parts = decoded.split('|');
+
+        if (parts.length < 2) {
+          return null;
+        }
+
+        // Map single letters back to pattern names
+        const patternMap = {
+          'f': 'fluctuating',
+          'l': 'large_spike',
+          's': 'small_spike',
+          'd': 'decreasing'
+        };
+
+        const data = {
+          buyPrice: parts[0] || '',
+          previousPattern: patternMap[parts[1]] || ''
+        };
+
+        // Reconstruct prices from remaining parts
+        PRICE_INPUT_IDS.forEach((id, index) => {
+          const value = parts[index + 2];
+          if (value) {
+            data[id] = value;
+          }
+        });
+
+        return data;
+      }
+
+      // Legacy format: JSON-encoded
+      const jsonString = decodeURIComponent(decoded);
+      const parsed = JSON.parse(jsonString);
+
+      if (!parsed) {
+        return null;
+      }
+
+      // Legacy object format
+      if (!Array.isArray(parsed)) {
+        if (typeof parsed !== 'object') {
+          return null;
+        }
+        return parsed;
+      }
+
+      // Legacy array format
+      if (parsed.length < 2) {
+        return null;
+      }
+
+      const data = {
+        buyPrice: parsed[0] || '',
+        previousPattern: parsed[1] || ''
+      };
+
+      PRICE_INPUT_IDS.forEach((id, index) => {
+        const value = parsed[index + 2];
+        if (value) {
+          data[id] = value;
+        }
+      });
+
+      return data;
     } catch (e) {
       console.error('Error decoding data from base64:', e);
       return null;
@@ -565,8 +662,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function loadSavedData() {
     // Intentar cargar primero desde URL, luego desde localStorage
     let data = utils.getDataFromURL();
+    let isFromURL = false;
 
-    if (!data) {
+    if (data) {
+      isFromURL = true;
+    } else {
       const savedData = localStorage.getItem('turnipData');
       if (!savedData) return;
 
@@ -576,6 +676,15 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Error al cargar datos guardados:', e);
         return;
       }
+    }
+
+    // Validar que data sea un objeto válido
+    if (!data || typeof data !== 'object') {
+      console.error('Datos corruptos detectados');
+      if (isFromURL) {
+        alert('⚠️ El enlace contiene datos corruptos. No se cargó ninguna información.');
+      }
+      return;
     }
 
     // Cargar datos en los inputs
@@ -589,6 +698,16 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     } catch (e) {
       console.error('Error al aplicar datos:', e);
+      // Si hay error, limpiar todos los inputs para evitar estado inconsistente
+      buyPriceInput.value = '';
+      previousPatternSelect.value = '';
+      PRICE_INPUT_IDS.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.value = '';
+      });
+      if (isFromURL) {
+        alert('⚠️ Error al cargar los datos del enlace. No se cargó ninguna información.');
+      }
     }
   }
 
@@ -622,6 +741,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Actualizar botón limpiar
       updateClearButton(false);
+
+      // Actualizar botón compartir (mostrar nuevamente)
+      updateShareButton();
 
       // Cargar datos de localStorage
       const savedData = localStorage.getItem('turnipData');
@@ -752,12 +874,12 @@ document.addEventListener('DOMContentLoaded', function () {
   function updateShareButton() {
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('turnipData');
-    console.log('test', hasQueryParam)
     if (!hasQueryParam) {
       shareBtn.onclick = shareData;
       shareBtn.title = 'Generar URL para compartir';
+      shareBtn.style.display = '';
     } else {
-      shareBtn.style.visibility = 'none';
+      shareBtn.style.display = 'none';
     }
   }
 
