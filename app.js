@@ -68,16 +68,6 @@ const utils = {
     }
   },
 
-  // Update URL with encoded data
-  updateURL(data) {
-    const encoded = this.encodeToBase64(data);
-    if (encoded) {
-      const url = new URL(window.location);
-      url.searchParams.set('turnipData', encoded);
-      window.history.replaceState({}, '', url);
-    }
-  },
-
   // Get data from URL
   getDataFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -106,6 +96,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // Cargar datos guardados del localStorage
   loadSavedData();
 
+  // Verificar si hay query params y deshabilitar inputs
+  const urlParams = new URLSearchParams(window.location.search);
+  const hasQueryParam = urlParams.has('turnipData');
+  if (hasQueryParam) {
+    disableAllInputs();
+    updateClearButton(true);
+  }
+
   // Desactivar flag de carga después de un pequeño delay
   setTimeout(() => isLoading = false, LOADING_DELAY);
 
@@ -130,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Evento del botón limpiar
   clearBtn.addEventListener('click', clearAllData);
 
-  // Configurar botón compartir/guardar según estado inicial
+  // Configurar botón compartir
   updateShareButton();
 
   // Permitir calcular con Enter en el campo de precio de compra
@@ -189,14 +187,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Verificar si ya hay query param
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('turnipData');
+    if (hasQueryParam) return;
 
-    if (hasQueryParam) {
-      // Ya hay query param: solo actualizar URL, NO localStorage
-      utils.updateURL(data);
-    } else {
-      // No hay query param: solo guardar en localStorage, NO actualizar URL
-      localStorage.setItem('turnipData', JSON.stringify(data));
-    }
+    // Only update local storage when there is no queryParams
+    localStorage.setItem('turnipData', JSON.stringify(data));
   }
 
   function clearEstimatedValues() {
@@ -599,24 +593,90 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function clearAllData() {
-    if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
+    // Verificar si hay query params
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasQueryParam = urlParams.has('turnipData');
 
-    // Limpiar inputs
-    buyPriceInput.value = '';
-    previousPatternSelect.value = '';
-    PRICE_INPUT_IDS.forEach(id => {
-      const input = document.getElementById(id);
-      if (input) input.value = '';
-    });
+    if (hasQueryParam) {
+      // Modo rollback: eliminar query param y cargar datos de localStorage
+      if (!confirm('¿Quieres volver a tus datos guardados?')) return;
 
-    // Limpiar localStorage
-    localStorage.removeItem('turnipData');
+      // Eliminar query param de la URL
+      urlParams.delete('turnipData');
+      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+      window.history.replaceState({}, '', newUrl);
 
-    // Ocultar resultados
-    resultsSection.style.display = 'none';
+      // Limpiar inputs primero
+      buyPriceInput.value = '';
+      previousPatternSelect.value = '';
+      PRICE_INPUT_IDS.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = '';
+          utils.clearEstimatedValue(input);
+        }
+      });
 
-    // Scroll al inicio
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Habilitar todos los inputs
+      enableAllInputs();
+
+      // Actualizar botón limpiar
+      updateClearButton(false);
+
+      // Cargar datos de localStorage
+      const savedData = localStorage.getItem('turnipData');
+      if (savedData) {
+        try {
+          const data = JSON.parse(savedData);
+          if (data.buyPrice) buyPriceInput.value = data.buyPrice;
+          if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
+
+          PRICE_INPUT_IDS.forEach(id => {
+            const input = document.getElementById(id);
+            if (data[id] && input) input.value = data[id];
+          });
+
+          // Auto-calcular si hay precio de compra
+          if (buyPriceInput.value) {
+            setTimeout(() => {
+              calculatePrediction();
+              updateRateBadges();
+            }, 300);
+          }
+        } catch (e) {
+          console.error('Error al cargar datos de localStorage:', e);
+        }
+      } else {
+        // Ocultar resultados si no hay datos guardados
+        resultsSection.style.display = 'none';
+      }
+
+      // Scroll al inicio
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Modo normal: limpiar todo
+      if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
+
+      // Limpiar inputs
+      buyPriceInput.value = '';
+      previousPatternSelect.value = '';
+      PRICE_INPUT_IDS.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = '';
+          utils.clearEstimatedValue(input);
+        }
+      });
+
+      // Limpiar localStorage
+      localStorage.removeItem('turnipData');
+
+      // Ocultar resultados
+      resultsSection.style.display = 'none';
+
+      // Scroll al inicio
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   function shareData() {
@@ -642,14 +702,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
-    // Actualizar URL con query params
-    utils.updateURL(data);
-
-    // Actualizar botón a "Guardar"
-    updateShareButton();
+    const encodedData = utils.encodeToBase64(data);
+    if (!encodedData) {
+      alert('⚠️ Error al generar el enlace para compartir');
+      return;
+    }
 
     // Copiar URL al portapapeles
-    const url = window.location.href;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}?turnipData=${encodedData}`;
     navigator.clipboard.writeText(url).then(() => {
       alert('✅ URL copiado al portapapeles!\n\nAhora puedes compartirlo con tus amigos.');
     }).catch(() => {
@@ -658,47 +719,45 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function saveToLocalStorage() {
-    // Recopilar datos actuales del DOM
-    const data = {
-      buyPrice: buyPriceInput.value,
-      previousPattern: previousPatternSelect.value
-    };
-
+  function disableAllInputs() {
+    buyPriceInput.disabled = true;
+    previousPatternSelect.disabled = true;
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
-      // Solo incluir valores confirmados, NO los estimados
-      if (input?.value && input.dataset.isEstimated !== 'true') {
-        data[id] = input.value;
-      }
+      if (input) input.disabled = true;
     });
+    calculateBtn.disabled = true;
+  }
 
-    // Guardar en localStorage
-    localStorage.setItem('turnipData', JSON.stringify(data));
+  function enableAllInputs() {
+    buyPriceInput.disabled = false;
+    previousPatternSelect.disabled = false;
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) input.disabled = false;
+    });
+    calculateBtn.disabled = false;
+  }
 
-    // Limpiar query param del URL
-    const url = new URL(window.location);
-    url.searchParams.delete('turnipData');
-    window.history.replaceState({}, '', url);
-
-    // Actualizar botón a "Compartir"
-    updateShareButton();
-
-    alert('💾 Datos guardados!\n\nEstos datos ahora son tuyos y se guardarán automáticamente.');
+  function updateClearButton(isQueryParamMode) {
+    if (isQueryParamMode) {
+      clearBtn.textContent = 'Volver a mis datos';
+      clearBtn.title = 'Eliminar datos compartidos y volver a tus datos guardados';
+    } else {
+      clearBtn.textContent = 'Limpiar';
+      clearBtn.title = 'Borrar todos los datos';
+    }
   }
 
   function updateShareButton() {
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('turnipData');
-
-    if (hasQueryParam) {
-      shareBtn.textContent = 'Guardar';
-      shareBtn.onclick = saveToLocalStorage;
-      shareBtn.title = 'Guardar estos datos como tuyos';
-    } else {
-      shareBtn.textContent = 'Compartir';
+    console.log('test', hasQueryParam)
+    if (!hasQueryParam) {
       shareBtn.onclick = shareData;
       shareBtn.title = 'Generar URL para compartir';
+    } else {
+      shareBtn.style.visibility = 'none';
     }
   }
 
