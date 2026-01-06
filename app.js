@@ -403,23 +403,18 @@ document.addEventListener('DOMContentLoaded', function () {
       return messages;
     }
 
-    // Detectar si ya comenzó el pico (subida significativa >10%)
+    // Detectar si ya comenzó el pico usando función compartida
     const pricesArray = PRICE_INPUT_IDS.map(id => {
       const val = document.getElementById(id)?.value;
       return val ? parseInt(val) : null;
     }).filter(p => p !== null);
 
-    let spikeStarted = false;
-    let spikeStartIndex = -1;
-    let lastKnownIndex = -1;
+    const buyPrice = parseInt(buyPriceInput.value);
+    const spikeDetection = detectSpikeStart(pricesArray, buyPrice);
 
-    for (let i = 1; i < pricesArray.length; i++) {
-      if (pricesArray[i] > pricesArray[i-1] * THRESHOLDS.SIGNIFICANT_RISE) {
-        spikeStarted = true;
-        spikeStartIndex = i;
-        break;
-      }
-    }
+    let spikeStarted = spikeDetection.detected;
+    let spikeStartIndex = spikeDetection.startIndex;
+    let lastKnownIndex = -1;
 
     // Encontrar último período con precio conocido
     for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
@@ -451,7 +446,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
         if (isInPeriod1 && !hasPeriod2Data) {
-          const buyPrice = parseInt(buyPriceInput.value);
           const period2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
           const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
           messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;

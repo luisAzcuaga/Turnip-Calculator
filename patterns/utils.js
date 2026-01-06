@@ -164,6 +164,47 @@ function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
 }
 
 /**
+ * Detecta el inicio del pico buscando inversiones de tendencia o subidas significativas
+ * @param {Array} prices - Array de precios (puede ser simple array de números o array de objetos con .price)
+ * @param {number} buyPrice - Precio base de compra
+ * @returns {{detected: boolean, startIndex: number}} - Si se detectó y en qué índice
+ */
+function detectSpikeStart(prices, buyPrice) {
+  if (!prices || prices.length < 2) {
+    return { detected: false, startIndex: -1 };
+  }
+
+  // Normalizar el array (puede venir como números o como {price: X})
+  const pricesArray = prices.map(p => typeof p === 'object' ? p.price : p);
+
+  // Método principal: Buscar inversión de tendencia (estaba bajando → ahora sube)
+  // Esto detecta correctamente picos que empiezan con subidas pequeñas (<10%)
+  for (let i = 1; i < pricesArray.length; i++) {
+    if (pricesArray[i] > pricesArray[i - 1]) {
+      // Verificar si antes estaba bajando
+      if (i >= 2 && pricesArray[i - 2] > pricesArray[i - 1]) {
+        // Inversión de tendencia detectada
+        return { detected: true, startIndex: i };
+      }
+      // Si es la primera subida después del inicio y estaba bajo
+      if (i === 1 && pricesArray[i - 1] < buyPrice) {
+        return { detected: true, startIndex: i };
+      }
+    }
+  }
+
+  // Método fallback: Buscar subida significativa >10%
+  // Se usa cuando no hay inversión de tendencia clara (ej: primer dato ya está subiendo)
+  for (let i = 1; i < pricesArray.length; i++) {
+    if (pricesArray[i] > pricesArray[i - 1] * THRESHOLDS.SIGNIFICANT_RISE) {
+      return { detected: true, startIndex: i };
+    }
+  }
+
+  return { detected: false, startIndex: -1 };
+}
+
+/**
  * Detecta dinámicamente dónde empieza la fase de pico en patrones de Spike
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @param {number} minPeakStart - Índice mínimo donde puede empezar el pico

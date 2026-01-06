@@ -141,20 +141,52 @@ class TurnipPredictor {
   detectPhase1Spike(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
-    // Buscar el inicio del pico (primera subida significativa >10%)
-    let spikeStartIndex = -1;
-    for (let i = 1; i < knownPrices.length; i++) {
+    // Método directo: Buscar precios en rangos característicos de Período 2
+    // Si encontramos un precio en 140-200% con período anterior en 90-140%, es Período 2
+    for (let i = 0; i < knownPrices.length; i++) {
       const current = knownPrices[i];
-      const previous = knownPrices[i - 1];
-      if (current.price > previous.price * THRESHOLDS.SIGNIFICANT_RISE) {
-        spikeStartIndex = current.index;
-        break;
+      const rate = current.price / this.buyPrice;
+
+      if (rate >= 1.40 && rate < 2.00) {
+        const previousPeriod = knownPrices.find(p => p.index === current.index - 1);
+
+        if (previousPeriod) {
+          const prevRate = previousPeriod.price / this.buyPrice;
+          if (prevRate >= 0.90 && prevRate < 1.40) {
+            // Confirmado: precio anterior (90-140%) + precio actual (140-200%) = Período 2 Large Spike
+            const phase1Percent = (rate * 100).toFixed(1);
+            return {
+              detected: true,
+              isLargeSpike: true,
+              phase1Price: current.price,
+              phase1Percent: phase1Percent,
+              phase1Day: getPeriodName(current.index)
+            };
+          }
+        }
+
+        // Incluso sin período anterior, 140-200% es fuerte indicador de Large Spike Período 2
+        const phase1Percent = (rate * 100).toFixed(1);
+        return {
+          detected: true,
+          isLargeSpike: true,
+          phase1Price: current.price,
+          phase1Percent: phase1Percent,
+          phase1Day: getPeriodName(current.index)
+        };
       }
     }
 
-    if (spikeStartIndex === -1) return { detected: false };
+    // Método indirecto: Detectar inicio del pico y luego verificar Período 2
+    // Usa detectSpikeStart() para encontrar dónde empieza el pico (inversión de tendencia, etc.)
+    const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
 
-    // Buscar Período 2 (segundo período del pico, peakStart + 1)
+    if (!spikeDetection.detected) return { detected: false };
+
+    // El índice donde empieza el pico (Período 1)
+    const spikeStartIndex = knownPrices[spikeDetection.startIndex].index;
+
+    // Buscar el Período 2 (siguiente período después del inicio)
     const phase1Index = spikeStartIndex + 1;
     const phase1Data = knownPrices.find(p => p.index === phase1Index);
 
@@ -163,8 +195,9 @@ class TurnipPredictor {
     const phase1Rate = phase1Data.price / this.buyPrice;
     const phase1Percent = (phase1Rate * 100).toFixed(1);
 
-    // Período 2 ≥ 140% = Large Spike confirmado
+    // Clasificar según el rate del Período 2
     if (phase1Rate >= 1.40) {
+      // Período 2 ≥ 140% = Large Spike confirmado
       return {
         detected: true,
         isLargeSpike: true,
