@@ -25,6 +25,42 @@ const DAYS_CONFIG = [
 const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
 
 // ============================================================================
+// PATRONES
+// ============================================================================
+
+// Pattern keys (internal identifiers)
+const PATTERNS = {
+  FLUCTUATING: 'fluctuating',
+  LARGE_SPIKE: 'large_spike',
+  SMALL_SPIKE: 'small_spike',
+  DECREASING: 'decreasing'
+};
+
+// Pattern display names (español)
+const PATTERN_NAMES = {
+  'fluctuating': 'Fluctuante',
+  'large_spike': 'Pico Grande',
+  'small_spike': 'Pico Pequeño',
+  'decreasing': 'Decreciente'
+};
+
+// Encoding map: pattern name → single letter (for URL compression)
+const PATTERN_ENCODE_MAP = {
+  'fluctuating': 'f',
+  'large_spike': 'l',
+  'small_spike': 's',
+  'decreasing': 'd'
+};
+
+// Decoding map: single letter → pattern name (for URL decompression)
+const PATTERN_DECODE_MAP = {
+  'f': 'fluctuating',
+  'l': 'large_spike',
+  's': 'small_spike',
+  'd': 'decreasing'
+};
+
+// ============================================================================
 // PERÍODOS CLAVE (índices de DAYS_CONFIG)
 // ============================================================================
 

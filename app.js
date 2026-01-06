@@ -51,18 +51,10 @@ const utils = {
   // pattern: f=fluctuating, l=large_spike, s=small_spike, d=decreasing, empty=none
   encodeToBase64(data) {
     try {
-      // Map pattern names to single letters
-      const patternMap = {
-        'fluctuating': 'f',
-        'large_spike': 'l',
-        'small_spike': 's',
-        'decreasing': 'd'
-      };
-
       // Build compact string
       const chunks = [
         data.buyPrice || '',
-        patternMap[data.previousPattern] || ''
+        PATTERN_ENCODE_MAP[data.previousPattern] || ''
       ];
 
       // Add prices in order
@@ -98,17 +90,9 @@ const utils = {
         return null;
       }
 
-      // Map single letters back to pattern names
-      const patternMap = {
-        'f': 'fluctuating',
-        'l': 'large_spike',
-        's': 'small_spike',
-        'd': 'decreasing'
-      };
-
       const data = {
         buyPrice: chunks[0] || '',
-        previousPattern: patternMap[chunks[1]] || ''
+        previousPattern: PATTERN_DECODE_MAP[chunks[1]] || ''
       };
 
       // Reconstruct prices from remaining chunks
@@ -199,8 +183,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function calculatePrediction() {
     const buyPrice = parseInt(buyPriceInput.value);
 
-    if (!buyPrice || buyPrice < 90 || buyPrice > 110) {
-      alert('⚠️ Por favor ingresa un precio de compra válido (entre 90 y 110 bayas)');
+    if (!buyPrice || buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
+      alert(`⚠️ Por favor ingresa un precio de compra válido (entre ${BUY_PRICE_MIN} y ${BUY_PRICE_MAX} bayas)`);
       buyPriceInput.focus();
       return;
     }
@@ -291,12 +275,10 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="probability-list">`;
 
     // Crear lista con todos los patrones y ordenar por probabilidad (más probable primero)
-    const allPatterns = [
-      { key: 'large_spike', name: 'Pico Grande' },
-      { key: 'small_spike', name: 'Pico Pequeño' },
-      { key: 'decreasing', name: 'Decreciente' },
-      { key: 'fluctuating', name: 'Fluctuante' }
-    ];
+    const allPatterns = Object.values(PATTERNS).map(key => ({
+      key: key,
+      name: PATTERN_NAMES[key]
+    }));
 
     // Agregar probabilidades y ordenar descendente
     const patternsWithProb = allPatterns.map(p => ({
@@ -381,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Solo marcar para patrones predecibles
-    if (bestTime.pattern === 'fluctuating' || !bestTime.day) {
+    if (bestTime.pattern === PATTERNS.FLUCTUATING || !bestTime.day) {
       return;
     }
 
@@ -417,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function generateSpikeTimingMessages(patternKey, isPrimary) {
     let messages = '';
 
-    if (patternKey !== 'large_spike' && patternKey !== 'small_spike') {
+    if (patternKey !== PATTERNS.LARGE_SPIKE && patternKey !== PATTERNS.SMALL_SPIKE) {
       return messages;
     }
 
@@ -432,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let lastKnownIndex = -1;
 
     for (let i = 1; i < pricesArray.length; i++) {
-      if (pricesArray[i] > pricesArray[i-1] * 1.10) {
+      if (pricesArray[i] > pricesArray[i-1] * THRESHOLDS.SIGNIFICANT_RISE) {
         spikeStarted = true;
         spikeStartIndex = i;
         break;
@@ -451,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
       // Large Spike: máximo en Período 3 (peakStart + 2, zero-indexed)
       // Small Spike: máximo en Período 4 (peakStart + 3, zero-indexed)
-      const peaksInPhase = patternKey === 'large_spike' ? 2 : 3;
+      const peaksInPhase = patternKey === PATTERNS.LARGE_SPIKE ? 2 : 3;
       const maxPeriodIndex = spikeStartIndex + peaksInPhase;
       const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
 
@@ -465,19 +447,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (periodsUntilMax > 0) {
         const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
-        const maxRange = patternKey === 'large_spike' ? '200-600%' : '140-200%';
+        const maxRange = patternKey === PATTERNS.LARGE_SPIKE ? '200-600%' : '140-200%';
 
         // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
         if (isInPeriod1 && !hasPeriod2Data) {
           const buyPrice = parseInt(buyPriceInput.value);
-          const period2Threshold = Math.round(buyPrice * 1.40);
+          const period2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
           const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
           messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;
 
-          if (patternKey === 'large_spike') {
+          if (patternKey === PATTERNS.LARGE_SPIKE) {
             messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${period2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
           } else { // small_spike
-            const minThreshold = Math.floor(buyPrice * 0.90);
+            const minThreshold = Math.floor(buyPrice * RATES.LARGE_SPIKE.PEAK_PHASES[0].min);
             const maxThreshold = period2Threshold - 1; // < 140%
             messages += `<br/>&emsp;&emsp;• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado`;
           }
@@ -489,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
         messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
       }
     } else {
-      const period = patternKey === 'large_spike' ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
+      const period = patternKey === PATTERNS.LARGE_SPIKE ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
       messages += `<li style="color: #4a90e2;">💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${period}</strong>. Sigue checando los precios.</li>`;
     }
 
@@ -500,19 +482,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const debugDiv = document.getElementById('debugInfo');
     if (!debugDiv) return;
 
-    // Mapeo de nombres de patrones
-    const patternNames = {
-      'large_spike': 'Pico Grande',
-      'small_spike': 'Pico Pequeño',
-      'decreasing': 'Decreciente',
-      'fluctuating': 'Fluctuante'
-    };
-
     let html = '';
 
     // Sección 0: Recomendaciones (al inicio)
     if (recommendations && recommendations.length > 0) {
-      const primaryPatternName = patternNames[primaryPattern] || 'Desconocido';
+      const primaryPatternName = PATTERN_NAMES[primaryPattern] || 'Desconocido';
       const primaryProbability = allProbabilities[primaryPattern] || 0;
       html += `<h3>⭐ Patrón más probable</h3>`;
       html += '<ul class="rejection-list">';
@@ -529,7 +503,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Separar patrones descartados (0%) vs improbables (>0%)
-    const patternsToShow = Object.keys(patternNames).filter(key => key !== primaryPattern);
+    const patternsToShow = Object.keys(PATTERN_NAMES).filter(key => key !== primaryPattern);
     const rejected = patternsToShow.filter(key => allProbabilities[key] === 0);
     const unlikely = patternsToShow.filter(key => allProbabilities[key] > 0);
 
@@ -542,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function () {
       html += '<p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>';
       html += '<ul class="rejection-list">';
       unlikely.forEach(key => {
-        const name = patternNames[key];
+        const name = PATTERN_NAMES[key];
         const prob = allProbabilities[key];
         const scores = scoreReasons[key] || [];
 
@@ -569,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
       html += '<p><small>Estos patrones rompen las reglas del algoritmo del juego con los datos ingresados:</small></p>';
       html += '<ul class="rejection-list">';
       rejected.forEach(key => {
-        const name = patternNames[key];
+        const name = PATTERN_NAMES[key];
         const rejections = rejectionReasons[key] || [];
 
         html += `<li><strong>${name}</strong>:`;
@@ -765,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function shareData() {
     const buyPrice = parseInt(buyPriceInput.value);
 
-    if (!buyPrice || buyPrice < 90 || buyPrice > 110) {
+    if (!buyPrice || buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
       alert('⚠️ Por favor ingresa un precio de compra válido antes de compartir');
       buyPriceInput.focus();
       return;
@@ -847,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Función para actualizar badges de rate
   function updateRateBadges() {
     const buyPrice = parseInt(buyPriceInput.value);
-    if (!buyPrice || buyPrice < 90 || buyPrice > 110) {
+    if (!buyPrice || buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
       // Limpiar todos los badges si no hay precio base válido
       document.querySelectorAll('.rate-badge').forEach(badge => {
         badge.textContent = '';
@@ -865,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const price = parseInt(input.value);
 
-      if (!price || price < 9 || price > 660) {
+      if (!price || price < TURNIP_PRICE_MIN || price > TURNIP_PRICE_MAX) {
         // Limpiar badge si no hay precio válido
         badge.textContent = '';
         badge.className = 'rate-badge';
