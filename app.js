@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
         messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
       }
     } else {
-      const period = patternKey === PATTERNS.LARGE_SPIKE ? 'Martes PM y Jueves PM (períodos 3-7)' : 'Martes AM y Jueves PM (períodos 2-7)';
+      const period = patternKey === PATTERNS.LARGE_SPIKE ? 'Martes AM y Jueves PM (períodos 2-7)' : 'Lunes PM y Jueves PM (períodos 1-7)';
       messages += `<li style="color: #4a90e2;">💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${period}</strong>. Sigue checando los precios.</li>`;
     }
 

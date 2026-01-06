@@ -10,7 +10,7 @@
  * @returns {{min: number, max: number}} - Rango de precios
  */
 function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
-  // peakStart puede ser 3-9 según el algoritmo del juego
+  // peakStart puede ser 2-7 según el algoritmo del juego (Martes AM a Jueves PM)
   const peakStart = detectSpikePeakStart(knownPrices, PERIODS.LARGE_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, true, base);
 
   // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)

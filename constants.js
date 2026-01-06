@@ -66,13 +66,13 @@ const PATTERN_DECODE_MAP = {
 
 const PERIODS = {
   MONDAY_AM: 0,
-  MONDAY_PM: 1,     // Inicio mínimo Small Spike
-  TUESDAY_AM: 2,
-  TUESDAY_PM: 3,    // Inicio mínimo Large Spike
+  MONDAY_PM: 1,     // Inicio mínimo Small Spike (período 1)
+  TUESDAY_AM: 2,    // Inicio mínimo Large Spike (período 2)
+  TUESDAY_PM: 3,
   WEDNESDAY_AM: 4,
   WEDNESDAY_PM: 5,
   THURSDAY_AM: 6,
-  THURSDAY_PM: 7,
+  THURSDAY_PM: 7,   // Último inicio posible para picos (período 7)
   FRIDAY_AM: 8,     // "Tarde en la semana"
   FRIDAY_PM: 9,
   SATURDAY_AM: 10,
