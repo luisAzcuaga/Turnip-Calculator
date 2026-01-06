@@ -130,8 +130,8 @@ Por eso es importante **anotar el patrón cada semana** y seleccionarlo en el pr
 - Es el mejor patrón, no vendas muy temprano
 
 **📈 Pico Pequeño**
-- Vende cuando veas **150-190%**
-- No va a subir más de 200%
+- Vende cuando veas **140-200%**
+- Es el pico máximo de este patrón
 
 **📊 Fluctuante**
 - Vende cuando veas **>110%** (cualquier ganancia es buena)
