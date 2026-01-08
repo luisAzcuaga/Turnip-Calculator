@@ -201,7 +201,7 @@ function analyzeFluctuatingStructure(knownPrices, base) {
 function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Validación defensiva: si no hay precio base, no podemos predecir
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
-    console.warn('Fluctuating pattern: precio base inválido', base);
+    console.warn('Fluctuating pattern: Precio base inválido', base);
     return { min: 0, max: 0 };
   }
 

@@ -459,10 +459,10 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           messages += `</li>`;
         } else {
-          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo (${maxRange}) será en <strong>${periodText} más</strong>.</li>`;
+          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</li>`;
         }
       } else {
-        messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} el máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
+        messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} El máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
       }
     } else {
       const period = patternKey === PATTERNS.LARGE_SPIKE ? 'Martes AM y Jueves PM (períodos 2-7)' : 'Lunes PM y Jueves PM (períodos 1-7)';
