@@ -207,7 +207,7 @@ class TurnipPredictor {
       };
     }
 
-    // Período 2 < 140% = Small Spike confirmado
+    // Período 2 < 140% = No es Large Spike (podría ser Small Spike o Fluctuante)
     return {
       detected: true,
       isLargeSpike: false,
@@ -263,8 +263,8 @@ class TurnipPredictor {
     const phase1Check = this.detectPhase1Spike(knownPrices);
     if (phase1Check.detected) {
       if (!phase1Check.isLargeSpike) {
-        // Período 2 < 140% = definitivamente Small Spike, no Large Spike
-        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2. Esto es Small Spike.`);
+        // Período 2 < 140% = no es Large Spike
+        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2.`);
         return false;
       }
       // Si isLargeSpike = true, continuar con más validaciones (puede ser Large Spike)
@@ -484,6 +484,21 @@ class TurnipPredictor {
         const spikeRange = getSpikeStartRange(false);
         this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
         return false;
+      }
+    }
+
+    // VALIDACIÓN: Si el pico no alcanzó 140% y ya cayó significativamente,
+    // el pico ya terminó sin alcanzar el umbral de Small Spike
+    if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
+      const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+      if (maxPriceData) {
+        const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceData.index);
+        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
+
+        if (hasSharpDrop) {
+          this.rejectionReasons.small_spike.push(`El precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) no alcanzó el 140% requerido para Small Spike. Los precios subieron y bajaron sin formar un pico válido.`);
+          return false;
+        }
       }
     }
 
@@ -756,7 +771,7 @@ class TurnipPredictor {
             if (hasSharpDrop) {
               smallSpikeRejected = true;
               score = 0;
-              this.scoreReasons.small_spike.push(`❌ El "pico" de ${maxPrice} bayas cayó >40% después. Small Spike necesita pico ≥140%`);
+              this.scoreReasons.small_spike.push(`❌ El precio máximo ${maxPrice} bayas no alcanzó 140%. Los precios subieron y bajaron sin formar un pico válido.`);
             }
           }
         } else if (ratio >= THRESHOLDS.SMALL_SPIKE_MAX) {
@@ -765,7 +780,22 @@ class TurnipPredictor {
           this.scoreReasons.small_spike.push(`❌ Precio ${maxPrice} bayas (${Math.round(ratio * 100)}%) excede 200% (esto es Large Spike)`);
         } else {
           // ratio < SMALL_SPIKE_PRE_PEAK (1.2)
-          this.scoreReasons.small_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) es válido para fase inicial. Si el siguiente período se mantiene en 90-140%, sugiere Pico Pequeño`);
+          // Check if prices rose and fell without reaching 140% threshold (no valid spike)
+          const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
+          if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
+            const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
+            const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
+
+            if (hasSharpDrop) {
+              smallSpikeRejected = true;
+              score = 0;
+              this.scoreReasons.small_spike.push(`❌ El precio máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) no alcanzó 140%. Los precios subieron y bajaron sin formar un pico válido.`);
+            } else {
+              this.scoreReasons.small_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) es válido para fase inicial. Si el siguiente período se mantiene en 90-140%, sugiere Pico Pequeño`);
+            }
+          } else {
+            this.scoreReasons.small_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) es válido para fase inicial. Si el siguiente período se mantiene en 90-140%, sugiere Pico Pequeño`);
+          }
         }
 
         // Solo aplicar bonuses si el patrón no fue rechazado
