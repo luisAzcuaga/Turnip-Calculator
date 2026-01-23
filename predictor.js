@@ -502,6 +502,46 @@ class TurnipPredictor {
       }
     }
 
+    // VALIDACIÓN: Detectar múltiples ciclos de subida-bajada (característica de Fluctuante)
+    // Si ya hubo un pico local que cayó drásticamente y ahora los precios suben de nuevo,
+    // esto indica Fluctuante, no Small Spike
+    if (knownPrices.length >= 4) {
+      // Buscar picos locales: puntos donde el precio es mayor que el anterior Y el siguiente
+      for (let i = 1; i < knownPrices.length - 1; i++) {
+        const prev = knownPrices[i - 1];
+        const curr = knownPrices[i];
+        const next = knownPrices[i + 1];
+
+        // Verificar si es un pico local (sube y luego baja)
+        if (curr.price > prev.price && curr.price > next.price) {
+          const peakRatio = curr.price / this.buyPrice;
+
+          // Solo considerar picos significativos (>100% del precio base)
+          if (peakRatio >= 1.0) {
+            // Buscar si después del pico hubo una caída significativa
+            const pricesAfterPeak = knownPrices.filter(p => p.index > curr.index);
+            const minAfterPeak = Math.min(...pricesAfterPeak.map(p => p.price));
+            const dropFromPeak = minAfterPeak / curr.price;
+
+            // Si cayó más de 50% desde el pico
+            if (dropFromPeak < 0.50) {
+              // Buscar si después de la caída hubo una subida significativa
+              const minPriceData = pricesAfterPeak.find(p => p.price === minAfterPeak);
+              if (minPriceData) {
+                const pricesAfterMin = knownPrices.filter(p => p.index > minPriceData.index);
+                const hasRisenAgain = pricesAfterMin.some(p => p.price > minAfterPeak * 1.5);
+
+                if (hasRisenAgain) {
+                  this.rejectionReasons.small_spike.push(`Detectado patrón de múltiples subidas y bajadas: pico en ${curr.price} bayas (${Math.round(peakRatio * 100)}%), cayó a ${minAfterPeak} bayas, y subió de nuevo. Esto es Fluctuante, no Small Spike.`);
+                  return false;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     // En otros casos, mantener como posible
     return true;
   }
