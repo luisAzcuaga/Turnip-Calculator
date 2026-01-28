@@ -1066,7 +1066,7 @@ class TurnipPredictor {
         break;
 
       case this.patterns.LARGE_SPIKE:
-        rec.push('💰 Espera un pico altísimo (puede llegar a 400-600%)');
+        rec.push('💰 Espera un pico altísimo (puede llegar a 200-600%)');
         rec.push('⏰ ¡Revisa los precios cada turno!');
         rec.push('✨ Este es el MEJOR patrón posible');
         break;
