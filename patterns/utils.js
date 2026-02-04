@@ -218,29 +218,36 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
     return PERIODS.WEDNESDAY_PM; // Default: miércoles PM (período típico)
   }
 
-  // Buscar el precio máximo conocido primero (más confiable si existe)
+  // Buscar el precio máximo conocido
   const maxPrice = Math.max(...knownPrices.map(p => p.price));
   const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+  const maxPriceIndex = maxPriceData?.index ?? -1;
 
-  if (maxPriceData) {
+  // Verificar si hay precios DESPUÉS del máximo que estén bajando
+  // Esto confirma que el pico ya ocurrió
+  const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceIndex);
+  const hasDecliningPricesAfterMax = pricesAfterMax.length > 0 &&
+    pricesAfterMax.some(p => p.price < maxPrice * 0.95); // Bajó al menos 5%
+
+  // PRIORIDAD 1: Si el pico ya pasó (precios bajando después del máximo),
+  // usar el máximo como referencia para calcular peakStart
+  if (maxPriceData && hasDecliningPricesAfterMax) {
     const ratio = maxPrice / buyPrice;
 
     // Large Spike: pico máximo en período 3 del pico (200-600%)
     if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-      // El pico máximo está en peakStart+2 (período 3)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 2);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }
 
     // Small Spike: pico máximo en período 4 del pico (140-200%)
     if (!isLargeSpike && ratio >= THRESHOLDS.SMALL_SPIKE_MIN) {
-      // El pico máximo está en peakStart+3 (período 4 del pico)
       const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
       return Math.min(maxPeakStart, estimatedPeakStart);
     }
   }
 
-  // Buscar inversión de tendencia: estaba bajando y ahora sube
+  // PRIORIDAD 2: Buscar inversión de tendencia: estaba bajando y ahora sube
   // Esto es más confiable que buscar solo una subida grande
   const trendReversal = knownPrices.findIndex((current, i) => {
     if (i < 2) return false; // Necesitamos al menos 3 puntos
