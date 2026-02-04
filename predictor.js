@@ -136,13 +136,19 @@ class TurnipPredictor {
   }
 
   // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
-  // Período 2 Large Spike: 140-200% (sin overlap con Small Spike)
-  // Período 2 Small Spike: 90-140% (sin overlap con Large Spike)
+  // Período 2 Large Spike: 140-200% (seguido de pico >200% en Período 3)
+  // Período 2 Small Spike: 90-140% (pico máximo 140-200% en Período 4)
   detectPhase1Spike(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
+    // Primero verificar si hay un pico confirmado >200% (Large Spike)
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const maxRatio = maxPrice / this.buyPrice;
+    const hasLargeSpikeConfirmed = maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
+
     // Método directo: Buscar precios en rangos característicos de Período 2
-    // Si encontramos un precio en 140-200% con período anterior en 90-140%, es Período 2
+    // Si encontramos un precio en 140-200% con período anterior en 90-140%, PODRÍA ser Período 2
+    // Pero solo es Large Spike si hay un pico >200% confirmado
     for (let i = 0; i < knownPrices.length; i++) {
       const current = knownPrices[i];
       const rate = current.price / this.buyPrice;
@@ -153,11 +159,13 @@ class TurnipPredictor {
         if (previousPeriod) {
           const prevRate = previousPeriod.price / this.buyPrice;
           if (prevRate >= 0.90 && prevRate < 1.40) {
-            // Confirmado: precio anterior (90-140%) + precio actual (140-200%) = Período 2 Large Spike
+            // Precio anterior (90-140%) + precio actual (140-200%)
+            // Solo es Large Spike Período 2 si hay pico >200% confirmado
+            // Si no hay pico >200%, podría ser Small Spike Período 3/4/5
             const phase1Percent = (rate * 100).toFixed(1);
             return {
               detected: true,
-              isLargeSpike: true,
+              isLargeSpike: hasLargeSpikeConfirmed,
               phase1Price: current.price,
               phase1Percent: phase1Percent,
               phase1Day: getPeriodName(current.index)
@@ -165,11 +173,11 @@ class TurnipPredictor {
           }
         }
 
-        // Incluso sin período anterior, 140-200% es fuerte indicador de Large Spike Período 2
+        // Sin período anterior conocido, usar pico >200% como criterio decisivo
         const phase1Percent = (rate * 100).toFixed(1);
         return {
           detected: true,
-          isLargeSpike: true,
+          isLargeSpike: hasLargeSpikeConfirmed,
           phase1Price: current.price,
           phase1Percent: phase1Percent,
           phase1Day: getPeriodName(current.index)
