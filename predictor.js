@@ -182,40 +182,6 @@ class TurnipPredictor {
     return { tooLate: false };
   }
 
-  // Helper: Detecta secuencia Período 1 (90-140%) → Período 2 (140-200%) de Large Spike
-  // Retorna { detected, period1, period2, hasPricesAfter } o { detected: false }
-  detectLargeSpikeSequence(knownPrices) {
-    if (knownPrices.length < 2) return { detected: false };
-
-    const p1Range = RATES.LARGE_SPIKE.PEAK_PHASES[0]; // 90-140%
-    const p2Range = RATES.LARGE_SPIKE.PEAK_PHASES[1]; // 140-200%
-
-    // Buscar precio en rango P2 (140-200%) con precio anterior en rango P1 (90-140%)
-    for (const current of knownPrices) {
-      const rate = current.price / this.buyPrice;
-
-      if (rate >= p2Range.min && rate < p2Range.max) {
-        const previousPeriod = knownPrices.find(p => p.index === current.index - 1);
-
-        if (previousPeriod) {
-          const prevRate = previousPeriod.price / this.buyPrice;
-
-          if (prevRate >= p1Range.min && prevRate < p1Range.max) {
-            const pricesAfter = knownPrices.filter(p => p.index > current.index);
-            return {
-              detected: true,
-              period1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
-              period2: { price: current.price, rate: rate, index: current.index, day: getPeriodName(current.index) },
-              hasPricesAfter: pricesAfter.length > 0
-            };
-          }
-        }
-      }
-    }
-
-    return { detected: false };
-  }
-
   // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
   // Período 2 Large Spike: 140-200% | Período 2 Small Spike: 90-140%
   detectPhase1Spike(knownPrices) {
@@ -225,7 +191,7 @@ class TurnipPredictor {
     const hasLargeSpikeConfirmed = (maxPrice / this.buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
 
     // Usar helper para detectar secuencia P1→P2 de Large Spike
-    const sequence = this.detectLargeSpikeSequence(knownPrices);
+    const sequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
 
     if (sequence.detected) {
       const { period2, hasPricesAfter } = sequence;
@@ -762,7 +728,7 @@ class TurnipPredictor {
         }
 
         // Bonus si detectamos secuencia P1→P2 de Large Spike sin precios después
-        const lsSequence = this.detectLargeSpikeSequence(knownPrices);
+        const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
         if (lsSequence.detected && !lsSequence.hasPricesAfter) {
           score += 80;
           const { period1, period2 } = lsSequence;
@@ -838,7 +804,7 @@ class TurnipPredictor {
           }
 
           // Penalizar si la secuencia también coincide con Large Spike P1→P2
-          const lsSequence = this.detectLargeSpikeSequence(knownPrices);
+          const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
           if (lsSequence.detected && !lsSequence.hasPricesAfter) {
             score -= 50;
             const { period1, period2 } = lsSequence;

@@ -292,3 +292,41 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
   // Fallback: usar período medio del rango válido
   return Math.floor((minPeakStart + maxPeakStart) / 2);
 }
+
+/**
+ * Detecta secuencia Período 1 (90-140%) → Período 2 (140-200%) de Large Spike
+ * @param {Array} knownPrices - Array de precios conocidos con índices
+ * @param {number} buyPrice - Precio base de compra
+ * @returns {Object} - { detected, period1, period2, hasPricesAfter } o { detected: false }
+ */
+function detectLargeSpikeSequence(knownPrices, buyPrice) {
+  if (knownPrices.length < 2) return { detected: false };
+
+  const p1Range = RATES.LARGE_SPIKE.PEAK_PHASES[0]; // 90-140%
+  const p2Range = RATES.LARGE_SPIKE.PEAK_PHASES[1]; // 140-200%
+
+  // Buscar precio en rango P2 (140-200%) con precio anterior en rango P1 (90-140%)
+  for (const current of knownPrices) {
+    const rate = current.price / buyPrice;
+
+    if (rate >= p2Range.min && rate < p2Range.max) {
+      const previousPeriod = knownPrices.find(p => p.index === current.index - 1);
+
+      if (previousPeriod) {
+        const prevRate = previousPeriod.price / buyPrice;
+
+        if (prevRate >= p1Range.min && prevRate < p1Range.max) {
+          const pricesAfter = knownPrices.filter(p => p.index > current.index);
+          return {
+            detected: true,
+            period1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
+            period2: { price: current.price, rate: rate, index: current.index, day: getPeriodName(current.index) },
+            hasPricesAfter: pricesAfter.length > 0
+          };
+        }
+      }
+    }
+  }
+
+  return { detected: false };
+}
