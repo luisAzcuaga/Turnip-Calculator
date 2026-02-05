@@ -220,9 +220,16 @@ class TurnipPredictor {
     const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
     if (!spikeDetection.detected) return { detected: false };
 
-    const spikeStartIndex = knownPrices[spikeDetection.startIndex].index;
+    const spikeStartPrice = knownPrices[spikeDetection.startIndex];
+    const spikeStartIndex = spikeStartPrice.index;
     const phase1Data = knownPrices.find(p => p.index === spikeStartIndex + 1);
     if (!phase1Data) return { detected: false };
+
+    // CRITICAL: Solo considerar como secuencia de pico si el precio SUBE
+    // Si el precio baja (ej: 129 → 107), no es el inicio real del pico
+    if (phase1Data.price <= spikeStartPrice.price) {
+      return { detected: false };
+    }
 
     const phase1Rate = phase1Data.price / this.buyPrice;
 
@@ -384,18 +391,13 @@ class TurnipPredictor {
       return false;
     }
 
-    // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
+    // VALIDACIÓN PERÍODO 2: Si detectamos secuencia P1→P2 de Large Spike Y está confirmado, rechazar Small Spike
     const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected) {
-      // Si el Período 2 está en 140-200%, NO puede ser Small Spike
-      // Small Spike Período 2 = 90-140%, Large Spike Período 2 = 140-200%
-      const phase2Rate = phase1Check.phase1Price / this.buyPrice;
-      if (phase2Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
-        // Período 2 ≥ 140% = definitivamente Large Spike, no Small Spike
-        this.rejectionReasons.small_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). El Período 2 de Small Spike debe ser 90-140%, no ${phase1Check.phase1Percent}%.`);
-        return false;
-      }
-      // Si Período 2 < 140%, continuar con más validaciones (puede ser Small Spike)
+    if (phase1Check.detected && phase1Check.isLargeSpike === true) {
+      // Solo rechazar si tenemos confirmación de Large Spike (precio > 200%)
+      // Cuando isLargeSpike === null (indeterminado), el precio 140-200% podría ser el pico de Small Spike
+      this.rejectionReasons.small_spike.push(`Precio máximo superó 200%, confirmando Large Spike, no Small Spike.`);
+      return false;
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -730,9 +732,16 @@ class TurnipPredictor {
         // Bonus si detectamos secuencia P1→P2 de Large Spike sin precios después
         const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
         if (lsSequence.detected && !lsSequence.hasPricesAfter) {
-          score += 80;
           const { period1, period2 } = lsSequence;
-          this.scoreReasons.large_spike.push(`✅ Secuencia Large Spike: ${period1.price} bayas (${Math.round(period1.rate * 100)}%) → ${period2.price} bayas (${Math.round(period2.rate * 100)}%). El pico real (200-600%) puede venir en el siguiente período.`);
+          // Si el P2 está en rango de Small Spike (140-200%), el bonus es menor porque es ambiguo
+          // El pico podría ser de Small Spike, no necesariamente vendrá el 200-600%
+          if (period2.rate >= THRESHOLDS.SMALL_SPIKE_MIN && period2.rate < THRESHOLDS.SMALL_SPIKE_MAX) {
+            score += 30; // Bonus reducido - ambiguo
+            this.scoreReasons.large_spike.push(`⚠️ Secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% es ambigua. Podría ser Large Spike (esperando 200-600%) o el pico de Small Spike.`);
+          } else {
+            score += 80;
+            this.scoreReasons.large_spike.push(`✅ Secuencia Large Spike: ${period1.price} bayas (${Math.round(period1.rate * 100)}%) → ${period2.price} bayas (${Math.round(period2.rate * 100)}%). El pico real (200-600%) puede venir en el siguiente período.`);
+          }
         }
 
         score += 10; // Base score reducido (menos común que Small Spike)
@@ -804,11 +813,18 @@ class TurnipPredictor {
           }
 
           // Penalizar si la secuencia también coincide con Large Spike P1→P2
+          // PERO: si el pico ya está en rango ideal de Small Spike (140-200%), penalizar menos
           const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
           if (lsSequence.detected && !lsSequence.hasPricesAfter) {
-            score -= 50;
             const { period1, period2 } = lsSequence;
-            this.scoreReasons.small_spike.push(`⚠️ La secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% también coincide con Large Spike. El pico real podría ser mayor (200-600%).`);
+            // Si el pico está en rango ideal de Small Spike, es más probable que sea Small Spike
+            if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
+              score -= 15; // Penalización menor - el pico ya está en rango de Small Spike
+              this.scoreReasons.small_spike.push(`ℹ️ La secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% también podría ser Large Spike, pero el pico de ${Math.round(ratio * 100)}% es consistente con Small Spike.`);
+            } else {
+              score -= 50;
+              this.scoreReasons.small_spike.push(`⚠️ La secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% también coincide con Large Spike. El pico real podría ser mayor (200-600%).`);
+            }
           }
 
           score += 20; // Base score
