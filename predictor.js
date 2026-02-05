@@ -135,117 +135,90 @@ class TurnipPredictor {
     return { tooLate: false };
   }
 
-  // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
-  // Período 2 Large Spike: 140-200% (seguido de pico >200% en Período 3)
-  // Período 2 Small Spike: 90-140% (pico máximo 140-200% en Período 4)
-  detectPhase1Spike(knownPrices) {
+  // Helper: Detecta secuencia Período 1 (90-140%) → Período 2 (140-200%) de Large Spike
+  // Retorna { detected, period1, period2, hasPricesAfter } o { detected: false }
+  detectLargeSpikeSequence(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
-    // Primero verificar si hay un pico confirmado >200% (Large Spike)
-    const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = maxPrice / this.buyPrice;
-    const hasLargeSpikeConfirmed = maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
+    const p1Range = RATES.LARGE_SPIKE.PEAK_PHASES[0]; // 90-140%
+    const p2Range = RATES.LARGE_SPIKE.PEAK_PHASES[1]; // 140-200%
 
-    // Método directo: Buscar precios en rangos característicos de Período 2
-    // Si encontramos un precio en 140-200% con período anterior en 90-140%, PODRÍA ser Período 2
-    for (let i = 0; i < knownPrices.length; i++) {
-      const current = knownPrices[i];
+    // Buscar precio en rango P2 (140-200%) con precio anterior en rango P1 (90-140%)
+    for (const current of knownPrices) {
       const rate = current.price / this.buyPrice;
 
-      if (rate >= 1.40 && rate < 2.00) {
+      if (rate >= p2Range.min && rate < p2Range.max) {
         const previousPeriod = knownPrices.find(p => p.index === current.index - 1);
-        const pricesAfterCurrent = knownPrices.filter(p => p.index > current.index);
 
         if (previousPeriod) {
           const prevRate = previousPeriod.price / this.buyPrice;
-          if (prevRate >= 0.90 && prevRate < 1.40) {
-            // Precio anterior (90-140%) + precio actual (140-200%)
-            // Esta secuencia es característica de Large Spike Período 1 → Período 2
-            const phase1Percent = (rate * 100).toFixed(1);
 
-            // Si ya hay pico >200%, definitivamente Large Spike
-            if (hasLargeSpikeConfirmed) {
-              return {
-                detected: true,
-                isLargeSpike: true,
-                phase1Price: current.price,
-                phase1Percent: phase1Percent,
-                phase1Day: getPeriodName(current.index)
-              };
-            }
-
-            // Si no hay precios después, no podemos descartar Large Spike aún
-            // (el pico >200% podría venir en el siguiente período)
-            if (pricesAfterCurrent.length === 0) {
-              return {
-                detected: true,
-                isLargeSpike: null, // Indeterminado - no descartar ninguno
-                phase1Price: current.price,
-                phase1Percent: phase1Percent,
-                phase1Day: getPeriodName(current.index)
-              };
-            }
-
-            // Si hay precios después y ninguno llegó a 200%, es Small Spike
+          if (prevRate >= p1Range.min && prevRate < p1Range.max) {
+            const pricesAfter = knownPrices.filter(p => p.index > current.index);
             return {
               detected: true,
-              isLargeSpike: false,
-              phase1Price: current.price,
-              phase1Percent: phase1Percent,
-              phase1Day: getPeriodName(current.index)
+              period1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
+              period2: { price: current.price, rate: rate, index: current.index, day: getPeriodName(current.index) },
+              hasPricesAfter: pricesAfter.length > 0
             };
           }
         }
-
-        // Sin período anterior conocido, usar pico >200% como criterio decisivo
-        const phase1Percent = (rate * 100).toFixed(1);
-        return {
-          detected: true,
-          isLargeSpike: hasLargeSpikeConfirmed,
-          phase1Price: current.price,
-          phase1Percent: phase1Percent,
-          phase1Day: getPeriodName(current.index)
-        };
       }
     }
 
-    // Método indirecto: Detectar inicio del pico y luego verificar Período 2
-    // Usa detectSpikeStart() para encontrar dónde empieza el pico (inversión de tendencia, etc.)
-    const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
+    return { detected: false };
+  }
 
-    if (!spikeDetection.detected) return { detected: false };
+  // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
+  // Período 2 Large Spike: 140-200% | Período 2 Small Spike: 90-140%
+  detectPhase1Spike(knownPrices) {
+    if (knownPrices.length < 2) return { detected: false };
 
-    // El índice donde empieza el pico (Período 1)
-    const spikeStartIndex = knownPrices[spikeDetection.startIndex].index;
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const hasLargeSpikeConfirmed = (maxPrice / this.buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
 
-    // Buscar el Período 2 (siguiente período después del inicio)
-    const phase1Index = spikeStartIndex + 1;
-    const phase1Data = knownPrices.find(p => p.index === phase1Index);
+    // Usar helper para detectar secuencia P1→P2 de Large Spike
+    const sequence = this.detectLargeSpikeSequence(knownPrices);
 
-    if (!phase1Data) return { detected: false };
+    if (sequence.detected) {
+      const { period2, hasPricesAfter } = sequence;
+      const phase1Percent = (period2.rate * 100).toFixed(1);
 
-    const phase1Rate = phase1Data.price / this.buyPrice;
-    const phase1Percent = (phase1Rate * 100).toFixed(1);
+      // Determinar isLargeSpike según contexto
+      let isLargeSpike;
+      if (hasLargeSpikeConfirmed) {
+        isLargeSpike = true; // Pico >200% confirma Large Spike
+      } else if (!hasPricesAfter) {
+        isLargeSpike = null; // Indeterminado - pico podría venir
+      } else {
+        isLargeSpike = false; // Hay precios después sin llegar a 200%
+      }
 
-    // Clasificar según el rate del Período 2
-    if (phase1Rate >= 1.40) {
-      // Período 2 ≥ 140% = Large Spike confirmado
       return {
         detected: true,
-        isLargeSpike: true,
-        phase1Price: phase1Data.price,
-        phase1Percent: phase1Percent,
-        phase1Day: getPeriodName(phase1Index)
+        isLargeSpike,
+        phase1Price: period2.price,
+        phase1Percent,
+        phase1Day: period2.day
       };
     }
 
-    // Período 2 < 140% = No es Large Spike (podría ser Small Spike o Fluctuante)
+    // Método indirecto: Detectar inicio del pico y verificar Período 2
+    const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
+    if (!spikeDetection.detected) return { detected: false };
+
+    const spikeStartIndex = knownPrices[spikeDetection.startIndex].index;
+    const phase1Data = knownPrices.find(p => p.index === spikeStartIndex + 1);
+    if (!phase1Data) return { detected: false };
+
+    const phase1Rate = phase1Data.price / this.buyPrice;
+
     return {
       detected: true,
-      isLargeSpike: false,
+      isLargeSpike: phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN,
       phase1Price: phase1Data.price,
-      phase1Percent: phase1Percent,
-      phase1Day: getPeriodName(phase1Index)
+      phase1Percent: (phase1Rate * 100).toFixed(1),
+      phase1Day: getPeriodName(spikeStartIndex + 1)
     };
   }
 
@@ -817,25 +790,12 @@ class TurnipPredictor {
           this.scoreReasons.large_spike.push(`✅ Detectada subida rápida desde fase baja (señal de pico grande)`);
         }
 
-        // Bonus si detectamos secuencia de Período 1 → Período 2 de Large Spike
-        // sin precios después (el pico real 200-600% aún puede venir)
-        const maxPriceData = knownPrices.find(p => p.price === maxPrice);
-        const maxPriceIndex = maxPriceData?.index ?? -1;
-        const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceIndex);
-
-        if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED && pricesAfterMax.length === 0) {
-          // Buscar si el período anterior estaba en rango 90-140% (Período 1 de Large Spike)
-          const previousPeriod = knownPrices.find(p => p.index === maxPriceIndex - 1);
-          if (previousPeriod) {
-            const prevRatio = previousPeriod.price / this.buyPrice;
-            // Período 1 de Large Spike: 90-140% (PEAK_PHASES[0])
-            if (prevRatio >= RATES.LARGE_SPIKE.PEAK_PHASES[0].min && prevRatio < RATES.LARGE_SPIKE.PEAK_PHASES[0].max) {
-              // Secuencia Período 1 → Período 2 de Large Spike detectada
-              // Y no hay precios después - el pico real puede venir
-              score += 80;
-              this.scoreReasons.large_spike.push(`✅ Secuencia Large Spike: ${previousPeriod.price} bayas (${Math.round(prevRatio * 100)}%) → ${maxPrice} bayas (${Math.round(ratio * 100)}%). El pico real (200-600%) puede venir en el siguiente período.`);
-            }
-          }
+        // Bonus si detectamos secuencia P1→P2 de Large Spike sin precios después
+        const lsSequence = this.detectLargeSpikeSequence(knownPrices);
+        if (lsSequence.detected && !lsSequence.hasPricesAfter) {
+          score += 80;
+          const { period1, period2 } = lsSequence;
+          this.scoreReasons.large_spike.push(`✅ Secuencia Large Spike: ${period1.price} bayas (${Math.round(period1.rate * 100)}%) → ${period2.price} bayas (${Math.round(period2.rate * 100)}%). El pico real (200-600%) puede venir en el siguiente período.`);
         }
 
         score += 10; // Base score reducido (menos común que Small Spike)
@@ -906,23 +866,12 @@ class TurnipPredictor {
             this.scoreReasons.small_spike.push(`✅ Detectada subida moderada (señal de pico pequeño)`);
           }
 
-          // Penalizar si la secuencia también coincide con Large Spike Período 1 → Período 2
-          // Y no hay precios después (el pico real de Large Spike podría venir)
-          const maxPriceData = knownPrices.find(p => p.price === maxPrice);
-          const maxPriceIndex = maxPriceData?.index ?? -1;
-          const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceIndex);
-
-          if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED && pricesAfterMax.length === 0) {
-            const previousPeriod = knownPrices.find(p => p.index === maxPriceIndex - 1);
-            if (previousPeriod) {
-              const prevRatio = previousPeriod.price / this.buyPrice;
-              // Período 1 de Large Spike: 90-140% (PEAK_PHASES[0])
-              if (prevRatio >= RATES.LARGE_SPIKE.PEAK_PHASES[0].min && prevRatio < RATES.LARGE_SPIKE.PEAK_PHASES[0].max) {
-                // La secuencia también coincide con Large Spike - reducir confianza significativamente
-                score -= 50;
-                this.scoreReasons.small_spike.push(`⚠️ La secuencia ${Math.round(prevRatio * 100)}% → ${Math.round(ratio * 100)}% también coincide con Large Spike. El pico real podría ser mayor (200-600%).`);
-              }
-            }
+          // Penalizar si la secuencia también coincide con Large Spike P1→P2
+          const lsSequence = this.detectLargeSpikeSequence(knownPrices);
+          if (lsSequence.detected && !lsSequence.hasPricesAfter) {
+            score -= 50;
+            const { period1, period2 } = lsSequence;
+            this.scoreReasons.small_spike.push(`⚠️ La secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% también coincide con Large Spike. El pico real podría ser mayor (200-600%).`);
           }
 
           score += 20; // Base score
