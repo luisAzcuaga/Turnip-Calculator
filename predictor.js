@@ -112,6 +112,53 @@ class TurnipPredictor {
     return possiblePatterns.length > 0 ? possiblePatterns : [this.patterns.FLUCTUATING];
   }
 
+  // Helper: Valida pendiente en fase pre-pico para ambos tipos de spike
+  // Retorna { invalid: boolean, reason?: string }
+  validatePrePeakSlope(knownPrices, isLargeSpike) {
+    const patternName = isLargeSpike ? 'Large Spike' : 'Small Spike';
+    const minPeakStart = isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN;
+
+    for (let i = 1; i < knownPrices.length; i++) {
+      const current = knownPrices[i];
+      const previous = knownPrices[i - 1];
+
+      // Solo validar si los períodos son consecutivos
+      if (current.index !== previous.index + 1) continue;
+
+      const ratio = priceRatio(current.price, previous.price);
+
+      // Detectar si ya empezó el pico
+      const spikeStarted = knownPrices.slice(0, i).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
+
+      // Solo validar caída del rate en fase PRE-PICO
+      if (!spikeStarted) {
+        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
+
+        if (!rateValidation.valid) {
+          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
+          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
+          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+          return {
+            invalid: true,
+            reason: `Precio cayó de ${previous.price} bayas (${prevPercent}%) a ${current.price} bayas (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. ${patternName} solo puede bajar máximo 5% por período en fase pre-pico.`
+          };
+        }
+      }
+
+      // Si sube muy temprano
+      if (current.index < minPeakStart && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
+        const risePercent = Math.round((ratio - 1) * 100);
+        const spikeRange = getSpikeStartRange(isLargeSpike);
+        return {
+          invalid: true,
+          reason: `Subió ${risePercent}% antes del período ${minPeakStart}. ${patternName} no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`
+        };
+      }
+    }
+
+    return { invalid: false };
+  }
+
   // Helper: Verifica si llegamos tarde para un spike (sin subidas significativas)
   isTooLateForSpike(knownPrices, spikeType) {
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
@@ -302,50 +349,12 @@ class TurnipPredictor {
       }
     }
 
-    // VALIDACIÓN 2 y 3: Validar pendiente en fase pre-pico
-    // Large Spike NO puede bajar >5 puntos del RATE por período
-    // Large Spike NO debería subir significativamente antes del pico
-    const hasInvalidSlope = knownPrices.slice(1).some((current, i) => {
-      const previous = knownPrices[i];
-
-      // Solo validar si los períodos son consecutivos
-      if (current.index !== previous.index + 1) return false;
-
-      const ratio = priceRatio(current.price, previous.price);
-
-      // Detectar si ya empezó el pico: si algún precio anterior fue ≥90% del buyPrice
-      // Si ya estamos en el pico, NO validar caída del rate (el pico puede bajar >5%)
-      const spikeStarted = knownPrices.slice(0, i + 1).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
-
-      // Solo validar caída del rate en fase PRE-PICO
-      if (!spikeStarted) {
-        // Validar usando el RATE (precio/buyPrice), no el precio directamente
-        // El juego reduce el rate 3-5 puntos por período, no el precio
-        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
-
-        // Si el rate baja más de 5 puntos porcentuales, NO es Large Spike
-        if (!rateValidation.valid) {
-          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
-          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
-          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
-          this.rejectionReasons.large_spike.push(`Precio cayó de ${previous.price} bayas (${prevPercent}%) a ${current.price} bayas (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Large Spike solo puede bajar máximo 5% por período en fase pre-pico.`);
-          return true;
-        }
-      }
-
-      // Si sube más de 10% en fase temprana (antes de período 3),
-      // probablemente ya empezó el pico (pero Large Spike empieza en período 3+)
-      if (current.index < PERIODS.LARGE_SPIKE_PEAK_START_MIN && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
-        const risePercent = Math.round((ratio - 1) * 100);
-        const spikeRange = getSpikeStartRange(true);
-        this.rejectionReasons.large_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.LARGE_SPIKE_PEAK_START_MIN}. Large Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return true;
-      }
-
+    // VALIDACIÓN: Validar pendiente en fase pre-pico
+    const slopeCheck = this.validatePrePeakSlope(knownPrices, true);
+    if (slopeCheck.invalid) {
+      this.rejectionReasons.large_spike.push(slopeCheck.reason);
       return false;
-    });
-
-    if (hasInvalidSlope) return false;
+    }
 
     // BUG FIX: Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
     // Esto indica que el pico ya pasó y fue muy bajo para ser Large Spike
@@ -435,49 +444,11 @@ class TurnipPredictor {
     }
 
     // VALIDACIÓN: Validar pendiente en fase pre-pico
-    // Small Spike NO puede bajar >5 puntos del RATE por período en fase decreciente
-    const hasInvalidSmallSpikeSlope = knownPrices.slice(1).some((current, i) => {
-      const previous = knownPrices[i];
-
-      // Solo validar si los períodos son consecutivos
-      if (current.index !== previous.index + 1) return false;
-
-      const ratio = priceRatio(current.price, previous.price);
-
-      // Detectar si ya empezó el pico: si algún precio anterior fue ≥90% del buyPrice
-      // Si ya estamos en el pico, NO validar caída del rate (el pico puede bajar >5%)
-      const spikeStarted = knownPrices.slice(0, i + 1).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
-
-      // Solo validar caída del rate en fase PRE-PICO
-      if (!spikeStarted) {
-        // Validar usando el RATE (precio/buyPrice), no el precio directamente
-        // El juego reduce el rate 3-5 puntos por período, no el precio
-        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
-
-        // Si el rate baja más de 5 puntos porcentuales, NO es Small Spike
-        // Probablemente es Decreasing o Fluctuating
-        if (!rateValidation.valid) {
-          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
-          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
-          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
-          this.rejectionReasons.small_spike.push(`Precio cayó de ${previous.price} bayas (${prevPercent}%) a ${current.price} bayas (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. Small Spike solo puede bajar máximo 5% por período en fase pre-pico.`);
-          return true;
-        }
-      }
-
-      // Si sube muy temprano antes del período 2 (Martes AM),
-      // podría no ser Small Spike (el pico empieza en período 2+)
-      if (current.index < PERIODS.SMALL_SPIKE_PEAK_START_MIN && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
-        const risePercent = Math.round((ratio - 1) * 100);
-        const spikeRange = getSpikeStartRange(false);
-        this.rejectionReasons.small_spike.push(`Subió ${risePercent}% antes del período ${PERIODS.SMALL_SPIKE_PEAK_START_MIN}. Small Spike no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return true;
-      }
-
+    const slopeCheck = this.validatePrePeakSlope(knownPrices, false);
+    if (slopeCheck.invalid) {
+      this.rejectionReasons.small_spike.push(slopeCheck.reason);
       return false;
-    });
-
-    if (hasInvalidSmallSpikeSlope) return false;
+    }
 
     // Si el pico está en el rango perfecto de Small Spike (140-200%)
     // Y ya estamos en viernes o después, es muy probable que sea Small Spike
