@@ -148,24 +148,48 @@ class TurnipPredictor {
 
     // Método directo: Buscar precios en rangos característicos de Período 2
     // Si encontramos un precio en 140-200% con período anterior en 90-140%, PODRÍA ser Período 2
-    // Pero solo es Large Spike si hay un pico >200% confirmado
     for (let i = 0; i < knownPrices.length; i++) {
       const current = knownPrices[i];
       const rate = current.price / this.buyPrice;
 
       if (rate >= 1.40 && rate < 2.00) {
         const previousPeriod = knownPrices.find(p => p.index === current.index - 1);
+        const pricesAfterCurrent = knownPrices.filter(p => p.index > current.index);
 
         if (previousPeriod) {
           const prevRate = previousPeriod.price / this.buyPrice;
           if (prevRate >= 0.90 && prevRate < 1.40) {
             // Precio anterior (90-140%) + precio actual (140-200%)
-            // Solo es Large Spike Período 2 si hay pico >200% confirmado
-            // Si no hay pico >200%, podría ser Small Spike Período 3/4/5
+            // Esta secuencia es característica de Large Spike Período 1 → Período 2
             const phase1Percent = (rate * 100).toFixed(1);
+
+            // Si ya hay pico >200%, definitivamente Large Spike
+            if (hasLargeSpikeConfirmed) {
+              return {
+                detected: true,
+                isLargeSpike: true,
+                phase1Price: current.price,
+                phase1Percent: phase1Percent,
+                phase1Day: getPeriodName(current.index)
+              };
+            }
+
+            // Si no hay precios después, no podemos descartar Large Spike aún
+            // (el pico >200% podría venir en el siguiente período)
+            if (pricesAfterCurrent.length === 0) {
+              return {
+                detected: true,
+                isLargeSpike: null, // Indeterminado - no descartar ninguno
+                phase1Price: current.price,
+                phase1Percent: phase1Percent,
+                phase1Day: getPeriodName(current.index)
+              };
+            }
+
+            // Si hay precios después y ninguno llegó a 200%, es Small Spike
             return {
               detected: true,
-              isLargeSpike: hasLargeSpikeConfirmed,
+              isLargeSpike: false,
               phase1Price: current.price,
               phase1Percent: phase1Percent,
               phase1Day: getPeriodName(current.index)
@@ -270,12 +294,13 @@ class TurnipPredictor {
     // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
     const phase1Check = this.detectPhase1Spike(knownPrices);
     if (phase1Check.detected) {
-      if (!phase1Check.isLargeSpike) {
+      if (phase1Check.isLargeSpike === false) {
         // Período 2 < 140% = no es Large Spike
-        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2.`);
+        // O: hay precios después del 140-200% y ninguno llegó a 200%
+        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
         return false;
       }
-      // Si isLargeSpike = true, continuar con más validaciones (puede ser Large Spike)
+      // Si isLargeSpike = true o null, continuar con más validaciones (puede ser Large Spike)
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -414,12 +439,15 @@ class TurnipPredictor {
     // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
     const phase1Check = this.detectPhase1Spike(knownPrices);
     if (phase1Check.detected) {
-      if (phase1Check.isLargeSpike) {
+      // Si el Período 2 está en 140-200%, NO puede ser Small Spike
+      // Small Spike Período 2 = 90-140%, Large Spike Período 2 = 140-200%
+      const phase2Rate = phase1Check.phase1Price / this.buyPrice;
+      if (phase2Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
         // Período 2 ≥ 140% = definitivamente Large Spike, no Small Spike
-        this.rejectionReasons.small_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Small Spike debe ser <140% en el Período 2. Esto es Large Spike.`);
+        this.rejectionReasons.small_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). El Período 2 de Small Spike debe ser 90-140%, no ${phase1Check.phase1Percent}%.`);
         return false;
       }
-      // Si isLargeSpike = false, continuar con más validaciones (puede ser Small Spike)
+      // Si Período 2 < 140%, continuar con más validaciones (puede ser Small Spike)
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -789,6 +817,27 @@ class TurnipPredictor {
           this.scoreReasons.large_spike.push(`✅ Detectada subida rápida desde fase baja (señal de pico grande)`);
         }
 
+        // Bonus si detectamos secuencia de Período 1 → Período 2 de Large Spike
+        // sin precios después (el pico real 200-600% aún puede venir)
+        const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+        const maxPriceIndex = maxPriceData?.index ?? -1;
+        const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceIndex);
+
+        if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED && pricesAfterMax.length === 0) {
+          // Buscar si el período anterior estaba en rango 90-140% (Período 1 de Large Spike)
+          const previousPeriod = knownPrices.find(p => p.index === maxPriceIndex - 1);
+          if (previousPeriod) {
+            const prevRatio = previousPeriod.price / this.buyPrice;
+            // Período 1 de Large Spike: 90-140% (PEAK_PHASES[0])
+            if (prevRatio >= RATES.LARGE_SPIKE.PEAK_PHASES[0].min && prevRatio < RATES.LARGE_SPIKE.PEAK_PHASES[0].max) {
+              // Secuencia Período 1 → Período 2 de Large Spike detectada
+              // Y no hay precios después - el pico real puede venir
+              score += 80;
+              this.scoreReasons.large_spike.push(`✅ Secuencia Large Spike: ${previousPeriod.price} bayas (${Math.round(prevRatio * 100)}%) → ${maxPrice} bayas (${Math.round(ratio * 100)}%). El pico real (200-600%) puede venir en el siguiente período.`);
+            }
+          }
+        }
+
         score += 10; // Base score reducido (menos común que Small Spike)
         break;
 
@@ -855,6 +904,25 @@ class TurnipPredictor {
           if (hasModerateIncrease) {
             score += 20;
             this.scoreReasons.small_spike.push(`✅ Detectada subida moderada (señal de pico pequeño)`);
+          }
+
+          // Penalizar si la secuencia también coincide con Large Spike Período 1 → Período 2
+          // Y no hay precios después (el pico real de Large Spike podría venir)
+          const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+          const maxPriceIndex = maxPriceData?.index ?? -1;
+          const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceIndex);
+
+          if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED && pricesAfterMax.length === 0) {
+            const previousPeriod = knownPrices.find(p => p.index === maxPriceIndex - 1);
+            if (previousPeriod) {
+              const prevRatio = previousPeriod.price / this.buyPrice;
+              // Período 1 de Large Spike: 90-140% (PEAK_PHASES[0])
+              if (prevRatio >= RATES.LARGE_SPIKE.PEAK_PHASES[0].min && prevRatio < RATES.LARGE_SPIKE.PEAK_PHASES[0].max) {
+                // La secuencia también coincide con Large Spike - reducir confianza significativamente
+                score -= 50;
+                this.scoreReasons.small_spike.push(`⚠️ La secuencia ${Math.round(prevRatio * 100)}% → ${Math.round(ratio * 100)}% también coincide con Large Spike. El pico real podría ser mayor (200-600%).`);
+              }
+            }
           }
 
           score += 20; // Base score
