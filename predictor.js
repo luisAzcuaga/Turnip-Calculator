@@ -1,5 +1,5 @@
-import { BUY_PRICE_MIN, BUY_PRICE_MAX, DEFAULT_PROBABILITIES, TRANSITION_PROBABILITIES, DAYS_CONFIG, TURNIP_PRICE_MIN, TURNIP_PRICE_MAX, PERIODS, THRESHOLDS, CONFIDENCE, RATES } from "./constants.js";
-import { priceRatio, largeSpikeStartRange, detectLargeSpikeSequence, detectSpikeStart, decreasingMaxForPeriod, decreasingMin, isValidRateDrop, getPeriodName } from "./patterns/utils.js";
+import { BUY_PRICE_MIN, BUY_PRICE_MAX, DEFAULT_PROBABILITIES, TRANSITION_PROBABILITIES, DAYS_CONFIG, TURNIP_PRICE_MIN, TURNIP_PRICE_MAX, PERIODS, THRESHOLDS, CONFIDENCE, RATES, PATTERNS, PATTERN_NAMES } from "./constants.js";
+import { priceRatio, largeSpikeStartRange, detectLargeSpikeSequence, detectSpikeStart, decreasingMaxForPeriod, decreasingMin, isValidRateDrop, getPeriodName, getSpikeStartRange } from "./patterns/utils.js";
 
 import calculateFluctuatingPattern from "./patterns/fluctuating.js";
 import calculateSmallSpikePattern from "./patterns/small-spike.js";
@@ -18,19 +18,6 @@ export default class TurnipPredictor {
     this.buyPrice = buyPrice;
     this.knownPrices = this.validatePrices(knownPrices);
     this.previousPattern = previousPattern;
-    this.patterns = {
-      FLUCTUATING: 'fluctuating',
-      LARGE_SPIKE: 'large_spike',
-      DECREASING: 'decreasing',
-      SMALL_SPIKE: 'small_spike'
-    };
-
-    this.patternNames = {
-      'fluctuating': 'Fluctuante',
-      'large_spike': 'Pico Grande',
-      'decreasing': 'Decreciente',
-      'small_spike': 'Pico Pequeño'
-    };
 
     // Sistema de tracking de razones de rechazo/baja probabilidad
     this.rejectionReasons = {
@@ -96,27 +83,27 @@ export default class TurnipPredictor {
 
     if (knownPrices.length === 0) {
       // Sin datos, todos los patrones son posibles
-      return Object.values(this.patterns);
+      return Object.values(PATTERNS);
     }
 
     const possiblePatterns = [];
 
     // Verificar cada patrón
     if (this.isPossibleDecreasing(knownPrices)) {
-      possiblePatterns.push(this.patterns.DECREASING);
+      possiblePatterns.push(PATTERNS.DECREASING);
     }
     if (this.isPossibleLargeSpike(knownPrices)) {
-      possiblePatterns.push(this.patterns.LARGE_SPIKE);
+      possiblePatterns.push(PATTERNS.LARGE_SPIKE);
     }
     if (this.isPossibleSmallSpike(knownPrices)) {
-      possiblePatterns.push(this.patterns.SMALL_SPIKE);
+      possiblePatterns.push(PATTERNS.SMALL_SPIKE);
     }
     if (this.isPossibleFluctuating(knownPrices)) {
-      possiblePatterns.push(this.patterns.FLUCTUATING);
+      possiblePatterns.push(PATTERNS.FLUCTUATING);
     }
 
     // Si ningún patrón encaja, devolver fluctuante como fallback
-    return possiblePatterns.length > 0 ? possiblePatterns : [this.patterns.FLUCTUATING];
+    return possiblePatterns.length > 0 ? possiblePatterns : [PATTERNS.FLUCTUATING];
   }
 
   // Helper: Valida pendiente en fase pre-pico para ambos tipos de spike
@@ -685,7 +672,7 @@ export default class TurnipPredictor {
     const ratio = maxPrice / this.buyPrice;
 
     switch (pattern) {
-      case this.patterns.DECREASING:
+      case PATTERNS.DECREASING:
         // Penalizar si hay subidas
         const isDecreasing = knownPrices.every((current, i) => {
           if (i === 0) return true;
@@ -708,7 +695,7 @@ export default class TurnipPredictor {
         }
         break;
 
-      case this.patterns.LARGE_SPIKE:
+      case PATTERNS.LARGE_SPIKE:
         // Bonus si hay un pico muy alto (200%+)
         if (ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
           score += 100;
@@ -754,7 +741,7 @@ export default class TurnipPredictor {
         score += 10; // Base score reducido (menos común que Small Spike)
         break;
 
-      case this.patterns.SMALL_SPIKE:
+      case PATTERNS.SMALL_SPIKE:
         // MEJORA #1: Flag para detectar si el patrón está descartado
         let smallSpikeRejected = false;
 
@@ -838,7 +825,7 @@ export default class TurnipPredictor {
         }
         break;
 
-      case this.patterns.FLUCTUATING:
+      case PATTERNS.FLUCTUATING:
         // REGLA DE DETECCIÓN TEMPRANA:
         // Si el LUNES tiene precio alto (>100%), es casi seguro Fluctuante
         // Los picos de Large/Small Spike empiezan en período 2+ (Martes+)
@@ -938,12 +925,12 @@ export default class TurnipPredictor {
 
     return {
       pattern: pattern,
-      patternName: this.patternNames[pattern],
+      patternName: PATTERN_NAMES[pattern],
       primaryPercentage: patternResult.percentages[pattern],
       allProbabilities: allProbabilities,
       alternatives: patternResult.alternatives.map(alt => ({
         pattern: alt.pattern,
-        name: this.patternNames[alt.pattern],
+        name: PATTERN_NAMES[alt.pattern],
         percentage: alt.percentage
       })),
       predictions: predictions,
@@ -959,16 +946,16 @@ export default class TurnipPredictor {
     const knownPricesArray = this.getPriceArrayWithIndices();
 
     switch (pattern) {
-      case this.patterns.DECREASING:
+      case PATTERNS.DECREASING:
         return this.decreasingPattern(periodIndex, base, knownPricesArray);
 
-      case this.patterns.LARGE_SPIKE:
+      case PATTERNS.LARGE_SPIKE:
         return this.largeSpikePattern(periodIndex, base, knownPricesArray);
 
-      case this.patterns.SMALL_SPIKE:
+      case PATTERNS.SMALL_SPIKE:
         return this.smallSpikePattern(periodIndex, base, knownPricesArray);
 
-      case this.patterns.FLUCTUATING:
+      case PATTERNS.FLUCTUATING:
       default:
         return this.fluctuatingPattern(periodIndex, base, knownPricesArray);
     }
@@ -1044,24 +1031,24 @@ export default class TurnipPredictor {
     let rec = [];
 
     switch (pattern) {
-      case this.patterns.DECREASING:
+      case PATTERNS.DECREASING:
         rec.push('📉 Los precios solo bajarán toda la semana');
         rec.push('💡 Vende HOY o visita otra isla');
         rec.push('🏃‍♂️ No esperes, solo empeorarán');
         break;
 
-      case this.patterns.LARGE_SPIKE:
+      case PATTERNS.LARGE_SPIKE:
         rec.push('💰 Espera un pico altísimo (puede llegar a 200-600%)');
         rec.push('⏰ ¡Revisa los precios cada turno!');
         rec.push('✨ Este es el MEJOR patrón posible');
         break;
 
-      case this.patterns.SMALL_SPIKE:
+      case PATTERNS.SMALL_SPIKE:
         rec.push('💵 Espera un pico moderado (140-200%)');
         rec.push('👍 Buena oportunidad para ganancias');
         break;
 
-      case this.patterns.FLUCTUATING:
+      case PATTERNS.FLUCTUATING:
       default:
         rec.push('🎲 Precios variables durante la semana');
         rec.push('✅ Vende cuando supere tu precio de compra');
@@ -1075,7 +1062,7 @@ export default class TurnipPredictor {
   getBestTime(predictions, pattern) {
     // Si es Fluctuante, no tiene sentido buscar "mejor momento"
     // El patrón es aleatorio por diseño - cualquier día puede ser el mejor
-    if (pattern === this.patterns.FLUCTUATING) {
+    if (pattern === PATTERNS.FLUCTUATING) {
       return {
         pattern: 'fluctuating',
         message: 'No hay momento óptimo predecible en patrón aleatorio'
