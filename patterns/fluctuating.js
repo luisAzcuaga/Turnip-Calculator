@@ -22,23 +22,6 @@ import { priceFloor, priceCeil } from "./utils.js";
 // - Esto hace las predicciones MUCHO más precisas cuando hay suficientes datos
 
 /**
- * Detecta si el precio actual está en fase alta o baja
- * @param {number} price - Precio actual
- * @param {number} base - Precio base
- * @returns {string} - 'high' o 'low'
- */
-function detectPhase(price, base) {
-  const ratio = price / base;
-  // Fase alta: 90-140%
-  // Fase baja: 60-80% (y bajando)
-  if (ratio >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD) {
-    return 'high';
-  } else {
-    return 'low';
-  }
-}
-
-/**
  * Detecta las fases de bajada en los precios conocidos
  * @param {Array} knownPrices - Array de precios conocidos ordenados por índice
  * @param {number} base - Precio base de compra
