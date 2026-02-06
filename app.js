@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
     panel.innerHTML = html;
   }
 
-  function fillInputsWithPredictions(predictions, bestTimeKey = null) {
+  function fillInputsWithPredictions(predictions) {
     Object.entries(predictions).forEach(([key, data]) => {
       const input = document.getElementById(key);
       if (!input) return;
