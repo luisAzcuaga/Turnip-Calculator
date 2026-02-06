@@ -1,3 +1,6 @@
+import { calculateAvgRateDrop, projectPriceFromRate, priceFloor, priceCeil } from "./utils.js";
+import { VARIANCE, RATES, DECAY } from "../constants.js";
+
 // Patrón DECRECIENTE: bajada constante
 // Basado en el algoritmo real datamineado del juego (Pattern 2)
 // Usa constantes de constants.js (RATES, DECAY, VARIANCE)

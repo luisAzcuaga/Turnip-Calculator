@@ -1,3 +1,11 @@
+import { BUY_PRICE_MIN, BUY_PRICE_MAX, DEFAULT_PROBABILITIES, TRANSITION_PROBABILITIES, DAYS_CONFIG, TURNIP_PRICE_MIN, TURNIP_PRICE_MAX, PERIODS, THRESHOLDS, CONFIDENCE, RATES } from "./constants.js";
+import { priceRatio, largeSpikeStartRange, detectLargeSpikeSequence, detectSpikeStart, decreasingMaxForPeriod, decreasingMin, isValidRateDrop, getPeriodName } from "./patterns/utils.js";
+
+import calculateFluctuatingPattern from "./patterns/fluctuating.js";
+import calculateSmallSpikePattern from "./patterns/small-spike.js";
+import calculateDecreasingPattern from "./patterns/decreasing.js";
+import calculateLargeSpikePattern from './patterns/large-spike.js';
+
 // Predictor de Precios de Nabos - Animal Crossing New Horizons
 // Basado en los patrones reales del juego
 export default class TurnipPredictor {

@@ -1,3 +1,6 @@
+import { BUY_PRICE_MIN, BUY_PRICE_MAX, RATES, PERIODS } from "../constants.js";
+import { priceFloor, priceCeil } from "./utils.js";
+
 // Patrón FLUCTUANTE: alterna entre fases altas y bajas
 // Basado en el algoritmo real datamineado del juego (Pattern 0)
 // Usa constantes de constants.js (RATES, PERIODS, THRESHOLDS)
