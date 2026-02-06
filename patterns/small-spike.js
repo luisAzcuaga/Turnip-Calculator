@@ -9,7 +9,7 @@
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @returns {{min: number, max: number}} - Rango de precios
  */
-function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
+export default function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   // peakStart puede ser 1-7 según el algoritmo del juego (Lunes PM a Jueves PM)
   const peakStart = detectSpikePeakStart(knownPrices, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false, base);
 

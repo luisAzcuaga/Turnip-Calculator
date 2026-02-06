@@ -198,7 +198,7 @@ function analyzeFluctuatingStructure(knownPrices, base) {
  * - Deduce la longitud de la otra fase baja (deben sumar 5 períodos total)
  * - Predice fase ALTA (90-140%) para todo lo que viene después de ambas fases bajas
  */
-function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
+export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Validación defensiva: si no hay precio base, no podemos predecir
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
     console.warn('Fluctuating pattern: Precio base inválido', base);

@@ -10,7 +10,7 @@
  * Calcula el precio mínimo usando floor (redondea hacia abajo)
  * Usar para límites inferiores
  */
-function priceFloor(basePrice, rate) {
+export function priceFloor(basePrice, rate) {
   return Math.floor(basePrice * rate);
 }
 
@@ -18,7 +18,7 @@ function priceFloor(basePrice, rate) {
  * Calcula el precio máximo usando ceil (redondea hacia arriba)
  * Usar para límites superiores
  */
-function priceCeil(basePrice, rate) {
+export function priceCeil(basePrice, rate) {
   return Math.ceil(basePrice * rate);
 }
 
@@ -33,7 +33,7 @@ function priceRound(basePrice, rate) {
 /**
  * Calcula el ratio de un precio respecto al precio base
  */
-function priceRatio(price, basePrice) {
+export function priceRatio(price, basePrice) {
   return price / basePrice;
 }
 
@@ -62,7 +62,7 @@ function minAfterDrop(previousPrice) {
  * @param {number} buyPrice - Precio base de compra
  * @returns {{valid: boolean, rateDrop: number}} - Si es válido y cuánto bajó el rate
  */
-function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
+export function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
   const previousRate = previousPrice / buyPrice;
   const currentRate = currentPrice / buyPrice;
   // Truncar a 2 decimales para simular aritmética de enteros del juego
@@ -80,7 +80,7 @@ function isValidRateDrop(previousPrice, currentPrice, buyPrice) {
 /**
  * Calcula el máximo esperado para patrón Decreasing en un período dado
  */
-function decreasingMaxForPeriod(basePrice, periodIndex) {
+export function decreasingMaxForPeriod(basePrice, periodIndex) {
   const rate = RATES.DECREASING.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD);
   return Math.ceil(basePrice * Math.max(RATES.FLOOR, rate));
 }
@@ -88,14 +88,14 @@ function decreasingMaxForPeriod(basePrice, periodIndex) {
 /**
  * Calcula el mínimo esperado para patrón Decreasing
  */
-function decreasingMin(basePrice) {
+export function decreasingMin(basePrice) {
   return Math.floor(basePrice * RATES.FLOOR);
 }
 
 /**
  * Calcula el rango de Large Spike para Lunes AM
  */
-function largeSpikeStartRange(basePrice) {
+export function largeSpikeStartRange(basePrice) {
   return {
     min: Math.floor(basePrice * RATES.LARGE_SPIKE.START_MIN),
     max: Math.ceil(basePrice * RATES.LARGE_SPIKE.START_MAX),
@@ -105,7 +105,7 @@ function largeSpikeStartRange(basePrice) {
 /**
  * Obtiene el nombre legible de un período
  */
-function getPeriodName(periodIndex) {
+export function getPeriodName(periodIndex) {
   return DAYS_CONFIG[periodIndex]?.name || `Período ${periodIndex}`;
 }
 
@@ -133,7 +133,7 @@ function getSpikeStartRange(isLargeSpike) {
  * @param {number} base - Precio base de compra
  * @returns {number} - Promedio de puntos que baja el rate por período
  */
-function calculateAvgRateDrop(knownPrices, base) {
+export function calculateAvgRateDrop(knownPrices, base) {
   if (knownPrices.length < 2) {
     return 0;
   }
@@ -157,7 +157,7 @@ function calculateAvgRateDrop(knownPrices, base) {
  * @param {number} periodsAhead - Cuántos períodos hacia adelante proyectar
  * @returns {number} - Precio proyectado
  */
-function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
+export function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
   const lastKnownRate = lastKnownPrice / base;
   const projectedRate = lastKnownRate - (avgRateDrop * periodsAhead);
   return base * projectedRate;
@@ -169,7 +169,7 @@ function projectPriceFromRate(lastKnownPrice, base, avgRateDrop, periodsAhead) {
  * @param {number} buyPrice - Precio base de compra
  * @returns {{detected: boolean, startIndex: number}} - Si se detectó y en qué índice
  */
-function detectSpikeStart(prices, buyPrice) {
+export function detectSpikeStart(prices, buyPrice) {
   if (!prices || prices.length < 2) {
     return { detected: false, startIndex: -1 };
   }
@@ -213,7 +213,7 @@ function detectSpikeStart(prices, buyPrice) {
  * @param {number} buyPrice - Precio base de compra
  * @returns {number} - Índice estimado donde empieza el pico
  */
-function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike, buyPrice) {
+export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike, buyPrice) {
   if (knownPrices.length === 0) {
     return PERIODS.WEDNESDAY_PM; // Default: miércoles PM (período típico)
   }
@@ -299,7 +299,7 @@ function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSp
  * @param {number} buyPrice - Precio base de compra
  * @returns {Object} - { detected, period1, period2, hasPricesAfter } o { detected: false }
  */
-function detectLargeSpikeSequence(knownPrices, buyPrice) {
+export function detectLargeSpikeSequence(knownPrices, buyPrice) {
   if (knownPrices.length < 2) return { detected: false };
 
   const p1Range = RATES.LARGE_SPIKE.PEAK_PHASES[0]; // 90-140%

@@ -1,7 +1,6 @@
 // Predictor de Precios de Nabos - Animal Crossing New Horizons
 // Basado en los patrones reales del juego
-
-class TurnipPredictor {
+export default class TurnipPredictor {
   constructor(buyPrice, knownPrices = {}, previousPattern = null) {
     // Validar precio de compra
     if (buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {

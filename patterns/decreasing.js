@@ -13,7 +13,7 @@
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @returns {{min: number, max: number}} - Rango de precios
  */
-function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
+export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // Si tenemos datos conocidos, estimar la tasa de decrecimiento real del RATE
   if (knownPrices.length >= 2) {
     const lastKnown = knownPrices[knownPrices.length - 1];

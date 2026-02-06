@@ -6,7 +6,7 @@
 // ============================================================================
 
 // Days/periods configuration - single source of truth
-const DAYS_CONFIG = [
+export const DAYS_CONFIG = [
   { key: 'mon_am', name: 'Lunes AM' },
   { key: 'mon_pm', name: 'Lunes PM' },
   { key: 'tue_am', name: 'Martes AM' },
@@ -22,14 +22,14 @@ const DAYS_CONFIG = [
 ];
 
 // Extract just the keys for convenience (when only IDs are needed)
-const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
+export const PRICE_INPUT_IDS = DAYS_CONFIG.map(d => d.key);
 
 // ============================================================================
 // PATRONES
 // ============================================================================
 
 // Pattern keys (internal identifiers)
-const PATTERNS = {
+export const PATTERNS = {
   FLUCTUATING: 'fluctuating',
   LARGE_SPIKE: 'large_spike',
   SMALL_SPIKE: 'small_spike',
@@ -37,7 +37,7 @@ const PATTERNS = {
 };
 
 // Pattern display names (español)
-const PATTERN_NAMES = {
+export const PATTERN_NAMES = {
   'fluctuating': 'Fluctuante',
   'large_spike': 'Pico Grande',
   'small_spike': 'Pico Pequeño',
@@ -45,7 +45,7 @@ const PATTERN_NAMES = {
 };
 
 // Encoding map: pattern name → single letter (for URL compression)
-const PATTERN_ENCODE_MAP = {
+export const PATTERN_ENCODE_MAP = {
   'fluctuating': 'f',
   'large_spike': 'l',
   'small_spike': 's',
@@ -53,7 +53,7 @@ const PATTERN_ENCODE_MAP = {
 };
 
 // Decoding map: single letter → pattern name (for URL decompression)
-const PATTERN_DECODE_MAP = {
+export const PATTERN_DECODE_MAP = {
   'f': 'fluctuating',
   'l': 'large_spike',
   's': 'small_spike',
@@ -64,7 +64,7 @@ const PATTERN_DECODE_MAP = {
 // PERÍODOS CLAVE (índices de DAYS_CONFIG)
 // ============================================================================
 
-const PERIODS = {
+export const PERIODS = {
   MONDAY_AM: 0,
   MONDAY_PM: 1,     // Inicio mínimo Small Spike (período 1)
   TUESDAY_AM: 2,    // Inicio mínimo Large Spike (período 2)
@@ -91,16 +91,16 @@ const PERIODS = {
 // ============================================================================
 
 // Turnip price validation (según Animal Crossing Wiki)
-const TURNIP_PRICE_MIN = 9;
-const TURNIP_PRICE_MAX = 660;
-const BUY_PRICE_MIN = 90;
-const BUY_PRICE_MAX = 110;
+export const TURNIP_PRICE_MIN = 9;
+export const TURNIP_PRICE_MAX = 660;
+export const BUY_PRICE_MIN = 90;
+export const BUY_PRICE_MAX = 110;
 
 // ============================================================================
 // RATIOS DE PRECIO (porcentajes del precio base)
 // ============================================================================
 
-const RATES = {
+export const RATES = {
   // Piso global - ningún precio baja de aquí
   FLOOR: 0.40,  // 40%
 
@@ -179,7 +179,7 @@ const RATES = {
 // TASAS DE DECRECIMIENTO
 // ============================================================================
 
-const DECAY = {
+export const DECAY = {
   // Tasa de decrecimiento por período
   MIN_PER_PERIOD: 0.03,  // 3% - mejor caso (baja menos)
   MAX_PER_PERIOD: 0.05,  // 5% - peor caso (baja más)
@@ -193,7 +193,7 @@ const DECAY = {
 // UMBRALES DE DETECCIÓN
 // ============================================================================
 
-const THRESHOLDS = {
+export const THRESHOLDS = {
   // === Confirmación de patrones ===
   LARGE_SPIKE_CONFIRMED: 2.0,      // ≥200% confirma Large Spike
   SMALL_SPIKE_MIN: 1.40,           // ≥140% puede ser Small Spike
@@ -235,7 +235,7 @@ const THRESHOLDS = {
 // VARIANZAS DE PROYECCIÓN
 // ============================================================================
 
-const VARIANCE = {
+export const VARIANCE = {
   // Con 2+ precios conocidos (±10%)
   PROJECTED_MIN: 0.90,
   PROJECTED_MAX: 1.10,
@@ -250,7 +250,7 @@ const VARIANCE = {
 // ============================================================================
 
 // Probabilidades por defecto (sin historial)
-const DEFAULT_PROBABILITIES = {
+export const DEFAULT_PROBABILITIES = {
   fluctuating: 0.35,
   large_spike: 0.25,
   decreasing: 0.15,
@@ -258,7 +258,7 @@ const DEFAULT_PROBABILITIES = {
 };
 
 // Matriz de transición (patrón anterior → patrón actual)
-const TRANSITION_PROBABILITIES = {
+export const TRANSITION_PROBABILITIES = {
   fluctuating: {
     fluctuating: 0.20,
     large_spike: 0.30,
@@ -289,11 +289,11 @@ const TRANSITION_PROBABILITIES = {
 // CONFIGURACIÓN DE UI
 // ============================================================================
 
-const DEBOUNCE_DELAY = 300; // ms
-const LOADING_DELAY = 100; // ms
+export const DEBOUNCE_DELAY = 300; // ms
+export const LOADING_DELAY = 100; // ms
 
 // Pesos para cálculo de confianza
-const CONFIDENCE = {
+export const CONFIDENCE = {
   MAX_DATA_WEIGHT: 0.70,           // Máximo 70% peso a datos
   DATA_PERIODS_FOR_MAX: 8,         // 8 períodos para alcanzar máximo peso
 };
