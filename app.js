@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Mostrar distribución de probabilidades de patrones
-    displayPattern(results.patternName, results.allProbabilities);
+    displayProbabilityPanel(results.patternName, results.allProbabilities);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -265,10 +265,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mostrar debug info con recomendaciones integradas
     displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendation);
-  }
-
-  function displayPattern(patternName, allProbabilities) {
-    displayProbabilityPanel(patternName, allProbabilities);
   }
 
   function displayProbabilityPanel(patternName, allProbabilities) {
