@@ -25,33 +25,10 @@ export function priceCeil(basePrice, rate) {
 }
 
 /**
- * Calcula un precio usando round (redondeo estándar)
- * Usar para estimaciones generales
- */
-function priceRound(basePrice, rate) {
-  return Math.round(basePrice * rate);
-}
-
-/**
  * Calcula el ratio de un precio respecto al precio base
  */
 export function priceRatio(price, basePrice) {
   return price / basePrice;
-}
-
-/**
- * Verifica si un precio está dentro de un rango
- */
-function isInRange(price, min, max) {
-  return price >= min && price <= max;
-}
-
-/**
- * Calcula el mínimo permitido después de una caída del 5%
- * @deprecated Usar isValidRateDrop() para validación correcta basada en rate
- */
-function minAfterDrop(previousPrice) {
-  return Math.floor(previousPrice * DECAY.WORST_CASE_MULTIPLIER);
 }
 
 /**
@@ -114,7 +91,7 @@ export function getPeriodName(periodIndex) {
 /**
  * Obtiene el rango de períodos donde puede empezar un pico
  */
-function getSpikeStartRange(isLargeSpike) {
+export function getSpikeStartRange(isLargeSpike) {
   return {
     min: isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN,
     max: PERIODS.SPIKE_PEAK_START_MAX,
