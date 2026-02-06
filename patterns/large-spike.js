@@ -1,4 +1,4 @@
-import { detectSpikePeakStart, priceFloor, priceCeil } from "./utils.js";
+import { detectSpikePeakStart, priceFloor, priceCeil, calculateAvgRateDrop, projectPriceFromRate } from "./utils.js";
 import { PERIODS, RATES, DECAY, VARIANCE } from "../constants.js";
 
 // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
