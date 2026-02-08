@@ -1,5 +1,5 @@
-import { PERIODS, DECAY, RATES, VARIANCE } from "../constants.js";
-import { detectSpikePeakStart, priceFloor, priceCeil, calculateAvgRateDrop, projectPriceFromRate } from "./utils.js";
+import { DECAY, PERIODS, RATES, VARIANCE } from "../constants.js";
+import { calculateAvgRateDrop, detectSpikePeakStart, priceCeil, priceFloor, projectPriceFromRate } from "./utils.js";
 
 // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
 // Basado en el algoritmo real datamineado del juego (Pattern 3)
