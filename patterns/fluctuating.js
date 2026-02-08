@@ -1,4 +1,4 @@
-import { BUY_PRICE_MIN, BUY_PRICE_MAX, RATES, PERIODS } from "../constants.js";
+import { BUY_PRICE_MIN, BUY_PRICE_MAX, RATES, PERIODS, THRESHOLDS } from "../constants.js";
 import { priceFloor, priceCeil } from "./utils.js";
 
 // Patrón FLUCTUANTE: alterna entre fases altas y bajas
