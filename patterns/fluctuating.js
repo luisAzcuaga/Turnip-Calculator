@@ -329,7 +329,6 @@ export default function calculateFluctuatingPattern(periodIndex, base, knownPric
 
     // Si solo tenemos 1 fase baja, buscar si estamos EN MEDIO de la segunda fase baja
     if (lowPhases.length === 1) {
-      const lastKnownIndex = Math.max(...knownPrices.map(p => p.index));
       const firstPhaseEnd = firstPhase.startIndex + firstPhase.length - 1;
 
       // MEJORA: Detectar si estamos en medio de BAJA2
@@ -342,7 +341,6 @@ export default function calculateFluctuatingPattern(periodIndex, base, knownPric
         if (lastRatio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && lastPrice.index > firstPhaseEnd) {
           // Buscar cuántos períodos llevamos en esta nueva fase baja
           let baja2StartIndex = lastPrice.index;
-          let baja2CurrentLength = 1;
 
           // Retroceder para encontrar el inicio de BAJA2
           for (let i = knownPrices.length - 2; i >= 0; i--) {
@@ -352,7 +350,6 @@ export default function calculateFluctuatingPattern(periodIndex, base, knownPric
             // Si el anterior también está en fase baja y es consecutivo
             if (prevRatio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && prevPrice.index === baja2StartIndex - 1 && prevPrice.index > firstPhaseEnd) {
               baja2StartIndex = prevPrice.index;
-              baja2CurrentLength++;
             } else {
               break;
             }
