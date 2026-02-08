@@ -1,4 +1,4 @@
-import { RATES, THRESHOLDS, DECAY, PERIODS, DAYS_CONFIG } from "../constants.js";
+import { DAYS_CONFIG, DECAY, PERIODS, RATES, THRESHOLDS } from "../constants.js";
 
 // Utilidades compartidas para los patrones de precios
 // Funciones auxiliares usadas por múltiples patrones

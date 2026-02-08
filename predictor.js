@@ -1,10 +1,10 @@
-import { BUY_PRICE_MIN, BUY_PRICE_MAX, DEFAULT_PROBABILITIES, TRANSITION_PROBABILITIES, DAYS_CONFIG, TURNIP_PRICE_MIN, TURNIP_PRICE_MAX, PERIODS, THRESHOLDS, CONFIDENCE, RATES, PATTERNS, PATTERN_NAMES } from "./constants.js";
-import { priceRatio, largeSpikeStartRange, detectLargeSpikeSequence, detectSpikeStart, decreasingMaxForPeriod, decreasingMin, isValidRateDrop, getPeriodName, getSpikeStartRange } from "./patterns/utils.js";
+import { BUY_PRICE_MAX, BUY_PRICE_MIN, CONFIDENCE, DAYS_CONFIG, DEFAULT_PROBABILITIES, PATTERNS, PATTERN_NAMES, PERIODS, RATES, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
+import { decreasingMaxForPeriod, decreasingMin, detectLargeSpikeSequence, detectSpikeStart, getPeriodName, getSpikeStartRange, isValidRateDrop, largeSpikeStartRange, priceRatio } from "./patterns/utils.js";
 
-import calculateFluctuatingPattern from "./patterns/fluctuating.js";
-import calculateSmallSpikePattern from "./patterns/small-spike.js";
 import calculateDecreasingPattern from "./patterns/decreasing.js";
+import calculateFluctuatingPattern from "./patterns/fluctuating.js";
 import calculateLargeSpikePattern from './patterns/large-spike.js';
+import calculateSmallSpikePattern from "./patterns/small-spike.js";
 
 // Predictor de Precios de Nabos - Animal Crossing New Horizons
 // Basado en los patrones reales del juego
