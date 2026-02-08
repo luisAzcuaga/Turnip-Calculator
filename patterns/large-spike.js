@@ -1,5 +1,5 @@
-import { detectSpikePeakStart, priceFloor, priceCeil, calculateAvgRateDrop, projectPriceFromRate } from "./utils.js";
-import { PERIODS, RATES, DECAY, VARIANCE } from "../constants.js";
+import { DECAY, PERIODS, RATES, VARIANCE } from "../constants.js";
+import { calculateAvgRateDrop, detectSpikePeakStart, priceCeil, priceFloor, projectPriceFromRate } from "./utils.js";
 
 // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
 // Basado en el algoritmo real datamineado del juego (Pattern 1)
