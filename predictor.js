@@ -505,7 +505,7 @@ export default class TurnipPredictor {
     // El patrón fluctuante debe ALTERNAR entre fases altas y bajas
     // Verificar tendencias sostenidas (subidas o bajadas)
     if (knownPrices.length >= 2) {
-      const { consecutiveDecreases, maxConsecutiveDecreases, decreasesFromStart, consecutiveIncreases, maxConsecutiveIncreases } = knownPrices
+      const { maxConsecutiveDecreases, decreasesFromStart, maxConsecutiveIncreases } = knownPrices
         .slice(1)
         .reduce(
           (acc, current, i) => {
@@ -854,7 +854,6 @@ export default class TurnipPredictor {
         let decreasesFromStart = 0;
 
         // Verificar si baja desde el inicio (sin fase alta previa)
-        let allDecreasingFromStart = true;
         for (let i = 1; i < knownPrices.length; i++) {
           if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
             consecutiveDecreases++;
@@ -864,7 +863,6 @@ export default class TurnipPredictor {
             }
           } else {
             consecutiveDecreases = 0;
-            allDecreasingFromStart = false;
           }
         }
 
