@@ -1,0 +1,26 @@
+{
+  "name": "turnip-calculator",
+  "version": "1.0.0",
+  "description": "Calculadora de precios de nabos basada en los **algoritmos reales del juego**.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luisAzcuaga/Turnip-Calculator.git"
+  },
+  "keywords": [],
+  "author": "Luis Azcuaga",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luisAzcuaga/Turnip-Calculator/issues"
+  },
+  "homepage": "https://github.com/luisAzcuaga/Turnip-Calculator#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.0",
+    "globals": "^17.3.0"
+  }
+}
