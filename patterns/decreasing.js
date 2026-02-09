@@ -1,3 +1,6 @@
+import { calculateAvgRateDrop, projectPriceFromRate, priceFloor, priceCeil } from "./utils.js";
+import { VARIANCE, RATES, DECAY } from "../constants.js";
+
 // Patrón DECRECIENTE: bajada constante
 // Basado en el algoritmo real datamineado del juego (Pattern 2)
 // Usa constantes de constants.js (RATES, DECAY, VARIANCE)
@@ -13,7 +16,7 @@
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @returns {{min: number, max: number}} - Rango de precios
  */
-function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
+export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // Si tenemos datos conocidos, estimar la tasa de decrecimiento real del RATE
   if (knownPrices.length >= 2) {
     const lastKnown = knownPrices[knownPrices.length - 1];

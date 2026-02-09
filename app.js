@@ -1,3 +1,8 @@
+import { DEBOUNCE_DELAY, LOADING_DELAY, PRICE_INPUT_IDS, BUY_PRICE_MIN, BUY_PRICE_MAX, PATTERNS, PATTERN_NAMES, TURNIP_PRICE_MIN, TURNIP_PRICE_MAX, DAYS_CONFIG, THRESHOLDS, RATES, PATTERN_ENCODE_MAP, PATTERN_DECODE_MAP } from "./constants.js";
+
+import TurnipPredictor from "./predictor.js";
+import { detectSpikeStart } from "./patterns/utils.js";
+
 // App.js - Manejo de la interfaz de usuario
 
 // Utility functions
@@ -250,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Mostrar distribución de probabilidades de patrones
-    displayPattern(results.patternName, results.allProbabilities);
+    displayProbabilityPanel(results.patternName, results.allProbabilities);
 
     // Llenar inputs con predicciones
     fillInputsWithPredictions(results.predictions);
@@ -260,10 +265,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Mostrar debug info con recomendaciones integradas
     displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendation);
-  }
-
-  function displayPattern(patternName, allProbabilities) {
-    displayProbabilityPanel(patternName, allProbabilities);
   }
 
   function displayProbabilityPanel(patternName, allProbabilities) {
@@ -317,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function () {
     panel.innerHTML = html;
   }
 
-  function fillInputsWithPredictions(predictions, bestTimeKey = null) {
+  function fillInputsWithPredictions(predictions) {
     Object.entries(predictions).forEach(([key, data]) => {
       const input = document.getElementById(key);
       if (!input) return;

@@ -1,3 +1,6 @@
+import { BUY_PRICE_MIN, BUY_PRICE_MAX, RATES, PERIODS, THRESHOLDS } from "../constants.js";
+import { priceFloor, priceCeil } from "./utils.js";
+
 // Patrón FLUCTUANTE: alterna entre fases altas y bajas
 // Basado en el algoritmo real datamineado del juego (Pattern 0)
 // Usa constantes de constants.js (RATES, PERIODS, THRESHOLDS)
@@ -17,23 +20,6 @@
 // - Detecta fases bajas completadas para deducir la longitud de la otra
 // - Una vez detectadas ambas fases bajas, predice solo fase ALTA para el resto
 // - Esto hace las predicciones MUCHO más precisas cuando hay suficientes datos
-
-/**
- * Detecta si el precio actual está en fase alta o baja
- * @param {number} price - Precio actual
- * @param {number} base - Precio base
- * @returns {string} - 'high' o 'low'
- */
-function detectPhase(price, base) {
-  const ratio = price / base;
-  // Fase alta: 90-140%
-  // Fase baja: 60-80% (y bajando)
-  if (ratio >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD) {
-    return 'high';
-  } else {
-    return 'low';
-  }
-}
 
 /**
  * Detecta las fases de bajada en los precios conocidos
@@ -198,7 +184,7 @@ function analyzeFluctuatingStructure(knownPrices, base) {
  * - Deduce la longitud de la otra fase baja (deben sumar 5 períodos total)
  * - Predice fase ALTA (90-140%) para todo lo que viene después de ambas fases bajas
  */
-function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
+export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Validación defensiva: si no hay precio base, no podemos predecir
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
     console.warn('Fluctuating pattern: Precio base inválido', base);

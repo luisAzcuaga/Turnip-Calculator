@@ -1,3 +1,6 @@
+import { detectSpikePeakStart, priceFloor, priceCeil, calculateAvgRateDrop, projectPriceFromRate } from "./utils.js";
+import { PERIODS, RATES, DECAY, VARIANCE } from "../constants.js";
+
 // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
 // Basado en el algoritmo real datamineado del juego (Pattern 1)
 // Usa constantes de constants.js (RATES, DECAY, VARIANCE, PERIODS)
@@ -9,7 +12,7 @@
  * @param {Array} knownPrices - Array de precios conocidos con {index, price}
  * @returns {{min: number, max: number}} - Rango de precios
  */
-function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
+export default function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
   // peakStart puede ser 2-7 según el algoritmo del juego (Martes AM a Jueves PM)
   const peakStart = detectSpikePeakStart(knownPrices, PERIODS.LARGE_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, true, base);
 
