@@ -16,7 +16,7 @@ export default class TurnipPredictor {
     }
 
     this.buyPrice = buyPrice;
-    this.knownPrices = this.validatePrices(knownPrices);
+    this.knownPrices = TurnipPredictor.validatePrices(knownPrices);
     this.previousPattern = previousPattern;
 
     // Sistema de tracking de razones de rechazo/baja probabilidad
@@ -43,7 +43,7 @@ export default class TurnipPredictor {
   }
 
   // Validar precios conocidos
-  validatePrices(knownPrices) {
+  static validatePrices(knownPrices) {
     const validated = {};
 
     Object.entries(knownPrices).forEach(([key, price]) => {
