@@ -387,11 +387,24 @@ export default class TurnipPredictor {
 
     // VALIDACIÓN PERÍODO 2: Si detectamos secuencia P1→P2 de Large Spike Y está confirmado, rechazar Small Spike
     const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected && phase1Check.isLargeSpike === true) {
-      // Solo rechazar si tenemos confirmación de Large Spike (precio > 200%)
-      // Cuando isLargeSpike === null (indeterminado), el precio 140-200% podría ser el pico de Small Spike
-      this.rejectionReasons.small_spike.push(`Precio máximo superó 200%, confirmando Large Spike, no Small Spike.`);
-      return false;
+    if (phase1Check.detected) {
+      const phase1Rate = parseFloat(phase1Check.phase1Percent) / 100;
+
+      // BUG FIX: Period 2 at 140%+ is IMPOSSIBLE for Small Spike
+      // Small Spike structure: P1 (90-140%) → P2 (90-140%) → P3-4 (140-200% peak)
+      // Large Spike structure: P1 (90-140%) → P2 (140-200%) → P3 (200-600% peak)
+      // Therefore: If P2 >= 140% → Must be Large Spike, not Small Spike
+      if (phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
+        const peakStatus = phase1Check.isLargeSpike === true
+          ? 'ya confirmado con pico >200%'
+          : 'esperando el pico real de 200-600% en el siguiente período';
+        this.rejectionReasons.small_spike.push(
+          `${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). ` +
+          `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
+          `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${peakStatus}).`
+        );
+        return false;
+      }
     }
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
