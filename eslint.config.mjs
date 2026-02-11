@@ -11,6 +11,7 @@ export default defineConfig([
     rules: {
       "no-case-declarations": "off",
       "no-unused-vars": ["warn"],
+      "indent": ["warn", 2],
       "sort-imports": ["warn", {
         "ignoreCase": false,
         "ignoreDeclarationSort": false,
