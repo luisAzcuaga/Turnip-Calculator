@@ -380,6 +380,17 @@ export default class TurnipPredictor {
   isPossibleSmallSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
 
+    // VALIDACIÓN: Lunes AM (período 0) siempre está en fase pre-pico
+    // La fase pre-pico de Small Spike es 40-90%, así que si Lunes AM > 90%, es imposible
+    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
+    if (mondayAM) {
+      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
+      if (mondayRatio > RATES.SMALL_SPIKE.START_MAX) {
+        this.rejectionReasons.small_spike.push(`Lunes AM (${mondayAM.price}) está a ${Math.round(mondayRatio * 100)}% del precio base. Small Spike requiere que el período 0 esté en fase pre-pico (40-90%).`);
+        return false;
+      }
+    }
+
     // VALIDACIÓN CRÍTICA: Si llegamos tarde sin subida, rechazar
     const lateCheck = this.isTooLateForSpike(knownPrices, 'Small Spike');
     if (lateCheck.tooLate) {
