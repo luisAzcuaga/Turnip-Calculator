@@ -331,6 +331,8 @@ describe('TurnipPredictor', () => {
       const p = new TurnipPredictor(100, { mon_am: 105 });
       const result = p.detectPossiblePatterns();
       expect(result).not.toContain('decreasing');
+      expect(result).not.toContain('large_spike'); // large spike also requires mon_am ≤ buyPrice*0.90
+      expect(result).not.toContain('small_spike'); // small spike also requires mon_am ≤ buyPrice*0.90
     });
 
     it('should return fluctuating as fallback when no patterns fit', () => {
