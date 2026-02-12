@@ -27,84 +27,84 @@ export default {
   "patternName": "Fluctuante",
   "predictions": {
     "mon_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Lunes AM",
     },
     "mon_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Lunes PM",
     },
     "tue_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Martes AM",
     },
     "tue_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Martes PM",
     },
     "wed_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Miércoles AM",
     },
     "wed_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Miércoles PM",
     },
     "thu_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Jueves AM",
     },
     "thu_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Jueves PM",
     },
     "fri_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Viernes AM",
     },
     "fri_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Viernes PM",
     },
     "sat_am": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Sábado AM",
     },
     "sat_pm": {
-      "confirmed": null,
+
       "isConfirmed": false,
       "max": expect.any(Number),
       "min": expect.any(Number),

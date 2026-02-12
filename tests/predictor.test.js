@@ -742,9 +742,9 @@ describe('TurnipPredictor', () => {
     it('should find best predicted price for predictable patterns', () => {
       const p = new TurnipPredictor(100);
       const predictions = {
-        mon_am: { name: 'Lunes AM', isConfirmed: true, confirmed: 90, max: 90 },
-        mon_pm: { name: 'Lunes PM', isConfirmed: false, confirmed: null, max: 200 },
-        tue_am: { name: 'Martes AM', isConfirmed: false, confirmed: null, max: 150 },
+        mon_am: { name: 'Lunes AM', isConfirmed: true, max: 90 },
+        mon_pm: { name: 'Lunes PM', isConfirmed: false, max: 200 },
+        tue_am: { name: 'Martes AM', isConfirmed: false, max: 150 },
       };
       const result = p.getBestTime(predictions, 'large_spike');
       expect(result.pattern).toBe('predictable');
@@ -756,8 +756,8 @@ describe('TurnipPredictor', () => {
     it('should correctly identify confirmed vs predicted prices', () => {
       const p = new TurnipPredictor(100);
       const predictions = {
-        mon_am: { name: 'Lunes AM', isConfirmed: true, confirmed: 300, max: 300 },
-        mon_pm: { name: 'Lunes PM', isConfirmed: false, confirmed: null, max: 200 },
+        mon_am: { name: 'Lunes AM', isConfirmed: true, max: 300 },
+        mon_pm: { name: 'Lunes PM', isConfirmed: false, max: 200 },
       };
       const result = p.getBestTime(predictions, 'small_spike');
       expect(result.day).toBe('Lunes AM');
@@ -795,9 +795,9 @@ describe('TurnipPredictor', () => {
       const p = new TurnipPredictor(107, knownPrices, 'small_spike');
       const result = p.predict();
       expect(result.predictions.mon_am.isConfirmed).toBe(true);
-      expect(result.predictions.mon_am.confirmed).toBe(94);
+      expect(result.predictions.mon_am.min).toBe(94);
       expect(result.predictions.wed_pm.isConfirmed).toBe(true);
-      expect(result.predictions.wed_pm.confirmed).toBe(180);
+      expect(result.predictions.wed_pm.min).toBe(180);
     });
 
     it('should include all 4 pattern probabilities summing close to 100%', () => {

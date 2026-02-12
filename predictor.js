@@ -922,7 +922,6 @@ export default class TurnipPredictor {
       if (price !== undefined && price !== null && price !== '') {
         predictions[day.key] = {
           name: day.name,
-          confirmed: parseInt(price),
           min: parseInt(price),
           max: parseInt(price),
           isConfirmed: true
@@ -931,7 +930,6 @@ export default class TurnipPredictor {
         const estimate = this.predictPrice(pattern, index);
         predictions[day.key] = {
           name: day.name,
-          confirmed: null,
           min: estimate.min,
           max: estimate.max,
           isConfirmed: false
@@ -1099,7 +1097,7 @@ export default class TurnipPredictor {
     let bestIsConfirmed = false;
 
     Object.values(predictions).forEach((data) => {
-      const maxPrice = data.isConfirmed ? data.confirmed : data.max;
+      const maxPrice = data.max;
       if (maxPrice > bestPrice) {
         bestPrice = maxPrice;
         bestDay = data.name;
