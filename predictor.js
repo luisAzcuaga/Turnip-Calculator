@@ -967,17 +967,17 @@ export default class TurnipPredictor {
 
     switch (pattern) {
     case PATTERNS.DECREASING:
-      return this.decreasingPattern(periodIndex, base, knownPricesArray);
+      return calculateDecreasingPattern(periodIndex, base, knownPricesArray);
 
     case PATTERNS.LARGE_SPIKE:
-      return this.largeSpikePattern(periodIndex, base, knownPricesArray);
+      return calculateLargeSpikePattern(periodIndex, base, knownPricesArray);
 
     case PATTERNS.SMALL_SPIKE:
-      return this.smallSpikePattern(periodIndex, base, knownPricesArray);
+      return calculateSmallSpikePattern(periodIndex, base, knownPricesArray);
 
     case PATTERNS.FLUCTUATING:
     default:
-      return this.fluctuatingPattern(periodIndex, base, knownPricesArray);
+      return calculateFluctuatingPattern(periodIndex, base, knownPricesArray);
     }
   }
 
@@ -1023,28 +1023,6 @@ export default class TurnipPredictor {
     const stdDev = Math.sqrt(variance);
 
     return (stdDev / avg) * 100; // Volatilidad como porcentaje
-  }
-
-  // Patrón DECRECIENTE: bajada constante del 90% al 40%
-  decreasingPattern(periodIndex, base, knownPrices = []) {
-    return calculateDecreasingPattern(periodIndex, base, knownPrices);
-  }
-
-  // Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
-  // Basado en el algoritmo real datamineado del juego (Pattern 1)
-  largeSpikePattern(periodIndex, base, knownPrices = []) {
-    return calculateLargeSpikePattern(periodIndex, base, knownPrices);
-  }
-
-  // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
-  // Basado en el algoritmo real datamineado del juego (Pattern 3)
-  smallSpikePattern(periodIndex, base, knownPrices = []) {
-    return calculateSmallSpikePattern(periodIndex, base, knownPrices);
-  }
-
-  // Patrón FLUCTUANTE: variable, 60-140%
-  fluctuatingPattern(periodIndex, base, knownPrices = []) {
-    return calculateFluctuatingPattern(periodIndex, base, knownPrices);
   }
 
   getRecommendation(pattern) {
