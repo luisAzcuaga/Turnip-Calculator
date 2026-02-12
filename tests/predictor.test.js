@@ -39,19 +39,19 @@ describe('TurnipPredictor', () => {
   describe('#validatePrices', () => {
     it('should filter invalid prices', () => {
       const validatedPrices = TurnipPredictor.validatePrices({
-        "mon_am": 100, "mon_pm": 90,
-        "tue_am": 85, "tue_pm": 120,
-        "wed_am": 200, "wed_pm": 6000,
-        "thu_am": 4000, "thu_pm": 3000,
-        "fri_am": 2000, "fri_pm": 1000,
-        "sat_am": 600, "sat_pm": 550,
+        mon_am: 100, mon_pm: 90,
+        tue_am: 85, tue_pm: 120,
+        wed_am: 200, wed_pm: 6000,
+        thu_am: 4000, thu_pm: 3000,
+        fri_am: 2000, fri_pm: 1000,
+        sat_am: 600, sat_pm: 550,
       });
   
       expect(validatedPrices).toEqual({
-        "mon_am": 100, "mon_pm": 90,
-        "tue_am": 85, "tue_pm": 120,
-        "wed_am": 200, "sat_am": 600,
-        "sat_pm": 550,
+        mon_am: 100, mon_pm: 90,
+        tue_am: 85, tue_pm: 120,
+        wed_am: 200, sat_am: 600,
+        sat_pm: 550,
       });
     });
   })

@@ -38,26 +38,26 @@ export const PATTERNS = {
 
 // Pattern display names (español)
 export const PATTERN_NAMES = {
-  'fluctuating': 'Fluctuante',
-  'large_spike': 'Pico Grande',
-  'small_spike': 'Pico Pequeño',
-  'decreasing': 'Decreciente'
+  fluctuating: 'Fluctuante',
+  large_spike: 'Pico Grande',
+  small_spike: 'Pico Pequeño',
+  decreasing: 'Decreciente'
 };
 
 // Encoding map: pattern name → single letter (for URL compression)
 export const PATTERN_ENCODE_MAP = {
-  'fluctuating': 'f',
-  'large_spike': 'l',
-  'small_spike': 's',
-  'decreasing': 'd'
+  fluctuating: 'f',
+  large_spike: 'l',
+  small_spike: 's',
+  decreasing: 'd'
 };
 
 // Decoding map: single letter → pattern name (for URL decompression)
 export const PATTERN_DECODE_MAP = {
-  'f': 'fluctuating',
-  'l': 'large_spike',
-  's': 'small_spike',
-  'd': 'decreasing'
+  f: 'fluctuating',
+  l: 'large_spike',
+  s: 'small_spike',
+  d: 'decreasing'
 };
 
 // ============================================================================

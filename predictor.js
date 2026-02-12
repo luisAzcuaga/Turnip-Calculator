@@ -23,18 +23,18 @@ export default class TurnipPredictor {
 
     // Sistema de tracking de razones de rechazo/baja probabilidad
     this.rejectionReasons = {
-      'fluctuating': [],
-      'large_spike': [],
-      'decreasing': [],
-      'small_spike': []
+      fluctuating: [],
+      large_spike: [],
+      decreasing: [],
+      small_spike: []
     };
 
     // Sistema de tracking de razones de score (positivas y negativas)
     this.scoreReasons = {
-      'fluctuating': [],
-      'large_spike': [],
-      'decreasing': [],
-      'small_spike': []
+      fluctuating: [],
+      large_spike: [],
+      decreasing: [],
+      small_spike: []
     };
 
     // Probabilidades por defecto (sin historial) - desde constants.js
@@ -594,10 +594,10 @@ export default class TurnipPredictor {
     // (Esto es un failsafe del código original para valores inválidos)
     if (typeof this.previousPattern === 'number' && this.previousPattern >= 4) {
       return {
-        'fluctuating': 0,
-        'large_spike': 0,
-        'decreasing': 1.0,
-        'small_spike': 0
+        fluctuating: 0,
+        large_spike: 0,
+        decreasing: 1.0,
+        small_spike: 0
       };
     }
 
@@ -937,10 +937,10 @@ export default class TurnipPredictor {
 
     // Asegurar que tenemos probabilidades para los 4 patrones
     const allProbabilities = {
-      'fluctuating': patternResult.percentages['fluctuating'] || 0,
-      'large_spike': patternResult.percentages['large_spike'] || 0,
-      'decreasing': patternResult.percentages['decreasing'] || 0,
-      'small_spike': patternResult.percentages['small_spike'] || 0
+      fluctuating: patternResult.percentages['fluctuating'] || 0,
+      large_spike: patternResult.percentages['large_spike'] || 0,
+      decreasing: patternResult.percentages['decreasing'] || 0,
+      small_spike: patternResult.percentages['small_spike'] || 0
     };
 
     return {
