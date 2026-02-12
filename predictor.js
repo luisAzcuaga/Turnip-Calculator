@@ -10,9 +10,11 @@ import calculateSmallSpikePattern from "./patterns/small-spike.js";
 // Basado en los patrones reales del juego
 export default class TurnipPredictor {
   constructor(buyPrice, knownPrices = {}, previousPattern = null) {
-    // Validar precio de compra
+    if (buyPrice === undefined || buyPrice === null || buyPrice === '') {
+      throw new Error('El precio de compra es obligatorio');
+    }
     if (buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
-      console.warn(`Precio de compra ${buyPrice} fuera de rango válido (${BUY_PRICE_MIN}-${BUY_PRICE_MAX})`);
+      throw new Error(`Precio de compra ${buyPrice} fuera de rango válido (${BUY_PRICE_MIN}-${BUY_PRICE_MAX})`);
     }
 
     this.buyPrice = buyPrice;
