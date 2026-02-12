@@ -72,7 +72,7 @@ export default class TurnipPredictor {
   }
 
   // Obtener array de precios conocidos con sus índices
-  getPriceArrayWithIndices() {
+  getPriceArrayWithIndex() {
     return DAYS_CONFIG
       .map((day, index) => ({ index, price: this.knownPrices[day.key], day: day.key }))
       .filter(({ price }) => price !== undefined && price !== null && price !== '')
@@ -81,7 +81,7 @@ export default class TurnipPredictor {
 
   // Detectar patrones posibles basados en los precios conocidos
   detectPossiblePatterns() {
-    const knownPrices = this.getPriceArrayWithIndices();
+    const knownPrices = this.getPriceArrayWithIndex();
 
     if (knownPrices.length === 0) {
       // Sin datos, todos los patrones son posibles
@@ -613,7 +613,7 @@ export default class TurnipPredictor {
   // Detectar el patrón más probable con información de confianza
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
-    const knownPrices = this.getPriceArrayWithIndices();
+    const knownPrices = this.getPriceArrayWithIndex();
     const baseProbabilities = this.getBaseProbabilities();
 
     // Si no hay datos de precios, usar solo las probabilidades base
@@ -967,7 +967,7 @@ export default class TurnipPredictor {
 
   predictPrice(pattern, periodIndex) {
     const base = this.buyPrice;
-    const knownPricesArray = this.getPriceArrayWithIndices();
+    const knownPricesArray = this.getPriceArrayWithIndex();
 
     switch (pattern) {
     case PATTERNS.DECREASING:

@@ -78,12 +78,12 @@ describe('TurnipPredictor', () => {
   describe('#getPriceArrayWithIndices', () => {
     it('should return empty array for empty knownPrices', () => {
       const p = new TurnipPredictor(100);
-      expect(p.getPriceArrayWithIndices()).toEqual([]);
+      expect(p.getPriceArrayWithIndex()).toEqual([]);
     });
 
     it('should convert knownPrices to array with correct indices and day keys', () => {
       const p = new TurnipPredictor(100, { mon_am: 90, tue_am: 85 });
-      const result = p.getPriceArrayWithIndices();
+      const result = p.getPriceArrayWithIndex();
       expect(result).toEqual([
         { index: 0, price: 90, day: 'mon_am' },
         { index: 2, price: 85, day: 'tue_am' },
@@ -97,12 +97,12 @@ describe('TurnipPredictor', () => {
         fri_am: 70, fri_pm: 68, sat_am: 65, sat_pm: 62,
       };
       const p = new TurnipPredictor(100, prices);
-      expect(p.getPriceArrayWithIndices()).toHaveLength(12);
+      expect(p.getPriceArrayWithIndex()).toHaveLength(12);
     });
 
     it('should parse prices as integers', () => {
       const p = new TurnipPredictor(100, { mon_am: 90 });
-      const result = p.getPriceArrayWithIndices();
+      const result = p.getPriceArrayWithIndex();
       expect(result[0].price).toBe(90);
       expect(typeof result[0].price).toBe('number');
     });
