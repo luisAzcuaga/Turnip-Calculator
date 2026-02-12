@@ -368,27 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Convertir nombre del día a input ID
-    // ej: "Sábado AM" → "sat_am"
-    const dayToId = {
-      'Lunes AM': 'mon_am',
-      'Lunes PM': 'mon_pm',
-      'Martes AM': 'tue_am',
-      'Martes PM': 'tue_pm',
-      'Miércoles AM': 'wed_am',
-      'Miércoles PM': 'wed_pm',
-      'Jueves AM': 'thu_am',
-      'Jueves PM': 'thu_pm',
-      'Viernes AM': 'fri_am',
-      'Viernes PM': 'fri_pm',
-      'Sábado AM': 'sat_am',
-      'Sábado PM': 'sat_pm'
-    };
-
-    const inputId = dayToId[bestTime.day];
-    if (!inputId) return;
-
-    const input = document.getElementById(inputId);
+    const input = document.getElementById(bestTime.day);
     if (!input) return;
 
     // Añadir clase para aplicar glow animado
