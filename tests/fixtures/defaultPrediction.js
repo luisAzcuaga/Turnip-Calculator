@@ -27,85 +27,73 @@ export default {
   "patternName": "Fluctuante",
   "predictions": {
     "mon_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Lunes AM",
     },
     "mon_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Lunes PM",
     },
     "tue_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Martes AM",
     },
     "tue_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Martes PM",
     },
     "wed_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Miércoles AM",
     },
     "wed_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Miércoles PM",
     },
     "thu_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Jueves AM",
     },
     "thu_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Jueves PM",
     },
     "fri_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Viernes AM",
     },
     "fri_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Viernes PM",
     },
     "sat_am": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Sábado AM",
     },
     "sat_pm": {
-
-      "isConfirmed": false,
+      "isUserInput": false,
       "max": expect.any(Number),
       "min": expect.any(Number),
       "name": "Sábado PM",

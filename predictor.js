@@ -924,7 +924,7 @@ export default class TurnipPredictor {
           name: day.name,
           min: parseInt(price),
           max: parseInt(price),
-          isConfirmed: true
+          isUserInput: true
         };
       } else {
         const estimate = this.predictPrice(pattern, index);
@@ -932,7 +932,7 @@ export default class TurnipPredictor {
           name: day.name,
           min: estimate.min,
           max: estimate.max,
-          isConfirmed: false
+          isUserInput: false
         };
       }
     });
@@ -1101,7 +1101,7 @@ export default class TurnipPredictor {
       if (maxPrice > bestPrice) {
         bestPrice = maxPrice;
         bestDay = data.name;
-        bestIsConfirmed = data.isConfirmed;
+        bestIsConfirmed = data.isUserInput;
       }
     });
 
@@ -1109,7 +1109,7 @@ export default class TurnipPredictor {
       pattern: 'predictable',
       day: bestDay,
       price: bestPrice,
-      isConfirmed: bestIsConfirmed
+      isUserInput: bestIsConfirmed
     };
   }
 }

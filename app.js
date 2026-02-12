@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!input) return;
 
       // Si el campo ya tiene un valor confirmado, no hacer nada
-      if (data.isConfirmed) {
+      if (data.isUserInput) {
         input.classList.remove('estimated-value');
         input.classList.add('confirmed-value');
         return;
