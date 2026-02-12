@@ -1,28 +1,11 @@
 import {
-  BUY_PRICE_MAX, 
-  BUY_PRICE_MIN, 
-  CONFIDENCE, 
-  DAYS_CONFIG, 
-  DEFAULT_PROBABILITIES, 
-  PATTERNS, 
-  PATTERN_NAMES, 
-  PERIODS, 
-  RATES, 
-  THRESHOLDS, 
-  TRANSITION_PROBABILITIES, 
-  TURNIP_PRICE_MAX, 
+  BUY_PRICE_MAX,  BUY_PRICE_MIN, CONFIDENCE, DAYS_CONFIG, DEFAULT_PROBABILITIES, PATTERNS, 
+  PATTERN_NAMES, PERIODS, RATES, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX, 
   TURNIP_PRICE_MIN
 } from "./constants.js";
 import {
-  decreasingMaxForPeriod, 
-  decreasingMin, 
-  detectLargeSpikeSequence, 
-  detectSpikeStart, 
-  getPeriodName, 
-  getSpikeStartRange, 
-  isValidRateDrop, 
-  largeSpikeStartRange, 
-  priceRatio
+  decreasingMaxForPeriod, decreasingMin, detectLargeSpikeSequence, detectSpikeStart, getPeriodName,
+  getSpikeStartRange, isValidRateDrop, largeSpikeStartRange, priceRatio
 } from "./patterns/utils.js";
 
 import calculateDecreasingPattern from "./patterns/decreasing.js";
@@ -38,7 +21,9 @@ export default class TurnipPredictor {
       throw new Error('El precio de compra es obligatorio');
     }
     if (buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
-      throw new Error(`Precio de compra ${buyPrice} fuera de rango válido (${BUY_PRICE_MIN}-${BUY_PRICE_MAX})`);
+      throw new Error(
+        `Precio de compra ${buyPrice} fuera de rango válido (${BUY_PRICE_MIN}-${BUY_PRICE_MAX})`
+      );
     }
 
     this.buyPrice = buyPrice;
@@ -85,7 +70,9 @@ export default class TurnipPredictor {
       }
 
       if (numPrice < TURNIP_PRICE_MIN || numPrice > TURNIP_PRICE_MAX) {
-        console.warn(`Precio ${numPrice} para ${key} fuera de rango válido (${TURNIP_PRICE_MIN}-${TURNIP_PRICE_MAX}). Ignorando.`);
+        console.warn(
+          `Precio ${numPrice} para ${key} fuera de rango válido (${TURNIP_PRICE_MIN}-${TURNIP_PRICE_MAX}).`
+        );
         return;
       }
 
