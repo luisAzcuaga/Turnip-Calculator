@@ -215,8 +215,6 @@ export const THRESHOLDS = {
   // === Fluctuante ===
   FLUCTUATING_DROP: 0.98,          // 2% caída para detectar tendencia
   FLUCTUATING_RISE: 1.02,          // 2% subida para detectar tendencia
-  FLUCTUATING_MIN_RATIO: 0.50,     // 50% mínimo
-  FLUCTUATING_MAX_RATIO: 1.50,     // 150% máximo
   FLUCTUATING_MODERATE_MIN: 0.80,  // 80%
   FLUCTUATING_MODERATE_MAX: 1.50,  // 150%
   FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2,  // Máximo 2 subidas consecutivas (3 precios = pico)

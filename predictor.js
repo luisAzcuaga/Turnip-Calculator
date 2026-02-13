@@ -498,7 +498,7 @@ export default class TurnipPredictor {
     const inRange = knownPrices.every(({ price }) => {
       const ratio = priceRatio(price, this.buyPrice);
       // Si hay picos muy altos o muy bajos, probablemente no es fluctuante
-      return ratio <= THRESHOLDS.FLUCTUATING_MAX_RATIO && ratio >= THRESHOLDS.FLUCTUATING_MIN_RATIO;
+      return ratio >= RATES.FLUCTUATING.MIN && ratio <= RATES.FLUCTUATING.MAX;
     });
 
     if (!inRange) {
