@@ -251,14 +251,6 @@ export default class TurnipPredictor {
 
   // Verificar si el patrón DECRECIENTE es posible
   isPossibleDecreasing(knownPrices) {
-    // REGLA DE DETECCIÓN TEMPRANA:
-    // Si el LUNES tiene precio alto (>100%), NO puede ser Decreasing
-    // Decreasing NUNCA sube del precio de compra (máx 90%)
-    const mondayPrices = knownPrices.filter(p => p.index <= PERIODS.MONDAY_PM);
-    if (mondayPrices.some(p => p.price > this.buyPrice)) {
-      return false; // Precio alto el Lunes = NO es Decreasing
-    }
-
     // En patrón decreciente, cada precio debe ser <= al anterior
     // y todos deben estar entre 85% y 40% del precio base
     return knownPrices.every((current, i) => {
