@@ -375,11 +375,11 @@ export default class TurnipPredictor {
   }
 
   // Verificar si el patrón PICO PEQUEÑO es posible
+  // Prioridad de validaciones: single-price → simple aggregates → complex analysis
   isPossibleSmallSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
 
-    // VALIDACIÓN: Lunes AM (período 0) siempre está en fase pre-pico
-    // La fase pre-pico de Small Spike es 40-90%, así que si Lunes AM > 90%, es imposible
+    // 1. SINGLE-PRICE: Lunes AM (período 0) siempre está en fase pre-pico (40-90%)
     const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
     if (mondayAM) {
       const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
@@ -389,63 +389,26 @@ export default class TurnipPredictor {
       }
     }
 
-    // VALIDACIÓN CRÍTICA: Si llegamos tarde sin subida, rechazar
+    // 2. SIMPLE AGGREGATES: Precomputar valores usados por múltiples validaciones
+    const maxPrice = Math.max(...knownPrices.map(p => p.price));
+    const maxRatio = priceRatio(maxPrice, this.buyPrice);
+    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+
+    // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
+    if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
+      this.rejectionReasons.small_spike.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
+      return false;
+    }
+
+    // 3. TIMING: Si llegamos tarde sin subida, rechazar
     const lateCheck = this.isTooLateForSpike(knownPrices, 'Small Spike');
     if (lateCheck.tooLate) {
       this.rejectionReasons.small_spike.push(lateCheck.reason);
       return false;
     }
 
-    // VALIDACIÓN PERÍODO 2: Si detectamos secuencia P1→P2 de Large Spike Y está confirmado, rechazar Small Spike
-    const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected) {
-      const phase1Rate = parseFloat(phase1Check.phase1Percent) / 100;
-
-      // BUG FIX: Period 2 at 140%+ is IMPOSSIBLE for Small Spike
-      // Small Spike structure: P1 (90-140%) → P2 (90-140%) → P3-4 (140-200% peak)
-      // Large Spike structure: P1 (90-140%) → P2 (140-200%) → P3 (200-600% peak)
-      // Therefore: If P2 >= 140% → Must be Large Spike, not Small Spike
-      if (phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
-        const peakStatus = phase1Check.isLargeSpike === true
-          ? 'ya confirmado con pico >200%'
-          : 'esperando el pico real de 200-600% en el siguiente período';
-        this.rejectionReasons.small_spike.push(
-          `${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). ` +
-          `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
-          `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${peakStatus}).`
-        );
-        return false;
-      }
-    }
-
-    const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = priceRatio(maxPrice, this.buyPrice);
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-
-    // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
-    // (sería pico grande)
-    if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
-      this.rejectionReasons.small_spike.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
-      return false;
-    }
-
-    // VALIDACIÓN: Validar pendiente en fase pre-pico
-    const slopeCheck = this.validatePrePeakSlope(knownPrices, false);
-    if (slopeCheck.invalid) {
-      this.rejectionReasons.small_spike.push(slopeCheck.reason);
-      return false;
-    }
-
-    // Si el pico está en el rango perfecto de Small Spike (140-200%)
-    // Y ya estamos en viernes o después, es muy probable que sea Small Spike
-    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      return true; // Confirmación fuerte de Small Spike
-    }
-
     // Si estamos muy tarde en la semana (sábado PM) y no hubo pico significativo
     if (maxKnownIndex >= PERIODS.LAST_PERIOD) {
-      // El pico ya debería haber ocurrido
-      // Si el precio máximo fue < 90%, es muy improbable que sea pico pequeño
       if (maxRatio < RATES.LARGE_SPIKE.START_MAX) {
         const spikeRange = getSpikeStartRange(false);
         this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
@@ -453,8 +416,20 @@ export default class TurnipPredictor {
       }
     }
 
-    // VALIDACIÓN: Si el pico no alcanzó 140% y ya cayó significativamente,
-    // el pico ya terminó sin alcanzar el umbral de Small Spike
+    // Si el pico está en el rango perfecto de Small Spike (140-200%)
+    // Y ya estamos en viernes o después → confirmación fuerte
+    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
+      return true;
+    }
+
+    // 4. SLOPE: Validar pendiente en fase pre-pico
+    const slopeCheck = this.validatePrePeakSlope(knownPrices, false);
+    if (slopeCheck.invalid) {
+      this.rejectionReasons.small_spike.push(slopeCheck.reason);
+      return false;
+    }
+
+    // Si el pico no alcanzó 140% y ya cayó significativamente → pico inválido
     if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
       const maxPriceData = knownPrices.find(p => p.price === maxPrice);
       if (maxPriceData) {
@@ -468,30 +443,43 @@ export default class TurnipPredictor {
       }
     }
 
-    // VALIDACIÓN: Detectar múltiples ciclos de subida-bajada (característica de Fluctuante)
-    // Si ya hubo un pico local que cayó drásticamente y ahora los precios suben de nuevo,
-    // esto indica Fluctuante, no Small Spike
+    // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
+    const phase1Check = this.detectPhase1Spike(knownPrices);
+    if (phase1Check.detected) {
+      const phase1Rate = parseFloat(phase1Check.phase1Percent) / 100;
+
+      // P2 at 140%+ is IMPOSSIBLE for Small Spike
+      // Small Spike: P1 (90-140%) → P2 (90-140%) → P3-4 (140-200% peak)
+      // Large Spike: P1 (90-140%) → P2 (140-200%) → P3 (200-600% peak)
+      if (phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
+        const peakStatus = phase1Check.isLargeSpike === true
+          ? 'ya confirmado con pico >200%'
+          : 'esperando el pico real de 200-600% en el siguiente período';
+        this.rejectionReasons.small_spike.push(
+          `${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). ` +
+          `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
+          `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${peakStatus}).`
+        );
+        return false;
+      }
+    }
+
+    // 6. PATTERN ANALYSIS: Detectar múltiples ciclos subida-bajada (→ Fluctuante, no Spike)
     if (knownPrices.length >= 4) {
-      // Buscar picos locales: puntos donde el precio es mayor que el anterior Y el siguiente
       for (let i = 1; i < knownPrices.length - 1; i++) {
         const prev = knownPrices[i - 1];
         const curr = knownPrices[i];
         const next = knownPrices[i + 1];
 
-        // Verificar si es un pico local (sube y luego baja)
         if (curr.price > prev.price && curr.price > next.price) {
           const peakRatio = curr.price / this.buyPrice;
 
-          // Solo considerar picos significativos (>100% del precio base)
           if (peakRatio >= 1.0) {
-            // Buscar si después del pico hubo una caída significativa
             const pricesAfterPeak = knownPrices.filter(p => p.index > curr.index);
             const minAfterPeak = Math.min(...pricesAfterPeak.map(p => p.price));
             const dropFromPeak = minAfterPeak / curr.price;
 
-            // Si cayó más de 50% desde el pico
             if (dropFromPeak < 0.50) {
-              // Buscar si después de la caída hubo una subida significativa
               const minPriceData = pricesAfterPeak.find(p => p.price === minAfterPeak);
               if (minPriceData) {
                 const pricesAfterMin = knownPrices.filter(p => p.index > minPriceData.index);
