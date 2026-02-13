@@ -281,28 +281,26 @@ export default class TurnipPredictor {
   }
 
   // Verificar si el patrón PICO GRANDE es posible
+  // Prioridad de validaciones: single-price → simple aggregates → complex analysis
   isPossibleLargeSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
 
-    // VALIDACIÓN CRÍTICA: Si llegamos tarde sin subida, rechazar
-    const lateCheck = this.isTooLateForSpike(knownPrices, 'Large Spike');
-    if (lateCheck.tooLate) {
-      this.rejectionReasons.large_spike.push(lateCheck.reason);
-      return false;
-    }
-
-    // VALIDACIÓN PERÍODO 2: Si detectamos Período 2 del pico, podemos confirmar o rechazar definitivamente
-    const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected) {
-      if (phase1Check.isLargeSpike === false) {
-        // Período 2 < 140% = no es Large Spike
-        // O: hay precios después del 140-200% y ninguno llegó a 200%
-        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
+    // 1. SINGLE-PRICE: Lunes AM (período 0) debe estar entre 85-90% del precio base
+    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
+    if (mondayAM) {
+      const startRange = largeSpikeStartRange(this.buyPrice);
+      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
+      if (mondayAM.price < startRange.min) {
+        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
         return false;
       }
-      // Si isLargeSpike = true o null, continuar con más validaciones (puede ser Large Spike)
+      if (mondayAM.price > startRange.max) {
+        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
+        return false;
+      }
     }
 
+    // 2. SIMPLE AGGREGATES: Precomputar valores usados por múltiples validaciones
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const maxRatio = priceRatio(maxPrice, this.buyPrice);
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
@@ -312,37 +310,32 @@ export default class TurnipPredictor {
       return true;
     }
 
-    // VALIDACIÓN 1: Lunes AM (período 0) debe estar entre 85-90% del precio base
-    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
-    if (mondayAM) {
-      const startRange = largeSpikeStartRange(this.buyPrice);
-      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
-      // Si está por debajo de 85%, no es Large Spike
-      if (mondayAM.price < startRange.min) {
-        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-        return false;
-      }
-      // Si está por encima de 90%, no es Large Spike
-      if (mondayAM.price > startRange.max) {
-        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-        return false;
-      }
+    // 3. TIMING: Si llegamos tarde sin subida, rechazar
+    const lateCheck = this.isTooLateForSpike(knownPrices, 'Large Spike');
+    if (lateCheck.tooLate) {
+      this.rejectionReasons.large_spike.push(lateCheck.reason);
+      return false;
     }
 
-    // VALIDACIÓN: Validar pendiente en fase pre-pico
+    // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
+    if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
+      const spikeRange = getSpikeStartRange(true);
+      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
+      return false;
+    }
+
+    // 4. SLOPE: Validar pendiente en fase pre-pico
     const slopeCheck = this.validatePrePeakSlope(knownPrices, true);
     if (slopeCheck.invalid) {
       this.rejectionReasons.large_spike.push(slopeCheck.reason);
       return false;
     }
 
-    // BUG FIX: Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
-    // Esto indica que el pico ya pasó y fue muy bajo para ser Large Spike
+    // Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
     if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
       const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
       if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
         const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
-        // Si después del "pico" hay caída >40%, el pico ya pasó
         const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
         if (hasSharpDrop) {
           this.rejectionReasons.large_spike.push(`El precio máximo fue ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) y luego cayó más de 40%. El pico ya pasó y fue muy bajo para Large Spike.`);
@@ -351,36 +344,30 @@ export default class TurnipPredictor {
       }
     }
 
-    // Si el pico máximo está claramente en el rango de Small Spike (140-200%)
-    // Y ya estamos tarde en la semana (viernes o después), rechazar Large Spike
-    // PERO: Si Phase 1 ya confirmó que es Large Spike, respetar esa confirmación
+    // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
+    const phase1Check = this.detectPhase1Spike(knownPrices);
+    if (phase1Check.detected) {
+      if (phase1Check.isLargeSpike === false) {
+        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
+        return false;
+      }
+    }
+
+    // Pico en rango de Small Spike (140-200%) + tarde en la semana → probablemente no es Large Spike
     if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      // Si Phase 1 confirmó Large Spike, no aplicar esta validación
       if (!phase1Check.detected || !phase1Check.isLargeSpike) {
-        // Buscar si hay señales claras de que es Large Spike
-        // (ej: subidas muy rápidas que indiquen que aún viene el pico grande)
         const hasRapidIncrease = knownPrices.some((current, i) => {
           if (i === 0) return false;
           const previous = knownPrices[i - 1];
-          // Subida de más de 100% en un período
           return current.price > previous.price * THRESHOLDS.RAPID_INCREASE;
         });
 
-        // Si no hay subidas muy rápidas y el pico está en rango de Small Spike,
-        // es muy probable que sea Small Spike, no Large Spike
         if (!hasRapidIncrease) {
           const spikeRange = getSpikeStartRange(true);
           this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
           return false;
         }
       }
-    }
-
-    // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
-    if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
-      const spikeRange = getSpikeStartRange(true);
-      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-      return false;
     }
 
     // En otros casos, mantener como posible (aún puede venir el pico)
