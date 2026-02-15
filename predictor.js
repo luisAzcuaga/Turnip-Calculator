@@ -125,17 +125,19 @@ export default class TurnipPredictor {
     const patternName = isLargeSpike ? 'Large Spike' : 'Small Spike';
     const minPeakStart = isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN;
 
-    for (let i = 1; i < knownPrices.length; i++) {
-      const current = knownPrices[i];
-      const previous = knownPrices[i - 1];
+    const spikeThreshold = this.buyPrice * RATES.LARGE_SPIKE.START_MAX;
+    let spikeStarted = false;
+    let previous = knownPrices[0];
 
+    for (const current of knownPrices.slice(1)) {
       // Solo validar si los períodos son consecutivos
-      if (current.index !== previous.index + 1) continue;
+      if (current.index !== previous.index + 1) {
+        spikeStarted = spikeStarted || previous.price >= spikeThreshold;
+        previous = current;
+        continue;
+      }
 
       const ratio = priceRatio(current.price, previous.price);
-
-      // Detectar si ya empezó el pico
-      const spikeStarted = knownPrices.slice(0, i).some(p => p.price >= this.buyPrice * RATES.LARGE_SPIKE.START_MAX);
 
       // Solo validar caída del rate en fase PRE-PICO
       if (!spikeStarted) {
@@ -161,6 +163,9 @@ export default class TurnipPredictor {
           reason: `Subió ${risePercent}% antes del período ${minPeakStart}. ${patternName} no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`
         };
       }
+
+      spikeStarted = spikeStarted || previous.price >= spikeThreshold;
+      previous = current;
     }
 
     return { invalid: false };
