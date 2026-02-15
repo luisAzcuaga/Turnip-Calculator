@@ -1,5 +1,5 @@
-import { DECAY, PERIODS, RATES, VARIANCE } from "../constants.js";
-import { calculateAvgRateDrop, detectSpikePeakStart, priceCeil, priceFloor, projectPriceFromRate } from "./utils.js";
+import { PERIODS, RATES } from "../constants.js";
+import { calculateDecreasingPhaseRange, detectSpikePeakStart, priceCeil, priceFloor } from "./utils.js";
 
 // Patrón PICO PEQUEÑO: similar al grande pero pico menor (140-200%)
 // Basado en el algoritmo real datamineado del juego (Pattern 3)
@@ -20,51 +20,10 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
   // Empieza en 40-90%, baja 3-5% cada período
   if (periodIndex < peakStart) {
     const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
-
-    if (decreasingPhase.length >= 1) {
-      const lastKnown = decreasingPhase[decreasingPhase.length - 1];
-      const periodsAhead = periodIndex - lastKnown.index;
-
-      // Si tenemos al menos 2 precios, calcular tasa de decrecimiento observada del RATE
-      if (decreasingPhase.length >= 2 && periodsAhead > 0) {
-        const avgRateDrop = calculateAvgRateDrop(decreasingPhase, base);
-        const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
-        return {
-          min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
-          max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
-        };
-      }
-
-      // Si solo tenemos 1 precio o estamos prediciendo después del último conocido,
-      // el máximo no puede ser mayor al último precio conocido (está bajando)
-      if (periodsAhead > 0) {
-        // Usar tasa de decrecimiento del algoritmo (3-5 puntos del rate por período)
-        const lastKnownRate = lastKnown.price / base;
-        const minProjectedRate = lastKnownRate - (DECAY.MAX_PER_PERIOD * periodsAhead); // Baja 5 puntos
-        const maxProjectedRate = lastKnownRate - (DECAY.MIN_PER_PERIOD * periodsAhead); // Baja 3 puntos
-        const minProjected = base * Math.max(RATES.FLOOR, minProjectedRate);
-        const maxProjected = base * maxProjectedRate;
-
-        return {
-          min: Math.floor(Math.max(base * RATES.FLOOR, minProjected)),
-          max: Math.ceil(Math.min(lastKnown.price, maxProjected))
-        };
-      }
-    }
-
-    // Sin datos suficientes: usar rangos del algoritmo del juego
-    // Fase decreciente pre-pico: empieza 40-90%, baja 3-5% por período
-
-    // Calcular rango para este período
-    // Peor caso: empieza en 40% (mínimo fijo del juego)
-    const minRate = RATES.SMALL_SPIKE.START_MIN; // Mínimo fijo del juego
-    // Mejor caso: empieza en 90% y baja 3% por período
-    const maxRate = Math.max(RATES.FLOOR, RATES.SMALL_SPIKE.START_MAX - (periodIndex * DECAY.MIN_PER_PERIOD));
-
-    return {
-      min: priceFloor(base, minRate),
-      max: priceCeil(base, maxRate)
-    };
+    return calculateDecreasingPhaseRange(
+      periodIndex, base, decreasingPhase, periodIndex,
+      RATES.SMALL_SPIKE.START_MIN, RATES.SMALL_SPIKE.START_MAX, false
+    );
   }
 
   // Fase 2: PICO (5 períodos consecutivos desde peakStart)
@@ -180,29 +139,10 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
   }
 
   // Fase 3: DECRECIENTE FINAL (después del pico)
-  const finalDecreasingPhase = knownPrices.filter(p => p.index >= peakStart + 5);
-
-  if (finalDecreasingPhase.length >= 2) {
-    // Calcular tasa de decrecimiento observada
-    const avgRate = finalDecreasingPhase.slice(1).reduce((totalRate, current, i) => {
-      const rate = (finalDecreasingPhase[i].price - current.price) / finalDecreasingPhase[i].price;
-      return totalRate + rate;
-    }, 0) / (finalDecreasingPhase.length - 1);
-
-    const lastKnown = finalDecreasingPhase[finalDecreasingPhase.length - 1];
-    const periodsAhead = periodIndex - lastKnown.index;
-    if (periodsAhead > 0) {
-      const projected = lastKnown.price * Math.pow(1 - avgRate, periodsAhead);
-      return {
-        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
-        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
-      };
-    }
-  }
-
-  // Sin datos suficientes en fase final: usar rangos del algoritmo
-  return {
-    min: priceFloor(base, RATES.SMALL_SPIKE.POST_PEAK_MIN),
-    max: priceCeil(base, RATES.SMALL_SPIKE.POST_PEAK_MAX)
-  };
+  const phaseStart = peakStart + 5;
+  const finalDecreasingPhase = knownPrices.filter(p => p.index >= phaseStart);
+  return calculateDecreasingPhaseRange(
+    periodIndex, base, finalDecreasingPhase, periodIndex - phaseStart,
+    RATES.SMALL_SPIKE.POST_PEAK_MIN, RATES.SMALL_SPIKE.POST_PEAK_MAX, true
+  );
 }

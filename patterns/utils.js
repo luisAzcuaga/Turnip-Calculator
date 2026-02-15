@@ -1,4 +1,4 @@
-import { DAYS_CONFIG, DECAY, PERIODS, RATES, THRESHOLDS } from "../constants.js";
+import { DAYS_CONFIG, DECAY, PERIODS, RATES, THRESHOLDS, VARIANCE } from "../constants.js";
 
 // Utilidades compartidas para los patrones de precios
 // Funciones auxiliares usadas por múltiples patrones
@@ -308,4 +308,60 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
   }
 
   return { detected: false };
+}
+
+/**
+ * Calcula el rango de precios para una fase decreciente (pre-pico o post-pico).
+ * Consolida la lógica compartida entre large-spike y small-spike.
+ *
+ * @param {number} periodIndex - Índice absoluto del período (0-11)
+ * @param {number} base - Precio base de compra
+ * @param {Array} phaseKnownPrices - Precios conocidos ya filtrados a esta fase
+ * @param {number} periodsIntoPhase - Períodos transcurridos desde inicio de fase (para rama sin datos)
+ * @param {number} startMinRate - Rate mínimo al inicio de la fase
+ * @param {number} startMaxRate - Rate máximo al inicio de la fase
+ * @param {boolean} decayMinRate - Si true, el minRate decae por período; si false, es fijo
+ * @returns {{min: number, max: number}} - Rango de precios
+ */
+export function calculateDecreasingPhaseRange(
+  periodIndex, base, phaseKnownPrices, periodsIntoPhase,
+  startMinRate, startMaxRate, decayMinRate
+) {
+  if (phaseKnownPrices.length >= 1) {
+    const lastKnown = phaseKnownPrices[phaseKnownPrices.length - 1];
+    const periodsAhead = periodIndex - lastKnown.index;
+
+    // 2+ precios: proyectar con tasa de decrecimiento observada del rate
+    if (phaseKnownPrices.length >= 2 && periodsAhead > 0) {
+      const avgRateDrop = calculateAvgRateDrop(phaseKnownPrices, base);
+      const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
+      return {
+        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
+        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
+      };
+    }
+
+    // 1 precio: decrecimiento manual del rate (3-5 puntos por período)
+    if (periodsAhead > 0) {
+      const lastKnownRate = lastKnown.price / base;
+      const minProjectedRate = lastKnownRate - (DECAY.MAX_PER_PERIOD * periodsAhead);
+      const maxProjectedRate = lastKnownRate - (DECAY.MIN_PER_PERIOD * periodsAhead);
+      const minProjected = base * Math.max(RATES.FLOOR, minProjectedRate);
+      const maxProjected = base * maxProjectedRate;
+      return {
+        min: Math.floor(Math.max(base * RATES.FLOOR, minProjected)),
+        max: Math.ceil(Math.min(lastKnown.price, maxProjected))
+      };
+    }
+  }
+
+  // Sin datos: rangos del algoritmo del juego
+  const minRate = decayMinRate
+    ? Math.max(RATES.FLOOR, startMinRate - (periodsIntoPhase * DECAY.MAX_PER_PERIOD))
+    : startMinRate;
+  const maxRate = Math.max(RATES.FLOOR, startMaxRate - (periodsIntoPhase * DECAY.MIN_PER_PERIOD));
+  return {
+    min: priceFloor(base, minRate),
+    max: priceCeil(base, maxRate)
+  };
 }
