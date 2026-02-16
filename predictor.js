@@ -85,9 +85,9 @@ export default class TurnipPredictor {
   // Obtener array de precios conocidos con sus índices
   getPriceArrayWithIndex() {
     return DAYS_CONFIG
-      .map((day, index) => ({ index, price: this.knownPrices[day.key], day: day.key }))
+      .map((day, index) => ({ index, price: this.knownPrices[day.key] }))
       .filter(({ price }) => price !== undefined && price !== null && price !== '')
-      .map(({ index, price, day }) => ({ index, price: parseInt(price), day }));
+      .map(({ index, price }) => ({ index, price: parseInt(price) }));
   }
 
   // Detectar patrones posibles basados en los precios conocidos
@@ -224,7 +224,7 @@ export default class TurnipPredictor {
         isLargeSpike,
         phase1Price: period2.price,
         phase1Percent,
-        phase1Day: period2.day
+        phase1Day: getPeriodName(period2.index)
       };
     }
 

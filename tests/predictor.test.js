@@ -85,8 +85,8 @@ describe('TurnipPredictor', () => {
       const p = new TurnipPredictor(100, { mon_am: 90, tue_am: 85 });
       const result = p.getPriceArrayWithIndex();
       expect(result).toEqual([
-        { index: 0, price: 90, day: 'mon_am' },
-        { index: 2, price: 85, day: 'tue_am' },
+        { index: 0, price: 90 },
+        { index: 2, price: 85 },
       ]);
     });
 
