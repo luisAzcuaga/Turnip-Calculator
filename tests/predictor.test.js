@@ -75,7 +75,7 @@ describe('TurnipPredictor', () => {
   // DATA HELPERS
   // ==========================================================================
 
-  describe('#getPriceArrayWithIndices', () => {
+  describe('#getPriceArrayWithIndex', () => {
     it('should return empty array for empty knownPrices', () => {
       const p = new TurnipPredictor(100);
       expect(p.getPriceArrayWithIndex()).toEqual([]);

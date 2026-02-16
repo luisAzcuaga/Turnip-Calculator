@@ -84,10 +84,11 @@ export default class TurnipPredictor {
 
   // Obtener array de precios conocidos con sus índices
   getPriceArrayWithIndex() {
-    return DAYS_CONFIG
-      .map((day, index) => ({ index, price: this.knownPrices[day.key] }))
-      .filter(({ price }) => price !== undefined && price !== null && price !== '')
-      .map(({ index, price }) => ({ index, price: parseInt(price) }));
+    return DAYS_CONFIG.flatMap((day, index) => {
+      const price = this.knownPrices[day.key];
+      if (price === undefined || price === null || price === '') return [];
+      return { index, price };
+    });
   }
 
   // Detectar patrones posibles basados en los precios conocidos
