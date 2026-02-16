@@ -573,17 +573,6 @@ describe('TurnipPredictor', () => {
         small_spike: 0.15,
       });
     });
-
-    it('should force all-decreasing for numeric previousPattern >= 4', () => {
-      const p = new TurnipPredictor(100);
-      p.previousPattern = 4;
-      expect(p.getBaseProbabilities()).toEqual({
-        fluctuating: 0,
-        large_spike: 0,
-        decreasing: 1.0,
-        small_spike: 0,
-      });
-    });
   });
 
   describe('#calculatePatternScore', () => {

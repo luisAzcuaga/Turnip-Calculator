@@ -28,7 +28,9 @@ export default class TurnipPredictor {
 
     this.buyPrice = buyPrice;
     this.knownPrices = TurnipPredictor.validatePrices(knownPrices);
-    this.previousPattern = previousPattern;
+    this.previousPattern = Object.values(PATTERNS).includes(previousPattern)
+      ? previousPattern
+      : null;
 
     // Sistema de tracking de razones de rechazo/baja probabilidad
     this.rejectionReasons = {
@@ -574,24 +576,9 @@ export default class TurnipPredictor {
 
   // Obtener probabilidades base según el patrón anterior
   getBaseProbabilities() {
-    // Regla especial del juego: si previousPattern es un número >= 4, forzar Decreasing
-    // (Esto es un failsafe del código original para valores inválidos)
-    if (typeof this.previousPattern === 'number' && this.previousPattern >= 4) {
-      return {
-        fluctuating: 0,
-        large_spike: 0,
-        decreasing: 1.0,
-        small_spike: 0
-      };
-    }
-
-    // Si conocemos el patrón anterior, usar probabilidades de transición
-    if (this.previousPattern && this.transitionProbabilities[this.previousPattern]) {
-      return this.transitionProbabilities[this.previousPattern];
-    }
-
-    // Sin patrón anterior, usar probabilidades por defecto
-    return this.defaultProbabilities;
+    return this.previousPattern
+      ? this.transitionProbabilities[this.previousPattern]
+      : this.defaultProbabilities;
   }
 
   // Detectar el patrón más probable con información de confianza
