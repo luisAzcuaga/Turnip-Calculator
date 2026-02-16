@@ -272,10 +272,10 @@ describe('TurnipPredictor', () => {
     });
   });
 
-  describe('#detectPhase1Spike', () => {
+  describe('#detectSpikeConfirmation', () => {
     it('should return not detected with fewer than 2 prices', () => {
       const p = new TurnipPredictor(100);
-      expect(p.detectPhase1Spike([{ index: 0, price: 90 }])).toEqual({ detected: false });
+      expect(p.detectSpikeConfirmation([{ index: 0, price: 90 }])).toEqual({ detected: false });
     });
 
     it('should detect Large Spike P1→P2 sequence via detectLargeSpikeSequence', () => {
@@ -285,9 +285,9 @@ describe('TurnipPredictor', () => {
         { index: 3, price: 110, day: 'tue_pm' },
         { index: 4, price: 160, day: 'wed_am' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(true);
-      expect(result.phase1Price).toBe(160);
+      expect(result.price).toBe(160);
     });
 
     it('should return not detected when spike start next price falls', () => {
@@ -299,7 +299,7 @@ describe('TurnipPredictor', () => {
         { index: 2, price: 95, day: 'tue_am' },
         { index: 3, price: 90, day: 'tue_pm' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(false);
     });
 
@@ -311,7 +311,7 @@ describe('TurnipPredictor', () => {
         { index: 4, price: 160, day: 'wed_am' },
         { index: 5, price: 300, day: 'wed_pm' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(true);
       expect(result.isLargeSpike).toBe(true);
     });
@@ -470,7 +470,7 @@ describe('TurnipPredictor', () => {
       expect(p.isPossibleSmallSpike(prices)).toBe(false);
     });
 
-    it('should reject when Phase 1 P2 rate >= 140% (confirms Large Spike)', () => {
+    it('should reject when confirmation P2 rate >= 140% (confirms Large Spike)', () => {
       const p = new TurnipPredictor(100);
       // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% >= 140% → impossible for Small Spike
       const prices = [

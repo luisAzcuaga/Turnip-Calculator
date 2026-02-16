@@ -199,7 +199,7 @@ export default class TurnipPredictor {
 
   // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
   // Período 2 Large Spike: 140-200% | Período 2 Small Spike: 90-140%
-  detectPhase1Spike(knownPrices) {
+  detectSpikeConfirmation(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -210,7 +210,7 @@ export default class TurnipPredictor {
 
     if (sequence.detected) {
       const { period2, hasPricesAfter } = sequence;
-      const phase1Percent = (period2.rate * 100).toFixed(1);
+      const percent = (period2.rate * 100).toFixed(1);
 
       // Determinar isLargeSpike según contexto
       let isLargeSpike;
@@ -225,9 +225,9 @@ export default class TurnipPredictor {
       return {
         detected: true,
         isLargeSpike,
-        phase1Price: period2.price,
-        phase1Percent,
-        phase1Day: getPeriodName(period2.index)
+        price: period2.price,
+        percent,
+        day: getPeriodName(period2.index)
       };
     }
 
@@ -237,23 +237,23 @@ export default class TurnipPredictor {
 
     const spikeStartPrice = knownPrices[spikeDetection.startIndex];
     const spikeStartIndex = spikeStartPrice.index;
-    const phase1Data = knownPrices.find(p => p.index === spikeStartIndex + 1);
-    if (!phase1Data) return { detected: false };
+    const confirmationData = knownPrices.find(p => p.index === spikeStartIndex + 1);
+    if (!confirmationData) return { detected: false };
 
     // CRITICAL: Solo considerar como secuencia de pico si el precio SUBE
     // Si el precio baja (ej: 129 → 107), no es el inicio real del pico
-    if (phase1Data.price <= spikeStartPrice.price) {
+    if (confirmationData.price <= spikeStartPrice.price) {
       return { detected: false };
     }
 
-    const phase1Rate = phase1Data.price / this.buyPrice;
+    const confirmationRate = confirmationData.price / this.buyPrice;
 
     return {
       detected: true,
-      isLargeSpike: phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN,
-      phase1Price: phase1Data.price,
-      phase1Percent: (phase1Rate * 100).toFixed(1),
-      phase1Day: getPeriodName(spikeStartIndex + 1)
+      isLargeSpike: confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN,
+      price: confirmationData.price,
+      percent: (confirmationRate * 100).toFixed(1),
+      day: getPeriodName(spikeStartIndex + 1)
     };
   }
 
@@ -345,17 +345,17 @@ export default class TurnipPredictor {
     }
 
     // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
-    const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected) {
-      if (phase1Check.isLargeSpike === false) {
-        this.rejectionReasons.large_spike.push(`${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
+    const confirmation = this.detectSpikeConfirmation(knownPrices);
+    if (confirmation.detected) {
+      if (confirmation.isLargeSpike === false) {
+        this.rejectionReasons.large_spike.push(`${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
         return false;
       }
     }
 
     // Pico en rango de Small Spike (140-200%) + tarde en la semana → probablemente no es Large Spike
     if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      if (!phase1Check.detected || !phase1Check.isLargeSpike) {
+      if (!confirmation.detected || !confirmation.isLargeSpike) {
         const hasRapidIncrease = knownPrices.some((current, i) => {
           if (i === 0) return false;
           const previous = knownPrices[i - 1];
@@ -444,19 +444,19 @@ export default class TurnipPredictor {
     }
 
     // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
-    const phase1Check = this.detectPhase1Spike(knownPrices);
-    if (phase1Check.detected) {
-      const phase1Rate = parseFloat(phase1Check.phase1Percent) / 100;
+    const confirmation = this.detectSpikeConfirmation(knownPrices);
+    if (confirmation.detected) {
+      const confirmationRate = parseFloat(confirmation.percent) / 100;
 
       // P2 at 140%+ is IMPOSSIBLE for Small Spike
       // Small Spike: P1 (90-140%) → P2 (90-140%) → P3-4 (140-200% peak)
       // Large Spike: P1 (90-140%) → P2 (140-200%) → P3 (200-600% peak)
-      if (phase1Rate >= THRESHOLDS.SMALL_SPIKE_MIN) {
-        const peakStatus = phase1Check.isLargeSpike === true
+      if (confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN) {
+        const peakStatus = confirmation.isLargeSpike === true
           ? 'ya confirmado con pico >200%'
           : 'esperando el pico real de 200-600% en el siguiente período';
         this.rejectionReasons.small_spike.push(
-          `${phase1Check.phase1Day} tiene ${phase1Check.phase1Price} bayas (${phase1Check.phase1Percent}%). ` +
+          `${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). ` +
           `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
           `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${peakStatus}).`
         );
