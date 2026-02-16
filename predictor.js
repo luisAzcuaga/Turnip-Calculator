@@ -209,14 +209,14 @@ export default class TurnipPredictor {
     const sequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
 
     if (sequence.detected) {
-      const { period2, hasPricesAfter } = sequence;
+      const { period2, hasDataAfterSequence } = sequence;
       const percent = (period2.rate * 100).toFixed(1);
 
       // Determinar isLargeSpike según contexto
       let isLargeSpike;
       if (hasLargeSpikeConfirmed) {
         isLargeSpike = true; // Pico >200% confirma Large Spike
-      } else if (!hasPricesAfter) {
+      } else if (!hasDataAfterSequence) {
         isLargeSpike = null; // Indeterminado - pico podría venir
       } else {
         isLargeSpike = false; // Hay precios después sin llegar a 200%
@@ -722,7 +722,7 @@ export default class TurnipPredictor {
 
       // Bonus si detectamos secuencia P1→P2 de Large Spike sin precios después
       const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
-      if (lsSequence.detected && !lsSequence.hasPricesAfter) {
+      if (lsSequence.detected && !lsSequence.hasDataAfterSequence) {
         const { period1, period2 } = lsSequence;
         // Si el P2 está en rango de Small Spike (140-200%), el bonus es menor porque es ambiguo
         // El pico podría ser de Small Spike, no necesariamente vendrá el 200-600%
@@ -806,7 +806,7 @@ export default class TurnipPredictor {
         // Penalizar si la secuencia también coincide con Large Spike P1→P2
         // PERO: si el pico ya está en rango ideal de Small Spike (140-200%), penalizar menos
         const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
-        if (lsSequence.detected && !lsSequence.hasPricesAfter) {
+        if (lsSequence.detected && !lsSequence.hasDataAfterSequence) {
           const { period1, period2 } = lsSequence;
           // Si el pico está en rango ideal de Small Spike, es más probable que sea Small Spike
           if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {

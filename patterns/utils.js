@@ -300,7 +300,7 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
             detected: true,
             period1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
             period2: { price: current.price, rate: rate, index: current.index },
-            hasPricesAfter: pricesAfter.length > 0
+            hasDataAfterSequence: pricesAfter.length > 0
           };
         }
       }

@@ -434,7 +434,7 @@ describe("patterns/utils", () => {
       ];
       const result = detectLargeSpikeSequence(knownPrices, buyPrice);
       expect(result.detected).toBe(true);
-      expect(result.hasPricesAfter).toBe(true);
+      expect(result.hasDataAfterSequence).toBe(true);
     });
 
     it("should report no prices after when sequence is at end", () => {
@@ -444,7 +444,7 @@ describe("patterns/utils", () => {
       ];
       const result = detectLargeSpikeSequence(knownPrices, buyPrice);
       expect(result.detected).toBe(true);
-      expect(result.hasPricesAfter).toBe(false);
+      expect(result.hasDataAfterSequence).toBe(false);
     });
   });
 });

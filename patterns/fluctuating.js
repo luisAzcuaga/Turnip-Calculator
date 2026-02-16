@@ -81,61 +81,61 @@ function isInPhase(periodIndex, phase) {
  * Detecta si BAJA2 está en progreso basándose en los últimos precios conocidos
  * @param {Array} knownPrices - Precios conocidos ordenados por índice
  * @param {number} base - Precio base de compra
- * @param {Object} baja1 - Fase baja 1 detectada con {startIndex, endIndex}
- * @param {number} baja2ExpectedLength - Longitud esperada de BAJA2 (5 - baja1Length)
+ * @param {Object} lowPhase1 - Fase baja 1 detectada con {startIndex, endIndex}
+ * @param {number} lowPhase2ExpectedLength - Longitud esperada de BAJA2 (5 - lowPhase1Length)
  * @returns {Object|null} - {startIndex, endIndex} de BAJA2 si detectada, null si no
  */
-function detectBaja2InProgress(knownPrices, base, baja1, baja2ExpectedLength) {
+function detectLowPhase2InProgress(knownPrices, base, lowPhase1, lowPhase2ExpectedLength) {
   if (knownPrices.length < 2) return null;
 
   const lastPrice = knownPrices[knownPrices.length - 1];
-  if (lastPrice.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD || lastPrice.index <= baja1.endIndex) {
+  if (lastPrice.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD || lastPrice.index <= lowPhase1.endIndex) {
     return null;
   }
 
   // Retroceder para encontrar el inicio de BAJA2
-  let baja2Start = lastPrice.index;
+  let lowPhase2Start = lastPrice.index;
   for (let i = knownPrices.length - 2; i >= 0; i--) {
     const p = knownPrices[i];
     if (p.price / base < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD &&
-        p.index > baja1.endIndex &&
-        p.index === baja2Start - 1) {
-      baja2Start = p.index;
+        p.index > lowPhase1.endIndex &&
+        p.index === lowPhase2Start - 1) {
+      lowPhase2Start = p.index;
     } else {
       break;
     }
   }
 
-  return { startIndex: baja2Start, endIndex: baja2Start + baja2ExpectedLength - 1 };
+  return { startIndex: lowPhase2Start, endIndex: lowPhase2Start + lowPhase2ExpectedLength - 1 };
 }
 
 /**
  * Analiza la estructura completa del patrón Fluctuante
  * @param {Array} knownPrices - Array de precios conocidos ordenados por índice
  * @param {number} base - Precio base de compra
- * @returns {Object|null} - Estructura detectada con {baja1, baja2} o null
+ * @returns {Object|null} - Estructura detectada con {lowPhase1, lowPhase2} o null
  */
 function analyzeFluctuatingStructure(knownPrices, base) {
   if (knownPrices.length === 0) return null;
 
   const lowPhases = detectFluctuatingPhases(knownPrices, base);
 
-  if (lowPhases.length === 0) return { baja1: null, baja2: null };
+  if (lowPhases.length === 0) return { lowPhase1: null, lowPhase2: null };
 
-  const baja1 = lowPhases[0];
-  const baja1End = baja1.startIndex + baja1.length - 1;
-  const baja1Phase = { startIndex: baja1.startIndex, endIndex: baja1End };
+  const first = lowPhases[0];
+  const firstEnd = first.startIndex + first.length - 1;
+  const lowPhase1 = { startIndex: first.startIndex, endIndex: firstEnd };
 
   if (lowPhases.length === 1) {
-    return { baja1: baja1Phase, baja2: null };
+    return { lowPhase1, lowPhase2: null };
   }
 
-  const baja2 = lowPhases[1];
-  const baja2End = baja2.startIndex + baja2.length - 1;
+  const second = lowPhases[1];
+  const secondEnd = second.startIndex + second.length - 1;
 
   return {
-    baja1: baja1Phase,
-    baja2: { startIndex: baja2.startIndex, endIndex: baja2End }
+    lowPhase1,
+    lowPhase2: { startIndex: second.startIndex, endIndex: secondEnd }
   };
 }
 
@@ -171,30 +171,30 @@ export default function calculateFluctuatingPattern(periodIndex, base, knownPric
   // Analizar estructura y predecir según fase detectada
   const structure = analyzeFluctuatingStructure(knownPrices, base);
 
-  if (structure && structure.baja1) {
+  if (structure && structure.lowPhase1) {
     // Estructura completa: ambas fases bajas detectadas
-    if (structure.baja2) {
-      if (isInPhase(periodIndex, structure.baja1) || isInPhase(periodIndex, structure.baja2)) {
+    if (structure.lowPhase2) {
+      if (isInPhase(periodIndex, structure.lowPhase1) || isInPhase(periodIndex, structure.lowPhase2)) {
         return LOW;
       }
       return HIGH;
     }
 
     // Estructura parcial: solo BAJA1 detectada
-    if (isInPhase(periodIndex, structure.baja1)) {
+    if (isInPhase(periodIndex, structure.lowPhase1)) {
       return LOW;
     }
 
-    const baja1Length = structure.baja1.endIndex - structure.baja1.startIndex + 1;
-    const baja2 = detectBaja2InProgress(knownPrices, base, structure.baja1, 5 - baja1Length);
+    const lowPhase1Length = structure.lowPhase1.endIndex - structure.lowPhase1.startIndex + 1;
+    const lowPhase2 = detectLowPhase2InProgress(knownPrices, base, structure.lowPhase1, 5 - lowPhase1Length);
 
-    if (baja2) {
-      if (isInPhase(periodIndex, baja2)) return LOW;
-      if (periodIndex > baja2.endIndex) return HIGH;
+    if (lowPhase2) {
+      if (isInPhase(periodIndex, lowPhase2)) return LOW;
+      if (periodIndex > lowPhase2.endIndex) return HIGH;
     }
 
     // Si estamos muy tarde y ya pasó BAJA1 temprano, debe ser ALTA
-    if (periodIndex >= PERIODS.SATURDAY_AM && structure.baja1.startIndex <= PERIODS.THURSDAY_AM) {
+    if (periodIndex >= PERIODS.SATURDAY_AM && structure.lowPhase1.startIndex <= PERIODS.THURSDAY_AM) {
       return HIGH;
     }
   }

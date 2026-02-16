@@ -94,17 +94,17 @@ describe("patterns/fluctuating", () => {
     it("should predict high phase for remaining periods", () => {
       // Two clear low phases detected
       const knownPrices = [
-        { index: 0, price: 120 },  // alta1
-        { index: 1, price: 75 },   // baja1 start
-        { index: 2, price: 70 },   // baja1 end (2 periods)
-        { index: 3, price: 110 },  // alta2
-        { index: 4, price: 115 },  // alta2
-        { index: 5, price: 72 },   // baja2 start
-        { index: 6, price: 68 },   // baja2
-        { index: 7, price: 64 },   // baja2 end (3 periods, since baja1=2 → baja2=3)
+        { index: 0, price: 120 },  // highPhase1
+        { index: 1, price: 75 },   // lowPhase1 start
+        { index: 2, price: 70 },   // lowPhase1 end (2 periods)
+        { index: 3, price: 110 },  // highPhase2
+        { index: 4, price: 115 },  // highPhase2
+        { index: 5, price: 72 },   // lowPhase2 start
+        { index: 6, price: 68 },   // lowPhase2
+        { index: 7, price: 64 },   // lowPhase2 end (3 periods, since lowPhase1=2 → lowPhase2=3)
       ];
 
-      // Period 8+ should be alta3 (high phase)
+      // Period 8+ should be highPhase3 (high phase)
       const result = calculateFluctuatingPattern(8, base, knownPrices);
       expect(result.min).toBe(Math.floor(base * RATES.FLUCTUATING.HIGH_PHASE_MIN));
       expect(result.max).toBe(Math.ceil(base * RATES.FLUCTUATING.HIGH_PHASE_MAX));
@@ -141,21 +141,21 @@ describe("patterns/fluctuating", () => {
     });
   });
 
-  describe("low phase length rule (baja1 + baja2 = 5)", () => {
+  describe("low phase length rule (lowPhase1 + lowPhase2 = 5)", () => {
     it("should have second low phase length complement first (2+3=5)", () => {
-      // baja1 = 2 periods → baja2 should be 3 periods
+      // lowPhase1 = 2 periods → lowPhase2 should be 3 periods
       const knownPrices = [
         { index: 0, price: 120 },
-        { index: 1, price: 75 },   // baja1 (period 1)
-        { index: 2, price: 70 },   // baja1 (period 2) → length = 2
-        { index: 3, price: 110 },  // alta2
-        { index: 4, price: 115 },  // alta2
-        { index: 5, price: 72 },   // baja2 start
-        { index: 6, price: 68 },   // baja2
-        { index: 7, price: 64 },   // baja2 → length = 3
+        { index: 1, price: 75 },   // lowPhase1 (period 1)
+        { index: 2, price: 70 },   // lowPhase1 (period 2) → length = 2
+        { index: 3, price: 110 },  // highPhase2
+        { index: 4, price: 115 },  // highPhase2
+        { index: 5, price: 72 },   // lowPhase2 start
+        { index: 6, price: 68 },   // lowPhase2
+        { index: 7, price: 64 },   // lowPhase2 → length = 3
       ];
 
-      // Period 8 should be high (after baja2 ends)
+      // Period 8 should be high (after lowPhase2 ends)
       const result8 = calculateFluctuatingPattern(8, base, knownPrices);
       expect(result8.min).toBe(Math.floor(base * RATES.FLUCTUATING.HIGH_PHASE_MIN));
       expect(result8.max).toBe(Math.ceil(base * RATES.FLUCTUATING.HIGH_PHASE_MAX));
