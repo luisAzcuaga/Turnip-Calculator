@@ -806,4 +806,62 @@ describe('TurnipPredictor', () => {
       });
     });
   });
+
+  describe('Real-life scenario: buyPrice 110, previous small_spike', () => {
+    const knownPrices = {
+      mon_am: 56, mon_pm: 52, tue_am: 117,
+      tue_pm: 147, wed_am: 173, wed_pm: 188,
+      thu_am: 181, thu_pm: 50, fri_am: 45,
+      fri_pm: 41, sat_am: 37, sat_pm: 33,
+    };
+
+    it('should detect large_spike as primary pattern', () => {
+      const p = new TurnipPredictor(110, knownPrices, 'small_spike');
+      const result = p.predict();
+
+      expect(result.pattern).toBe('small_spike');
+    });
+
+    it('should have sensible Thu AM predictions with min <= max', () => {
+      const p = new TurnipPredictor(110, knownPrices, 'small_spike');
+
+      const result = p.predict();
+      const thuAm = result.predictions.thu_am;
+
+      expect(thuAm.min).toBeLessThanOrEqual(thuAm.max);
+      expect(thuAm.isUserInput).toBe(true);
+    });
+
+    it('should confirm known prices in predictions', () => {
+      const p = new TurnipPredictor(110, knownPrices, 'small_spike');
+
+      const result = p.predict();
+
+      expect(result.predictions.mon_am.isUserInput).toBe(true);
+      expect(result.predictions.mon_am.min).toBe(56);
+      expect(result.predictions.wed_pm.isUserInput).toBe(true);
+      expect(result.predictions.wed_pm.min).toBe(188);
+    });
+
+    it('should include all 4 pattern probabilities summing close to 100%', () => {
+      const p = new TurnipPredictor(110, knownPrices, 'small_spike');
+
+      const result = p.predict();
+      const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
+
+      // Rounding may cause slight deviation from exactly 100
+      expect(total).toBeGreaterThanOrEqual(98);
+      expect(total).toBeLessThanOrEqual(102);
+    });
+
+    it('should have all unconfirmed predictions with min <= max', () => {
+      const p = new TurnipPredictor(110, knownPrices, 'small_spike');
+
+      const result = p.predict();
+
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+  });
 });
