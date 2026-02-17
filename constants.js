@@ -38,26 +38,26 @@ export const PATTERNS = {
 
 // Pattern display names (español)
 export const PATTERN_NAMES = {
-  'fluctuating': 'Fluctuante',
-  'large_spike': 'Pico Grande',
-  'small_spike': 'Pico Pequeño',
-  'decreasing': 'Decreciente'
+  fluctuating: 'Fluctuante',
+  large_spike: 'Pico Grande',
+  small_spike: 'Pico Pequeño',
+  decreasing: 'Decreciente'
 };
 
 // Encoding map: pattern name → single letter (for URL compression)
 export const PATTERN_ENCODE_MAP = {
-  'fluctuating': 'f',
-  'large_spike': 'l',
-  'small_spike': 's',
-  'decreasing': 'd'
+  fluctuating: 'f',
+  large_spike: 'l',
+  small_spike: 's',
+  decreasing: 'd'
 };
 
 // Decoding map: single letter → pattern name (for URL decompression)
 export const PATTERN_DECODE_MAP = {
-  'f': 'fluctuating',
-  'l': 'large_spike',
-  's': 'small_spike',
-  'd': 'decreasing'
+  f: 'fluctuating',
+  l: 'large_spike',
+  s: 'small_spike',
+  d: 'decreasing'
 };
 
 // ============================================================================
@@ -215,8 +215,6 @@ export const THRESHOLDS = {
   // === Fluctuante ===
   FLUCTUATING_DROP: 0.98,          // 2% caída para detectar tendencia
   FLUCTUATING_RISE: 1.02,          // 2% subida para detectar tendencia
-  FLUCTUATING_MIN_RATIO: 0.50,     // 50% mínimo
-  FLUCTUATING_MAX_RATIO: 1.50,     // 150% máximo
   FLUCTUATING_MODERATE_MIN: 0.80,  // 80%
   FLUCTUATING_MODERATE_MAX: 1.50,  // 150%
   FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2,  // Máximo 2 subidas consecutivas (3 precios = pico)

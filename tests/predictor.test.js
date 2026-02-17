@@ -39,19 +39,19 @@ describe('TurnipPredictor', () => {
   describe('#validatePrices', () => {
     it('should filter invalid prices', () => {
       const validatedPrices = TurnipPredictor.validatePrices({
-        "mon_am": 100, "mon_pm": 90,
-        "tue_am": 85, "tue_pm": 120,
-        "wed_am": 200, "wed_pm": 6000,
-        "thu_am": 4000, "thu_pm": 3000,
-        "fri_am": 2000, "fri_pm": 1000,
-        "sat_am": 600, "sat_pm": 550,
+        mon_am: 100, mon_pm: 90,
+        tue_am: 85, tue_pm: 120,
+        wed_am: 200, wed_pm: 6000,
+        thu_am: 4000, thu_pm: 3000,
+        fri_am: 2000, fri_pm: 1000,
+        sat_am: 600, sat_pm: 550,
       });
   
       expect(validatedPrices).toEqual({
-        "mon_am": 100, "mon_pm": 90,
-        "tue_am": 85, "tue_pm": 120,
-        "wed_am": 200, "sat_am": 600,
-        "sat_pm": 550,
+        mon_am: 100, mon_pm: 90,
+        tue_am: 85, tue_pm: 120,
+        wed_am: 200, sat_am: 600,
+        sat_pm: 550,
       });
     });
   })
@@ -75,18 +75,18 @@ describe('TurnipPredictor', () => {
   // DATA HELPERS
   // ==========================================================================
 
-  describe('#getPriceArrayWithIndices', () => {
+  describe('#getPriceArrayWithIndex', () => {
     it('should return empty array for empty knownPrices', () => {
       const p = new TurnipPredictor(100);
-      expect(p.getPriceArrayWithIndices()).toEqual([]);
+      expect(p.getPriceArrayWithIndex()).toEqual([]);
     });
 
     it('should convert knownPrices to array with correct indices and day keys', () => {
       const p = new TurnipPredictor(100, { mon_am: 90, tue_am: 85 });
-      const result = p.getPriceArrayWithIndices();
+      const result = p.getPriceArrayWithIndex();
       expect(result).toEqual([
-        { index: 0, price: 90, day: 'mon_am' },
-        { index: 2, price: 85, day: 'tue_am' },
+        { index: 0, price: 90 },
+        { index: 2, price: 85 },
       ]);
     });
 
@@ -97,12 +97,12 @@ describe('TurnipPredictor', () => {
         fri_am: 70, fri_pm: 68, sat_am: 65, sat_pm: 62,
       };
       const p = new TurnipPredictor(100, prices);
-      expect(p.getPriceArrayWithIndices()).toHaveLength(12);
+      expect(p.getPriceArrayWithIndex()).toHaveLength(12);
     });
 
     it('should parse prices as integers', () => {
       const p = new TurnipPredictor(100, { mon_am: 90 });
-      const result = p.getPriceArrayWithIndices();
+      const result = p.getPriceArrayWithIndex();
       expect(result[0].price).toBe(90);
       expect(typeof result[0].price).toBe('number');
     });
@@ -272,10 +272,10 @@ describe('TurnipPredictor', () => {
     });
   });
 
-  describe('#detectPhase1Spike', () => {
+  describe('#detectSpikeConfirmation', () => {
     it('should return not detected with fewer than 2 prices', () => {
       const p = new TurnipPredictor(100);
-      expect(p.detectPhase1Spike([{ index: 0, price: 90 }])).toEqual({ detected: false });
+      expect(p.detectSpikeConfirmation([{ index: 0, price: 90 }])).toEqual({ detected: false });
     });
 
     it('should detect Large Spike P1→P2 sequence via detectLargeSpikeSequence', () => {
@@ -285,9 +285,9 @@ describe('TurnipPredictor', () => {
         { index: 3, price: 110, day: 'tue_pm' },
         { index: 4, price: 160, day: 'wed_am' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(true);
-      expect(result.phase1Price).toBe(160);
+      expect(result.price).toBe(160);
     });
 
     it('should return not detected when spike start next price falls', () => {
@@ -299,7 +299,7 @@ describe('TurnipPredictor', () => {
         { index: 2, price: 95, day: 'tue_am' },
         { index: 3, price: 90, day: 'tue_pm' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(false);
     });
 
@@ -311,7 +311,7 @@ describe('TurnipPredictor', () => {
         { index: 4, price: 160, day: 'wed_am' },
         { index: 5, price: 300, day: 'wed_pm' },
       ];
-      const result = p.detectPhase1Spike(prices);
+      const result = p.detectSpikeConfirmation(prices);
       expect(result.detected).toBe(true);
       expect(result.isLargeSpike).toBe(true);
     });
@@ -470,7 +470,7 @@ describe('TurnipPredictor', () => {
       expect(p.isPossibleSmallSpike(prices)).toBe(false);
     });
 
-    it('should reject when Phase 1 P2 rate >= 140% (confirms Large Spike)', () => {
+    it('should reject when confirmation P2 rate >= 140% (confirms Large Spike)', () => {
       const p = new TurnipPredictor(100);
       // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% >= 140% → impossible for Small Spike
       const prices = [
@@ -571,17 +571,6 @@ describe('TurnipPredictor', () => {
         large_spike: 0.25,
         decreasing: 0.15,
         small_spike: 0.15,
-      });
-    });
-
-    it('should force all-decreasing for numeric previousPattern >= 4', () => {
-      const p = new TurnipPredictor(100);
-      p.previousPattern = 4;
-      expect(p.getBaseProbabilities()).toEqual({
-        fluctuating: 0,
-        large_spike: 0,
-        decreasing: 1.0,
-        small_spike: 0,
       });
     });
   });
@@ -742,26 +731,26 @@ describe('TurnipPredictor', () => {
     it('should find best predicted price for predictable patterns', () => {
       const p = new TurnipPredictor(100);
       const predictions = {
-        mon_am: { name: 'Lunes AM', isConfirmed: true, confirmed: 90, max: 90 },
-        mon_pm: { name: 'Lunes PM', isConfirmed: false, confirmed: null, max: 200 },
-        tue_am: { name: 'Martes AM', isConfirmed: false, confirmed: null, max: 150 },
+        mon_am: { isUserInput: true, max: 90 },
+        mon_pm: { isUserInput: false, max: 200 },
+        tue_am: { isUserInput: false, max: 150 },
       };
       const result = p.getBestTime(predictions, 'large_spike');
       expect(result.pattern).toBe('predictable');
-      expect(result.day).toBe('Lunes PM');
+      expect(result.day).toBe('mon_pm');
       expect(result.price).toBe(200);
-      expect(result.isConfirmed).toBe(false);
+      expect(result.isUserInput).toBe(false);
     });
 
     it('should correctly identify confirmed vs predicted prices', () => {
       const p = new TurnipPredictor(100);
       const predictions = {
-        mon_am: { name: 'Lunes AM', isConfirmed: true, confirmed: 300, max: 300 },
-        mon_pm: { name: 'Lunes PM', isConfirmed: false, confirmed: null, max: 200 },
+        mon_am: { isUserInput: true, max: 300 },
+        mon_pm: { isUserInput: false, max: 200 },
       };
       const result = p.getBestTime(predictions, 'small_spike');
-      expect(result.day).toBe('Lunes AM');
-      expect(result.isConfirmed).toBe(true);
+      expect(result.day).toBe('mon_am');
+      expect(result.isUserInput).toBe(true);
     });
   });
 
@@ -788,16 +777,16 @@ describe('TurnipPredictor', () => {
       const result = p.predict();
       const thuAm = result.predictions.thu_am;
       expect(thuAm.min).toBeLessThanOrEqual(thuAm.max);
-      expect(thuAm.isConfirmed).toBe(false);
+      expect(thuAm.isUserInput).toBe(false);
     });
 
     it('should confirm known prices in predictions', () => {
       const p = new TurnipPredictor(107, knownPrices, 'small_spike');
       const result = p.predict();
-      expect(result.predictions.mon_am.isConfirmed).toBe(true);
-      expect(result.predictions.mon_am.confirmed).toBe(94);
-      expect(result.predictions.wed_pm.isConfirmed).toBe(true);
-      expect(result.predictions.wed_pm.confirmed).toBe(180);
+      expect(result.predictions.mon_am.isUserInput).toBe(true);
+      expect(result.predictions.mon_am.min).toBe(94);
+      expect(result.predictions.wed_pm.isUserInput).toBe(true);
+      expect(result.predictions.wed_pm.min).toBe(180);
     });
 
     it('should include all 4 pattern probabilities summing close to 100%', () => {
