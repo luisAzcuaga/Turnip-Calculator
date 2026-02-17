@@ -26,8 +26,8 @@ export default function calculateDecreasingPattern(periodIndex, base, knownPrice
       const avgRateDrop = calculateAvgRateDrop(knownPrices, base);
       const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
       return {
-        min: Math.floor(projected * VARIANCE.INFERRED_MIN),
-        max: Math.ceil(projected * VARIANCE.INFERRED_MAX)
+        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
+        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
       };
     } else if (periodsAhead === 0) {
       // Same period, return the known price

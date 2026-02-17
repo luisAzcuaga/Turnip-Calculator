@@ -65,25 +65,20 @@ export const PATTERN_DECODE_MAP = {
 // ============================================================================
 
 export const PERIODS = {
-  MONDAY_AM: 0,
-  MONDAY_PM: 1,     // Earliest Small Spike start (period 1)
-  TUESDAY_AM: 2,    // Earliest Large Spike start (period 2)
-  TUESDAY_PM: 3,
-  WEDNESDAY_AM: 4,
-  WEDNESDAY_PM: 5,
-  THURSDAY_AM: 6,
-  THURSDAY_PM: 7,   // Latest possible spike start (period 7)
-  FRIDAY_AM: 8,     // "Late in the week"
-  FRIDAY_PM: 9,
-  SATURDAY_AM: 10,
-  SATURDAY_PM: 11,  // Last period
+  MONDAY_AM: 0,    // Pre-spike validation (Large/Small Spike Monday AM check)
+  MONDAY_PM: 1,    // Fluctuating high-phase detection cutoff
+  WEDNESDAY_AM: 4, // Spike phase start fallback threshold
+  WEDNESDAY_PM: 5, // Default spike start estimate when no data
+  THURSDAY_AM: 6,  // Fluctuating: late-week high-phase inference
+  THURSDAY_PM: 7,  // "Too late for spike" detection cutoff
+  SATURDAY_AM: 10, // Fluctuating: late-week high-phase inference
 
   // Semantic aliases
-  SMALL_SPIKE_START_MIN: 1,  // Monday PM
-  LARGE_SPIKE_START_MIN: 2,  // Tuesday AM
-  SPIKE_START_MAX: 7,        // Thursday PM (both) - latest start for 5 periods
-  LATE_WEEK_START: 8,             // Friday AM
-  LAST_PERIOD: 11,                // Saturday PM
+  SMALL_SPIKE_START_MIN: 1,   // Monday PM   — earliest Small Spike start
+  LARGE_SPIKE_START_MIN: 2,   // Tuesday AM  — earliest Large Spike start
+  SPIKE_START_MAX: 7,         // Thursday PM — latest start for 5 spike periods
+  LATE_WEEK_START: 8,         // Friday AM
+  LAST_PERIOD: 11,            // Saturday PM
 };
 
 // ============================================================================
@@ -108,7 +103,6 @@ export const RATES = {
   DECREASING: {
     START_MIN: 0.85,  // 85% - worst case start
     START_MAX: 0.90,  // 90% - best case start
-    FLOOR: 0.40,      // 40% - minimum floor
   },
 
   // === LARGE SPIKE PATTERN ===
@@ -116,7 +110,6 @@ export const RATES = {
     // Pre-spike phase
     START_MIN: 0.85,  // 85%
     START_MAX: 0.90,  // 90%
-    FLOOR: 0.40,      // 40%
 
     // Spike phases (5 periods)
     SPIKE_PHASES: [
@@ -137,7 +130,6 @@ export const RATES = {
     // Pre-spike phase
     START_MIN: 0.40,  // 40% - can start very low
     START_MAX: 0.90,  // 90%
-    FLOOR: 0.40,      // 40%
 
     // Spike range (the game picks a random "rate")
     PEAK_RATE_MIN: 1.40,  // 140%
@@ -180,13 +172,8 @@ export const RATES = {
 // ============================================================================
 
 export const DECAY = {
-  // Decay rate per period
   MIN_PER_PERIOD: 0.03,  // 3% - best case (drops less)
   MAX_PER_PERIOD: 0.05,  // 5% - worst case (drops more)
-
-  // For projections with a known price
-  BEST_CASE_MULTIPLIER: 0.97,   // Drops 3% per period
-  WORST_CASE_MULTIPLIER: 0.95,  // Drops 5% per period
 };
 
 // ============================================================================
@@ -234,13 +221,8 @@ export const THRESHOLDS = {
 // ============================================================================
 
 export const VARIANCE = {
-  // With 2+ known prices (+/-10%)
-  PROJECTED_MIN: 0.90,
-  PROJECTED_MAX: 1.10,
-
-  // With 1 known price / inferences (+/-5%)
-  INFERRED_MIN: 0.95,
-  INFERRED_MAX: 1.05,
+  PROJECTED_MIN: 0.90,  // -10% — used when projecting from 2+ known prices
+  PROJECTED_MAX: 1.10,  // +10%
 };
 
 // ============================================================================

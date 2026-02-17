@@ -68,11 +68,11 @@ describe("patterns/decreasing", () => {
       // For period 3 (2 periods ahead of index 1):
       // projected rate = 0.84 - (0.04 * 2) = 0.76
       // projected price = 100 * 0.76 = 76
-      // min = floor(76 * 0.95) = floor(72.2) = 72
-      // max = ceil(76 * 1.05) = ceil(79.8) = 80
+      // min = floor(76 * 0.90) = floor(68.4) = 68
+      // max = ceil(76 * 1.10) = ceil(83.6) = 84
       const result = calculateDecreasingPattern(3, base, knownPrices);
-      expect(result.min).toBe(Math.floor(76 * VARIANCE.INFERRED_MIN));
-      expect(result.max).toBe(Math.ceil(76 * VARIANCE.INFERRED_MAX));
+      expect(result.min).toBe(Math.floor(76 * VARIANCE.PROJECTED_MIN));
+      expect(result.max).toBe(Math.ceil(76 * VARIANCE.PROJECTED_MAX));
     });
 
     it("should use algorithm defaults when predicting before known prices", () => {
