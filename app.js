@@ -3,7 +3,7 @@ import { BUY_PRICE_MAX, BUY_PRICE_MIN, DAYS_CONFIG, DEBOUNCE_DELAY, LOADING_DELA
 import TurnipPredictor from "./predictor.js";
 import { detectSpikeStart } from "./patterns/utils.js";
 
-// App.js - Manejo de la interfaz de usuario
+// App.js - User interface handling
 
 // Utility functions
 const utils = {
@@ -131,19 +131,19 @@ document.addEventListener('DOMContentLoaded', function () {
   const previousPatternSelect = document.getElementById('previousPattern');
   const resultsSection = document.getElementById('resultsSection');
 
-  // Flag para prevenir guardado durante carga inicial
+  // Flag to prevent saving during initial load
   let isLoading = true;
 
-  // Versión debounced de saveData
+  // Debounced version of saveData
   const debouncedSaveData = utils.debounce(saveData, DEBOUNCE_DELAY);
 
-  // Wrapper para evitar guardado durante carga inicial
+  // Wrapper to skip saving during initial load
   const saveDataIfNotLoading = () => !isLoading && debouncedSaveData();
 
-  // Cargar datos guardados del localStorage
+  // Load saved data from localStorage
   loadSavedData();
 
-  // Verificar si hay query params y deshabilitar inputs
+  // Check for query params and disable inputs
   const urlParams = new URLSearchParams(window.location.search);
   const hasQueryParam = urlParams.has('turnipData');
   if (hasQueryParam) {
@@ -151,10 +151,10 @@ document.addEventListener('DOMContentLoaded', function () {
     updateClearButton(true);
   }
 
-  // Desactivar flag de carga después de un pequeño delay
+  // Deactivate loading flag after a short delay
   setTimeout(() => isLoading = false, LOADING_DELAY);
 
-  // Agregar listeners para autoguardado
+  // Add listeners for auto-save
   utils.addEventListeners(buyPriceInput, ['input', 'change'], saveDataIfNotLoading);
   utils.addEventListeners(previousPatternSelect, ['change'], saveDataIfNotLoading);
   PRICE_INPUT_IDS.forEach(id => {
@@ -162,23 +162,23 @@ document.addEventListener('DOMContentLoaded', function () {
     if (input) utils.addEventListeners(input, ['input', 'change'], saveDataIfNotLoading);
   });
 
-  // Agregar listeners para actualizar rate badges
+  // Add listeners to update rate badges
   utils.addEventListeners(buyPriceInput, ['input', 'change'], updateRateBadges);
   PRICE_INPUT_IDS.forEach(id => {
     const input = document.getElementById(id);
     if (input) utils.addEventListeners(input, ['input', 'change'], updateRateBadges);
   });
 
-  // Evento del botón calcular
+  // Calculate button event
   calculateBtn.addEventListener('click', calculatePrediction);
 
-  // Evento del botón limpiar
+  // Clear button event
   clearBtn.addEventListener('click', clearAllData);
 
-  // Configurar botón compartir
+  // Set up share button
   updateShareButton();
 
-  // Permitir calcular con Enter en el campo de precio de compra
+  // Allow calculating with Enter on the buy price field
   buyPriceInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       calculatePrediction();
@@ -194,30 +194,30 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Limpiar valores estimados previos antes de recalcular
+    // Clear previous estimated values before recalculating
     clearEstimatedValues();
 
-    // Recopilar precios conocidos (solo los confirmados)
+    // Collect known prices (confirmed only)
     const knownPrices = {};
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
-      // Solo tomar valores que NO son estimados
+      // Only take values that are NOT estimated
       if (input && input.value && input.dataset.isEstimated !== 'true') {
         knownPrices[id] = parseInt(input.value);
       }
     });
 
-    // Obtener patrón anterior si está seleccionado
+    // Get previous pattern if selected
     const previousPattern = previousPatternSelect.value || null;
 
-    // Crear predictor y obtener resultados
+    // Create predictor and get results
     const predictor = new TurnipPredictor(buyPrice, knownPrices, previousPattern);
     const results = predictor.predict();
 
-    // Mostrar resultados
+    // Display results
     displayResults(results);
 
-    // Recopilar datos actuales del DOM
+    // Collect current data from the DOM
     const data = {
       buyPrice: buyPriceInput.value,
       previousPattern: previousPatternSelect.value
@@ -225,13 +225,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
-      // Solo incluir valores confirmados, NO los estimados
+      // Only include confirmed values, NOT estimated ones
       if (input?.value && input.dataset.isEstimated !== 'true') {
         data[id] = input.value;
       }
     });
 
-    // Verificar si ya hay query param
+    // Check if there is already a query param
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('turnipData');
     if (hasQueryParam) return;
@@ -250,45 +250,45 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function displayResults(results) {
-    // Mostrar sección de resultados
+    // Show results section
     resultsSection.style.display = 'block';
     resultsSection.classList.add('fade-in');
 
-    // Mostrar distribución de probabilidades de patrones
+    // Show pattern probability distribution
     displayProbabilityPanel(results.patternName, results.allProbabilities);
 
-    // Llenar inputs con predicciones
+    // Fill inputs with predictions
     fillInputsWithPredictions(results.predictions);
 
-    // Marcar el mejor momento para vender
+    // Mark the best time to sell
     markBestSellingTime(results.bestTime);
 
-    // Mostrar debug info con recomendaciones integradas
+    // Show debug info with integrated recommendations
     displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendation);
   }
 
   function displayProbabilityPanel(patternName, allProbabilities) {
     const panel = document.getElementById('confidencePanel');
 
-    // Mostrar distribución de probabilidades - SIEMPRE LOS 4 PATRONES
+    // Show probability distribution - ALWAYS ALL 4 PATTERNS
     let html = `<div class="probability-distribution">
       <h4>Todos los Patrones Posibles</h4>
       <div class="probability-list">`;
 
-    // Crear lista con todos los patrones y ordenar por probabilidad (más probable primero)
+    // Create list with all patterns and sort by probability (most likely first)
     const allPatterns = Object.values(PATTERNS).map(key => ({
       key: key,
       name: PATTERN_NAMES[key]
     }));
 
-    // Agregar probabilidades y ordenar descendente
+    // Add probabilities and sort descending
     const patternsWithProb = allPatterns.map(p => ({
       ...p,
       percentage: allProbabilities[p.key] || 0,
       isPrimary: p.name === patternName
     }));
 
-    // Ordenar por probabilidad (mayor a menor)
+    // Sort by probability (highest to lowest)
     patternsWithProb.sort((a, b) => b.percentage - a.percentage);
 
     patternsWithProb.forEach(p => {
@@ -323,32 +323,32 @@ document.addEventListener('DOMContentLoaded', function () {
       const input = document.getElementById(key);
       if (!input) return;
 
-      // Si el campo ya tiene un valor confirmado, no hacer nada
+      // If the field already has a confirmed value, do nothing
       if (data.isUserInput) {
         input.classList.remove('estimated-value');
         input.classList.add('confirmed-value');
         return;
       }
 
-      // Si no tiene valor, mostrar placeholder con el rango estimado
+      // If empty, show placeholder with the estimated range
       if (!input.value) {
         // Set estimated value (placeholder shows range)
         utils.setEstimatedValue(input, data.min, data.max);
       }
     });
 
-    // Agregar event listeners para convertir estimados en confirmados al editar
+    // Add event listeners to convert estimated values to confirmed on edit
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
       if (input && !input.dataset.hasEstimateListener) {
         input.addEventListener('input', function() {
-          // Convertir a confirmado solo si tiene texto
+          // Convert to confirmed only if it has text
           if (this.dataset.isEstimated === 'true') {
             if (this.value.trim() !== '') {
               utils.convertToConfirmedValue(this);
             }
-            // Si borra todo, NO reconvertir a estimado aquí
-            // (se recalculará en el próximo cálculo)
+            // If cleared, do NOT revert to estimated here
+            // (it will be recalculated on the next prediction)
           }
         });
 
@@ -358,12 +358,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function markBestSellingTime(bestTime) {
-    // Limpiar clase de "mejor momento" de todos los inputs
+    // Remove "best time" class from all inputs
     document.querySelectorAll('.best-selling-time').forEach(input => {
       input.classList.remove('best-selling-time');
     });
 
-    // Solo marcar para patrones predecibles
+    // Only mark for predictable patterns
     if (bestTime.pattern === PATTERNS.FLUCTUATING || !bestTime.day) {
       return;
     }
@@ -371,12 +371,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById(bestTime.day);
     if (!input) return;
 
-    // Añadir clase para aplicar glow animado
+    // Add class to apply animated glow
     input.classList.add('best-selling-time');
     input.title = `⭐ Mejor momento para vender: hasta ${bestTime.price} bayas`;
   }
 
-  // Helper: Generar mensajes de timing para patrones de pico
+  // Helper: Generate timing messages for spike patterns
   function generateSpikeTimingMessages(patternKey, isPrimary) {
     let messages = '';
 
@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return messages;
     }
 
-    // Detectar si ya comenzó el pico usando función compartida
+    // Detect if the spike has started using shared utility
     const pricesArray = PRICE_INPUT_IDS.map(id => {
       const val = document.getElementById(id)?.value;
       return val ? parseInt(val) : null;
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let spikeStartIndex = spikeDetection.startIndex;
     let lastKnownIndex = -1;
 
-    // Encontrar último período con precio conocido
+    // Find last period with a known price
     for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
       const val = document.getElementById(PRICE_INPUT_IDS[i])?.value;
       if (val && parseInt(val)) {
@@ -407,13 +407,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (spikeStarted && spikeStartIndex >= 0) {
       const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
-      // Large Spike: máximo en Período 3 (peakStart + 2, zero-indexed)
-      // Small Spike: máximo en Período 4 (peakStart + 3, zero-indexed)
+      // Large Spike: peak phase 3 (peakStart + 2, relative to peak)
+      // Small Spike: peak phase 4 (peakStart + 3, relative to peak)
       const peaksInPhase = patternKey === PATTERNS.LARGE_SPIKE ? 2 : 3;
       const maxPeriodIndex = spikeStartIndex + peaksInPhase;
       const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
 
-      // Detectar si estamos en Período 1 (inicio del pico) y aún no vimos Período 2
+      // Detect if we are in phase 1 (start of spike) and haven't seen phase 2 yet
       const period2Index = spikeStartIndex + 1;
       const isInPeriod1 = lastKnownIndex === spikeStartIndex;
       const hasPeriod2Data = lastKnownIndex >= period2Index;
@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
         const maxRange = patternKey === PATTERNS.LARGE_SPIKE ? '200-600%' : '140-200%';
 
-        // Si estamos en Período 1 y no hemos visto Período 2, mencionar que Período 2 es decisivo
+        // If in phase 1 and we haven't seen phase 2, mention that phase 2 is decisive
         if (isInPeriod1 && !hasPeriod2Data) {
           const period2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
           const nextDay = DAYS_CONFIG[period2Index]?.name || 'siguiente período';
@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let html = '';
 
-    // Sección 0: Recomendaciones (al inicio)
+    // Section 0: Recommendations (at the top)
     if (recommendations && recommendations.length > 0) {
       const primaryPatternName = PATTERN_NAMES[primaryPattern] || 'Desconocido';
       const primaryProbability = allProbabilities[primaryPattern] || 0;
@@ -470,22 +470,22 @@ document.addEventListener('DOMContentLoaded', function () {
       recommendations.forEach(rec => {
         html += `<li>${rec}</li>`;
       });
-      // Agregar mensajes de timing para patrones de pico
+      // Add timing messages for spike patterns
       html += generateSpikeTimingMessages(primaryPattern, true);
       html += '</ul>';
       html += '</li>';
       html += '</ul>';
     }
 
-    // Separar patrones descartados (0%) vs improbables (>0%)
+    // Separate rejected patterns (0%) vs unlikely ones (>0%)
     const patternsToShow = Object.keys(PATTERN_NAMES).filter(key => key !== primaryPattern);
     const rejected = patternsToShow.filter(key => allProbabilities[key] === 0);
     const unlikely = patternsToShow.filter(key => allProbabilities[key] > 0);
 
-    // Ordenar improbables por probabilidad descendente
+    // Sort unlikely patterns by probability descending
     unlikely.sort((a, b) => allProbabilities[b] - allProbabilities[a]);
 
-    // Sección 1 Patrones improbables (>0%)
+    // Section 1: Unlikely patterns (>0%)
     if (unlikely.length > 0) {
       html += '<h3>📊 Patrones menos probables</h3>';
       html += '<p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>';
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           html += '<li>Sin señales fuertes a favor o en contra</li>';
         }
-        // Añadir información de timing para patrones de pico
+        // Add timing info for spike patterns
         html += generateSpikeTimingMessages(key, false);
         html += '</ul>';
         html += '</li>';
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function () {
       html += '</ul>';
     }
 
-    // Sección 2: Patrones descartados (0%)
+    // Section 2: Rejected patterns (0%)
     if (rejected.length > 0) {
       html += '<h3>🚫 Patrones descartados (0%)</h3>';
       html += '<p><small>Estos patrones rompen las reglas del algoritmo del juego con los datos ingresados:</small></p>';
@@ -536,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function () {
       html += '</ul>';
     }
 
-    // Si no hay ninguno
+    // If there are none
     if (rejected.length === 0 && unlikely.length === 0) {
       html = '<h3>🔍 Análisis de patrones</h3>';
       html += '<p><small>No hay suficientes datos para descartar patrones alternativos.</small></p>';
@@ -546,8 +546,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function saveData() {
-    // No guardar en localStorage si hay query param en el URL
-    // (estamos viendo datos compartidos por alguien más)
+    // Don't save to localStorage if URL has a query param
+    // (we are viewing data shared by someone else)
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('turnipData')) {
       return;
@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
-      // Solo guardar valores confirmados, NO los estimados
+      // Only save confirmed values, NOT estimated ones
       if (input?.value && input.dataset.isEstimated !== 'true') {
         data[id] = input.value;
       }
@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function loadSavedData() {
-    // Intentar cargar primero desde URL, luego desde localStorage
+    // Try loading from URL first, then from localStorage
     let data = utils.getDataFromURL();
     let isFromURL = false;
 
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // Validar que data sea un objeto válido
+    // Validate that data is a valid object
     if (!data || typeof data !== 'object') {
       console.error('Datos corruptos detectados');
       if (isFromURL) {
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Cargar datos en los inputs
+    // Load data into the inputs
     try {
       if (data.buyPrice) buyPriceInput.value = data.buyPrice;
       if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
@@ -608,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     } catch (e) {
       console.error('Error al aplicar datos:', e);
-      // Si hay error, limpiar todos los inputs para evitar estado inconsistente
+      // On error, clear all inputs to avoid inconsistent state
       buyPriceInput.value = '';
       previousPatternSelect.value = '';
       PRICE_INPUT_IDS.forEach(id => {
@@ -622,20 +622,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function clearAllData() {
-    // Verificar si hay query params
+    // Check for query params
     const urlParams = new URLSearchParams(window.location.search);
     const hasQueryParam = urlParams.has('turnipData');
 
     if (hasQueryParam) {
-      // Modo rollback: eliminar query param y cargar datos de localStorage
+      // Rollback mode: remove query param and load data from localStorage
       if (!confirm('¿Quieres volver a tus datos guardados?')) return;
 
-      // Eliminar query param de la URL
+      // Remove query param from URL
       urlParams.delete('turnipData');
       const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
       window.history.replaceState({}, '', newUrl);
 
-      // Limpiar inputs primero
+      // Clear inputs first
       buyPriceInput.value = '';
       previousPatternSelect.value = '';
       PRICE_INPUT_IDS.forEach(id => {
@@ -646,16 +646,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
 
-      // Habilitar todos los inputs
+      // Enable all inputs
       enableAllInputs();
 
-      // Actualizar botón limpiar
+      // Update clear button
       updateClearButton(false);
 
-      // Actualizar botón compartir (mostrar nuevamente)
+      // Update share button (show again)
       updateShareButton();
 
-      // Cargar datos de localStorage
+      // Load data from localStorage
       const savedData = localStorage.getItem('turnipData');
       if (savedData) {
         try {
@@ -668,7 +668,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data[id] && input) input.value = data[id];
           });
 
-          // Auto-calcular si hay precio de compra
+          // Auto-calculate if there is a buy price
           if (buyPriceInput.value) {
             setTimeout(() => {
               calculatePrediction();
@@ -679,17 +679,17 @@ document.addEventListener('DOMContentLoaded', function () {
           console.error('Error al cargar datos de localStorage:', e);
         }
       } else {
-        // Ocultar resultados si no hay datos guardados
+        // Hide results if there is no saved data
         resultsSection.style.display = 'none';
       }
 
-      // Scroll al inicio
+      // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Modo normal: limpiar todo
+      // Normal mode: clear everything
       if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
 
-      // Limpiar inputs
+      // Clear inputs
       buyPriceInput.value = '';
       previousPatternSelect.value = '';
       PRICE_INPUT_IDS.forEach(id => {
@@ -700,13 +700,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
 
-      // Limpiar localStorage
+      // Clear localStorage
       localStorage.removeItem('turnipData');
 
-      // Ocultar resultados
+      // Hide results
       resultsSection.style.display = 'none';
 
-      // Scroll al inicio
+      // Scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
@@ -720,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Recopilar datos actuales del DOM
+    // Collect current data from the DOM
     const data = {
       buyPrice: buyPriceInput.value,
       previousPattern: previousPatternSelect.value
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     PRICE_INPUT_IDS.forEach(id => {
       const input = document.getElementById(id);
-      // Solo incluir valores confirmados, NO los estimados
+      // Only include confirmed values, NOT estimated ones
       if (input?.value && input.dataset.isEstimated !== 'true') {
         data[id] = input.value;
       }
@@ -740,13 +740,13 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    // Copiar URL al portapapeles
+    // Copy URL to clipboard
     const baseUrl = window.location.origin + window.location.pathname;
     const url = `${baseUrl}?turnipData=${encodedData}`;
     navigator.clipboard.writeText(url).then(() => {
       alert('✅ URL copiado al portapapeles!\n\nAhora puedes compartirlo con tus amigos.');
     }).catch(() => {
-      // Fallback si no se puede copiar
+      // Fallback if clipboard copy fails
       alert('🔗 URL generado:\n\n' + url + '\n\nCopia este link para compartir tus datos.');
     });
   }
@@ -793,11 +793,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Función para actualizar badges de rate
+  // Update rate badges
   function updateRateBadges() {
     const buyPrice = parseInt(buyPriceInput.value);
     if (!buyPrice || buyPrice < BUY_PRICE_MIN || buyPrice > BUY_PRICE_MAX) {
-      // Limpiar todos los badges si no hay precio base válido
+      // Clear all badges if there is no valid base price
       document.querySelectorAll('.rate-badge').forEach(badge => {
         badge.textContent = '';
         badge.className = 'rate-badge';
@@ -815,17 +815,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const price = parseInt(input.value);
 
       if (!price || price < TURNIP_PRICE_MIN || price > TURNIP_PRICE_MAX) {
-        // Limpiar badge si no hay precio válido
+        // Clear badge if there is no valid price
         badge.textContent = '';
         badge.className = 'rate-badge';
         return;
       }
 
-      // Calcular rate respecto al precio base
+      // Calculate rate relative to base price
       const rate = (price / buyPrice);
       const ratePercent = (rate * 100).toFixed(1);
 
-      // Determinar flecha y clase según precio anterior
+      // Determine arrow and class based on previous price
       let arrow = '';
       let className = 'rate-badge neutral';
 
@@ -839,21 +839,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
 
-      // Actualizar badge
+      // Update badge
       badge.textContent = `${arrow}${ratePercent}%`;
       badge.className = className;
 
-      // Guardar precio para siguiente iteración
+      // Save price for next iteration
       previousPrice = price;
     });
   }
 
-  // Auto-calcular si hay datos guardados al cargar (localStorage o URL)
+  // Auto-calculate if saved data exists on load (localStorage or URL)
   if (buyPriceInput.value) {
-    // Pequeño delay para que se vea la animación
+    // Short delay so the animation is visible
     setTimeout(() => {
       calculatePrediction();
-      updateRateBadges(); // Actualizar badges también
+      updateRateBadges(); // Update badges too
     }, 500);
   }
 });

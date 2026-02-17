@@ -13,8 +13,8 @@ import calculateFluctuatingPattern from "./patterns/fluctuating.js";
 import calculateLargeSpikePattern from './patterns/large-spike.js';
 import calculateSmallSpikePattern from "./patterns/small-spike.js";
 
-// Predictor de Precios de Nabos - Animal Crossing New Horizons
-// Basado en los patrones reales del juego
+// Turnip Price Predictor - Animal Crossing New Horizons
+// Based on the actual in-game patterns
 export default class TurnipPredictor {
   constructor(buyPrice, knownPrices = {}, previousPattern = null) {
     if (buyPrice === undefined || buyPrice === null || buyPrice === '') {
@@ -32,7 +32,7 @@ export default class TurnipPredictor {
       ? previousPattern
       : null;
 
-    // Sistema de tracking de razones de rechazo/baja probabilidad
+    // Rejection/low-probability reason tracking system
     this.rejectionReasons = {
       fluctuating: [],
       large_spike: [],
@@ -40,7 +40,7 @@ export default class TurnipPredictor {
       small_spike: []
     };
 
-    // Sistema de tracking de razones de score (positivas y negativas)
+    // Score reason tracking system (positive and negative)
     this.scoreReasons = {
       fluctuating: [],
       large_spike: [],
@@ -48,14 +48,14 @@ export default class TurnipPredictor {
       small_spike: []
     };
 
-    // Probabilidades por defecto (sin historial) - desde constants.js
+    // Default probabilities (no history) - from constants.js
     this.defaultProbabilities = DEFAULT_PROBABILITIES;
 
-    // Matriz de transición de patrones (basado en el código real de ACNH) - desde constants.js
+    // Pattern transition matrix (based on actual ACNH code) - from constants.js
     this.transitionProbabilities = TRANSITION_PROBABILITIES;
   }
 
-  // Validar precios conocidos
+  // Validate known prices
   static validatePrices(knownPrices) {
     const validated = {};
 
@@ -84,7 +84,7 @@ export default class TurnipPredictor {
     return validated;
   }
 
-  // Obtener array de precios conocidos con sus índices
+  // Get array of known prices with their indices
   getPriceArrayWithIndex() {
     return DAYS_CONFIG.flatMap((day, index) => {
       const price = this.knownPrices[day.key];
@@ -93,18 +93,18 @@ export default class TurnipPredictor {
     });
   }
 
-  // Detectar patrones posibles basados en los precios conocidos
+  // Detect possible patterns based on known prices
   detectPossiblePatterns() {
     const knownPrices = this.getPriceArrayWithIndex();
 
     if (knownPrices.length === 0) {
-      // Sin datos, todos los patrones son posibles
+      // No data, all patterns are possible
       return Object.values(PATTERNS);
     }
 
     const possiblePatterns = [];
 
-    // Verificar cada patrón
+    // Check each pattern
     if (this.isPossibleDecreasing(knownPrices)) {
       possiblePatterns.push(PATTERNS.DECREASING);
     }
@@ -118,12 +118,12 @@ export default class TurnipPredictor {
       possiblePatterns.push(PATTERNS.FLUCTUATING);
     }
 
-    // Si ningún patrón encaja, devolver fluctuante como fallback
+    // If no pattern matches, return fluctuating as fallback
     return possiblePatterns.length > 0 ? possiblePatterns : [PATTERNS.FLUCTUATING];
   }
 
-  // Helper: Valida pendiente en fase pre-pico para ambos tipos de spike
-  // Retorna { invalid: boolean, reason?: string }
+  // Helper: Validates slope in pre-peak phase for both spike types
+  // Returns { invalid: boolean, reason?: string }
   validatePrePeakSlope(knownPrices, isLargeSpike) {
     const patternName = isLargeSpike ? 'Large Spike' : 'Small Spike';
     const minPeakStart = isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN;
@@ -133,7 +133,7 @@ export default class TurnipPredictor {
     let previous = knownPrices[0];
 
     for (const current of knownPrices.slice(1)) {
-      // Solo validar si los períodos son consecutivos
+      // Only validate if periods are consecutive
       if (current.index !== previous.index + 1) {
         spikeStarted = spikeStarted || previous.price >= spikeThreshold;
         previous = current;
@@ -142,7 +142,7 @@ export default class TurnipPredictor {
 
       const ratio = priceRatio(current.price, previous.price);
 
-      // Solo validar caída del rate en fase PRE-PICO
+      // Only validate rate drop in PRE-PEAK phase
       if (!spikeStarted) {
         const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
 
@@ -157,7 +157,7 @@ export default class TurnipPredictor {
         }
       }
 
-      // Si sube muy temprano
+      // If it rises too early
       if (current.index < minPeakStart && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
         const risePercent = Math.round((ratio - 1) * 100);
         const spikeRange = getSpikeStartRange(isLargeSpike);
@@ -174,11 +174,11 @@ export default class TurnipPredictor {
     return { invalid: false };
   }
 
-  // Helper: Verifica si llegamos tarde para un spike (sin subidas significativas)
+  // Helper: Checks if it's too late for a spike (no significant rises)
   isTooLateForSpike(knownPrices, spikeType) {
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-    // Si llegamos a Jueves PM o después, verificar si hubo subida significativa
+    // If we've reached Thursday PM or later, check for any significant rise
     if (maxKnownIndex >= PERIODS.THURSDAY_PM) {
       const hasSignificantRise = knownPrices.some((current, i) => {
         if (i === 0) return false;
@@ -197,29 +197,29 @@ export default class TurnipPredictor {
     return { tooLate: false };
   }
 
-  // Helper: Detecta Período 2 del pico para diferenciar Large vs Small Spike
-  // Período 2 Large Spike: 140-200% | Período 2 Small Spike: 90-140%
+  // Detects Period 2 of the peak to differentiate Large vs Small Spike
+  // Period 2 Large Spike: 140-200% | Period 2 Small Spike: 90-140%
   detectSpikeConfirmation(knownPrices) {
     if (knownPrices.length < 2) return { detected: false };
 
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const hasLargeSpikeConfirmed = (maxPrice / this.buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
 
-    // Usar helper para detectar secuencia P1→P2 de Large Spike
+    // Use helper to detect Large Spike P1->P2 sequence
     const sequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
 
     if (sequence.detected) {
       const { period2, hasDataAfterSequence } = sequence;
       const percent = (period2.rate * 100).toFixed(1);
 
-      // Determinar isLargeSpike según contexto
+      // Determine isLargeSpike based on context
       let isLargeSpike;
       if (hasLargeSpikeConfirmed) {
-        isLargeSpike = true; // Pico >200% confirma Large Spike
+        isLargeSpike = true; // Peak >200% confirms Large Spike
       } else if (!hasDataAfterSequence) {
-        isLargeSpike = null; // Indeterminado - pico podría venir
+        isLargeSpike = null; // Indeterminate - peak may still come
       } else {
-        isLargeSpike = false; // Hay precios después sin llegar a 200%
+        isLargeSpike = false; // Prices after sequence never reached 200%
       }
 
       return {
@@ -231,7 +231,7 @@ export default class TurnipPredictor {
       };
     }
 
-    // Método indirecto: Detectar inicio del pico y verificar Período 2
+    // Indirect method: Detect peak start and verify Period 2
     const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
     if (!spikeDetection.detected) return { detected: false };
 
@@ -240,8 +240,8 @@ export default class TurnipPredictor {
     const confirmationData = knownPrices.find(p => p.index === spikeStartIndex + 1);
     if (!confirmationData) return { detected: false };
 
-    // CRITICAL: Solo considerar como secuencia de pico si el precio SUBE
-    // Si el precio baja (ej: 129 → 107), no es el inicio real del pico
+    // CRITICAL: Only consider as peak sequence if the price RISES
+    // If the price drops (e.g. 129 -> 107), it's not the real peak start
     if (confirmationData.price <= spikeStartPrice.price) {
       return { detected: false };
     }
@@ -257,21 +257,21 @@ export default class TurnipPredictor {
     };
   }
 
-  // Verificar si el patrón DECRECIENTE es posible
+  // Check if the DECREASING pattern is possible
   isPossibleDecreasing(knownPrices) {
-    // En patrón decreciente, cada precio debe ser <= al anterior
-    // y todos deben estar entre 85% y 40% del precio base
+    // In the decreasing pattern, each price must be <= the previous
+    // and all must be between 85% and 40% of the base price
     return knownPrices.every((current, i) => {
       const { price, index } = current;
       const expectedMax = decreasingMaxForPeriod(this.buyPrice, index);
       const expectedMin = decreasingMin(this.buyPrice);
 
-      // El precio debe estar en el rango del patrón decreciente
+      // Price must be within the decreasing pattern range
       if (price > expectedMax || price < expectedMin) {
         return false;
       }
 
-      // Verificar que no haya subidas (Decreasing solo baja)
+      // Verify there are no increases (Decreasing only goes down)
       if (i > 0 && price > knownPrices[i - 1].price) {
         return false;
       }
@@ -280,12 +280,12 @@ export default class TurnipPredictor {
     });
   }
 
-  // Verificar si el patrón PICO GRANDE es posible
-  // Prioridad de validaciones: single-price → simple aggregates → complex analysis
+  // Check if the LARGE SPIKE pattern is possible
+  // Validation priority: single-price -> simple aggregates -> complex analysis
   isPossibleLargeSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
 
-    // 1. SINGLE-PRICE: Lunes AM (período 0) debe estar entre 85-90% del precio base
+    // 1. SINGLE-PRICE: Monday AM (period 0) must be between 85-90% of base price
     const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
     if (mondayAM) {
       const startRange = largeSpikeStartRange(this.buyPrice);
@@ -300,38 +300,38 @@ export default class TurnipPredictor {
       }
     }
 
-    // 2. SIMPLE AGGREGATES: Precomputar valores usados por múltiples validaciones
+    // 2. SIMPLE AGGREGATES: Precompute values used by multiple validations
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const maxRatio = priceRatio(maxPrice, this.buyPrice);
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-    // Si encuentra un precio muy alto (200%+), definitivamente es pico grande
+    // If a very high price is found (200%+), it's definitely a large spike
     if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
       return true;
     }
 
-    // 3. TIMING: Si llegamos tarde sin subida, rechazar
+    // 3. TIMING: If too late without a rise, reject
     const lateCheck = this.isTooLateForSpike(knownPrices, 'Large Spike');
     if (lateCheck.tooLate) {
       this.rejectionReasons.large_spike.push(lateCheck.reason);
       return false;
     }
 
-    // Si estamos muy tarde (sábado PM) y el pico fue bajo, rechazar
+    // If very late (Saturday PM) and peak was low, reject
     if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
       const spikeRange = getSpikeStartRange(true);
       this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
       return false;
     }
 
-    // 4. SLOPE: Validar pendiente en fase pre-pico
+    // 4. SLOPE: Validate slope in pre-peak phase
     const slopeCheck = this.validatePrePeakSlope(knownPrices, true);
     if (slopeCheck.invalid) {
       this.rejectionReasons.large_spike.push(slopeCheck.reason);
       return false;
     }
 
-    // Si el "pico" es bajo (<140%) y hay caída dramática después, rechazar
+    // If the "peak" is low (<140%) and there's a sharp drop after, reject
     if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
       const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
       if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
@@ -344,7 +344,7 @@ export default class TurnipPredictor {
       }
     }
 
-    // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
+    // 5. COMPLEX: P1->P2 peak sequence analysis
     const confirmation = this.detectSpikeConfirmation(knownPrices);
     if (confirmation.detected) {
       if (confirmation.isLargeSpike === false) {
@@ -353,7 +353,7 @@ export default class TurnipPredictor {
       }
     }
 
-    // Pico en rango de Small Spike (140-200%) + tarde en la semana → probablemente no es Large Spike
+    // Peak in Small Spike range (140-200%) + late in the week -> probably not Large Spike
     if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
       if (!confirmation.detected || !confirmation.isLargeSpike) {
         const hasRapidIncrease = knownPrices.some((current, i) => {
@@ -370,16 +370,16 @@ export default class TurnipPredictor {
       }
     }
 
-    // En otros casos, mantener como posible (aún puede venir el pico)
+    // Otherwise, keep as possible (peak may still come)
     return true;
   }
 
-  // Verificar si el patrón PICO PEQUEÑO es posible
-  // Prioridad de validaciones: single-price → simple aggregates → complex analysis
+  // Check if the SMALL SPIKE pattern is possible
+  // Validation priority: single-price -> simple aggregates -> complex analysis
   isPossibleSmallSpike(knownPrices) {
     if (knownPrices.length === 0) return true;
 
-    // 1. SINGLE-PRICE: Lunes AM (período 0) siempre está en fase pre-pico (40-90%)
+    // 1. SINGLE-PRICE: Monday AM (period 0) is always in pre-peak phase (40-90%)
     const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
     if (mondayAM) {
       const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
@@ -389,25 +389,25 @@ export default class TurnipPredictor {
       }
     }
 
-    // 2. SIMPLE AGGREGATES: Precomputar valores usados por múltiples validaciones
+    // 2. SIMPLE AGGREGATES: Precompute values used by multiple validations
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
     const maxRatio = priceRatio(maxPrice, this.buyPrice);
     const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-    // Si encuentra un precio muy alto (> 200%), no puede ser pico pequeño
+    // If a very high price is found (> 200%), it can't be a small spike
     if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
       this.rejectionReasons.small_spike.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
       return false;
     }
 
-    // 3. TIMING: Si llegamos tarde sin subida, rechazar
+    // 3. TIMING: If too late without a rise, reject
     const lateCheck = this.isTooLateForSpike(knownPrices, 'Small Spike');
     if (lateCheck.tooLate) {
       this.rejectionReasons.small_spike.push(lateCheck.reason);
       return false;
     }
 
-    // Si estamos muy tarde en la semana (sábado PM) y no hubo pico significativo
+    // If very late in the week (Saturday PM) and there was no significant peak
     if (maxKnownIndex >= PERIODS.LAST_PERIOD) {
       if (maxRatio < RATES.LARGE_SPIKE.START_MAX) {
         const spikeRange = getSpikeStartRange(false);
@@ -416,20 +416,20 @@ export default class TurnipPredictor {
       }
     }
 
-    // Si el pico está en el rango perfecto de Small Spike (140-200%)
-    // Y ya estamos en viernes o después → confirmación fuerte
+    // If peak is in the perfect Small Spike range (140-200%)
+    // and we're at Friday or later -> strong confirmation
     if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
       return true;
     }
 
-    // 4. SLOPE: Validar pendiente en fase pre-pico
+    // 4. SLOPE: Validate slope in pre-peak phase
     const slopeCheck = this.validatePrePeakSlope(knownPrices, false);
     if (slopeCheck.invalid) {
       this.rejectionReasons.small_spike.push(slopeCheck.reason);
       return false;
     }
 
-    // Si el pico no alcanzó 140% y ya cayó significativamente → pico inválido
+    // If peak didn't reach 140% and already dropped significantly -> invalid peak
     if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
       const maxPriceData = knownPrices.find(p => p.price === maxPrice);
       if (maxPriceData) {
@@ -443,7 +443,7 @@ export default class TurnipPredictor {
       }
     }
 
-    // 5. COMPLEX: Análisis de secuencia P1→P2 del pico
+    // 5. COMPLEX: P1->P2 peak sequence analysis
     const confirmation = this.detectSpikeConfirmation(knownPrices);
     if (confirmation.detected) {
       const confirmationRate = parseFloat(confirmation.percent) / 100;
@@ -464,7 +464,7 @@ export default class TurnipPredictor {
       }
     }
 
-    // 6. PATTERN ANALYSIS: Detectar múltiples ciclos subida-bajada (→ Fluctuante, no Spike)
+    // 6. PATTERN ANALYSIS: Detect multiple rise-fall cycles (-> Fluctuating, not Spike)
     if (knownPrices.length >= 4) {
       for (let i = 1; i < knownPrices.length - 1; i++) {
         const prev = knownPrices[i - 1];
@@ -496,16 +496,16 @@ export default class TurnipPredictor {
       }
     }
 
-    // En otros casos, mantener como posible
+    // Otherwise, keep as possible
     return true;
   }
 
-  // Verificar si el patrón FLUCTUANTE es posible
+  // Check if the FLUCTUATING pattern is possible
   isPossibleFluctuating(knownPrices) {
-    // El patrón fluctuante permite precios entre 60% y 140% del base
+    // The fluctuating pattern allows prices between 60% and 140% of base
     const inRange = knownPrices.every(({ price }) => {
       const ratio = priceRatio(price, this.buyPrice);
-      // Si hay picos muy altos o muy bajos, probablemente no es fluctuante
+      // If there are very high or very low peaks, probably not fluctuating
       return ratio >= RATES.FLUCTUATING.MIN && ratio <= RATES.FLUCTUATING.MAX;
     });
 
@@ -514,8 +514,8 @@ export default class TurnipPredictor {
       return false;
     }
 
-    // El patrón fluctuante debe ALTERNAR entre fases altas y bajas
-    // Verificar tendencias sostenidas (subidas o bajadas)
+    // The fluctuating pattern must ALTERNATE between high and low phases
+    // Check for sustained trends (rises or falls)
     if (knownPrices.length >= 2) {
       const { maxConsecutiveDecreases, decreasesFromStart, maxConsecutiveIncreases } = knownPrices
         .slice(1)
@@ -523,23 +523,23 @@ export default class TurnipPredictor {
           (acc, current, i) => {
             const previous = knownPrices[i];
 
-            // Verificar si está bajando (con margen de error del 2%)
+            // Check if decreasing (with 2% error margin)
             if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
               acc.consecutiveDecreases++;
               acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
               acc.consecutiveIncreases = 0; // Reset increases
 
-              // Contar si baja desde el inicio
+              // Count if decreasing from the start
               if (i + 1 === acc.decreasesFromStart + 1) {
                 acc.decreasesFromStart++;
               }
             } else if (current.price > previous.price * THRESHOLDS.FLUCTUATING_RISE) {
-              // Verificar si está subiendo (margen del 2% para evitar falsos positivos)
+              // Check if increasing (2% margin to avoid false positives)
               acc.consecutiveIncreases++;
               acc.maxConsecutiveIncreases = Math.max(acc.maxConsecutiveIncreases, acc.consecutiveIncreases);
               acc.consecutiveDecreases = 0; // Reset decreases
             } else {
-              // Precio estable (±2%)
+              // Stable price (+/-2%)
               acc.consecutiveDecreases = 0;
               acc.consecutiveIncreases = 0;
             }
@@ -549,22 +549,22 @@ export default class TurnipPredictor {
           { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0, consecutiveIncreases: 0, maxConsecutiveIncreases: 0 }
         );
 
-      // CRÍTICO: Si baja 2+ períodos desde el INICIO (3 precios bajando), no es Fluctuante
-      // Fluctuante debe empezar con fase ALTA o alternar, no bajar desde el inicio
+      // CRITICAL: If 2+ periods decrease from the START (3 prices declining), it's not Fluctuating
+      // Fluctuating must start with a HIGH phase or alternate, not decline from the start
       if (decreasesFromStart >= 2) {
         const numPrices = decreasesFromStart + 1;
         this.rejectionReasons.fluctuating.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
         return false;
       }
 
-      // Si hay demasiados períodos consecutivos bajando, no es fluctuante
+      // If too many consecutive periods decrease, it's not fluctuating
       if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
         this.rejectionReasons.fluctuating.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
         return false;
       }
 
-      // Si hay demasiados períodos consecutivos subiendo, probablemente es un pico (Small/Large Spike)
-      // Fluctuante debe alternar, no subir constantemente
+      // If too many consecutive periods increase, it's probably a spike (Small/Large Spike)
+      // Fluctuating must alternate, not rise continuously
       if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
         this.rejectionReasons.fluctuating.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
         return false;
@@ -574,22 +574,22 @@ export default class TurnipPredictor {
     return true;
   }
 
-  // Obtener probabilidades base según el patrón anterior
+  // Get base probabilities based on previous pattern
   getBaseProbabilities() {
     return this.previousPattern
       ? this.transitionProbabilities[this.previousPattern]
       : this.defaultProbabilities;
   }
 
-  // Detectar el patrón más probable con información de confianza
+  // Detect the most likely pattern with confidence info
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
     const knownPrices = this.getPriceArrayWithIndex();
     const baseProbabilities = this.getBaseProbabilities();
 
-    // Si no hay datos de precios, usar solo las probabilidades base
+    // If no price data, use base probabilities only
     if (knownPrices.length === 0) {
-      // Calcular porcentajes basados en probabilidades
+      // Calculate percentages based on probabilities
       const percentages = {};
       let totalProb = 0;
 
@@ -599,14 +599,14 @@ export default class TurnipPredictor {
         totalProb += prob;
       });
 
-      // Normalizar a 100%
+      // Normalize to 100%
       if (totalProb > 0) {
         Object.keys(percentages).forEach(pattern => {
           percentages[pattern] = Math.round((percentages[pattern] / totalProb) * 100);
         });
       }
 
-      // Encontrar el patrón más probable
+      // Find the most likely pattern
       const sortedByProb = possiblePatterns.sort((a, b) =>
         (baseProbabilities[b] || 0) - (baseProbabilities[a] || 0)
       );
@@ -622,28 +622,28 @@ export default class TurnipPredictor {
       };
     }
 
-    // Calcular score combinando probabilidades base con análisis de datos
+    // Calculate score combining base probabilities with data analysis
     const scores = {};
     possiblePatterns.forEach(pattern => {
       const dataScore = this.calculatePatternScore(pattern, knownPrices);
-      const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convertir a escala 0-100
+      const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convert to 0-100 scale
 
-      // MEJORA #3: Ajustar peso de datos vs probabilidades
-      // Combinar scores: mantener peso mínimo de 30% para probabilidades
-      // Con 0 precios: 100% probabilidades
-      // Con 4 precios: 50% probabilidades, 50% datos
-      // Con 8+ precios: 70% datos, 30% probabilidades (mínimo)
+      // IMPROVEMENT #3: Adjust data vs probability weight
+      // Combine scores: keep minimum 30% weight for probabilities
+      // With 0 prices: 100% probabilities
+      // With 4 prices: 50% probabilities, 50% data
+      // With 8+ prices: 70% data, 30% probabilities (minimum)
       const dataWeight = Math.min(knownPrices.length / CONFIDENCE.DATA_PERIODS_FOR_MAX, CONFIDENCE.MAX_DATA_WEIGHT);
-      const probWeight = 1 - dataWeight; // Min 30% peso a probabilidades
+      const probWeight = 1 - dataWeight; // Min 30% weight for probabilities
 
       scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
     });
 
-    // Ordenar patrones por score
+    // Sort patterns by score
     const sortedPatterns = possiblePatterns.sort((a, b) => scores[b] - scores[a]);
     const bestPattern = sortedPatterns[0];
 
-    // Convertir scores a porcentajes
+    // Convert scores to percentages
     const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
     const percentages = {};
     Object.keys(scores).forEach(pattern => {
@@ -661,7 +661,7 @@ export default class TurnipPredictor {
     };
   }
 
-  // Calcular qué tan bien encajan los datos con un patrón
+  // Calculate how well the data fits a pattern
   calculatePatternScore(pattern, knownPrices) {
     let score = 0;
     const maxPrice = Math.max(...knownPrices.map(p => p.price));
@@ -670,7 +670,7 @@ export default class TurnipPredictor {
 
     switch (pattern) {
     case PATTERNS.DECREASING:
-      // Penalizar si hay subidas
+      // Penalize if there are increases
       const isDecreasing = knownPrices.every((current, i) => {
         if (i === 0) return true;
 
@@ -685,7 +685,7 @@ export default class TurnipPredictor {
         this.scoreReasons.decreasing.push(`❌ Hay precios que suben (Decreciente solo baja)`);
       }
 
-      // Bonus si el promedio es bajo
+      // Bonus if average is low
       if (avgPrice < this.buyPrice * THRESHOLDS.DECREASING_LOW_AVG) {
         score += 30;
         this.scoreReasons.decreasing.push(`✅ Promedio bajo (${Math.round(avgPrice)} < ${Math.round(THRESHOLDS.DECREASING_LOW_AVG * 100)}% del base)`);
@@ -693,12 +693,12 @@ export default class TurnipPredictor {
       break;
 
     case PATTERNS.LARGE_SPIKE:
-      // Bonus si hay un pico muy alto (200%+)
+      // Bonus if there's a very high peak (200%+)
       if (ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
         score += 100;
         this.scoreReasons.large_spike.push(`✅ ¡Pico enorme detectado! ${maxPrice} bayas (${Math.round(ratio * 100)}%) confirma Large Spike`);
       } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-        // Rango ambiguo: podría ser Small Spike o Large Spike
+        // Ambiguous range: could be Small Spike or Large Spike
         if (ratio < THRESHOLDS.LARGE_SPIKE_NEAR_LIMIT) {
           score += 10;
           this.scoreReasons.large_spike.push(`⚠️ Precio máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) está en rango ambiguo, más cerca de Small Spike`);
@@ -711,7 +711,7 @@ export default class TurnipPredictor {
         this.scoreReasons.large_spike.push(`⏳ Esperando confirmación. Máximo ${maxPrice} bayas (${Math.round(ratio * 100)}%) es válido para fase inicial, el siguiente período debe estar entre 140-200% para confirmar Pico Grande`);
       }
 
-      // Bonus si hay fase baja seguida de pico muy rápido
+      // Bonus if there's a low phase followed by a very rapid spike
       const hasLowToHigh = knownPrices.some((p, i) =>
         i > 0 && p.price > knownPrices[i-1].price * THRESHOLDS.RAPID_INCREASE && knownPrices[i-1].price < this.buyPrice
       );
@@ -720,12 +720,12 @@ export default class TurnipPredictor {
         this.scoreReasons.large_spike.push(`✅ Detectada subida rápida desde fase baja (señal de pico grande)`);
       }
 
-      // Bonus si detectamos secuencia P1→P2 de Large Spike sin precios después
+      // Bonus if we detect a Large Spike P1->P2 sequence with no prices after
       const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
       if (lsSequence.detected && !lsSequence.hasDataAfterSequence) {
         const { period1, period2 } = lsSequence;
-        // Si el P2 está en rango de Small Spike (140-200%), el bonus es menor porque es ambiguo
-        // El pico podría ser de Small Spike, no necesariamente vendrá el 200-600%
+        // If P2 is in Small Spike range (140-200%), bonus is smaller because it's ambiguous
+        // The peak could be Small Spike; the 200-600% may not come
         if (period2.rate >= THRESHOLDS.SMALL_SPIKE_MIN && period2.rate < THRESHOLDS.SMALL_SPIKE_MAX) {
           score += 30; // Bonus reducido - ambiguo
           this.scoreReasons.large_spike.push(`⚠️ Secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% es ambigua. Podría ser Large Spike (esperando 200-600%) o el pico de Small Spike.`);
@@ -735,16 +735,16 @@ export default class TurnipPredictor {
         }
       }
 
-      score += 10; // Base score reducido (menos común que Small Spike)
+      score += 10; // Reduced base score (less common than Small Spike)
       break;
 
     case PATTERNS.SMALL_SPIKE:
-      // MEJORA #1: Flag para detectar si el patrón está descartado
+      // Flag to detect if the pattern has been rejected
       let smallSpikeRejected = false;
 
-      // Bonus si hay pico moderado en el rango exacto de Small Spike
+      // Bonus if there's a moderate peak in the exact Small Spike range
       if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
-        // Dentro del rango perfecto de Small Spike
+        // Within the perfect Small Spike range
         if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio <= THRESHOLDS.SMALL_SPIKE_PERFECT_MAX) {
           score += 90;
           this.scoreReasons.small_spike.push(`✅ ¡Pico perfecto! ${maxPrice} bayas (${Math.round(ratio * 100)}%) en rango ideal de Small Spike (140-200%)`);
@@ -756,7 +756,7 @@ export default class TurnipPredictor {
         score += 40;
         this.scoreReasons.small_spike.push(`⚠️ Precio ${maxPrice} bayas (${Math.round(ratio * 100)}%) podría ser pre-pico de Small Spike`);
 
-        // MEJORA #1: Verificar si hubo caída dramática post-"pico"
+        // Check if there was a dramatic drop after the "peak"
         const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
         if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
           const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
@@ -792,9 +792,9 @@ export default class TurnipPredictor {
         }
       }
 
-      // Solo aplicar bonuses si el patrón no fue rechazado
+      // Only apply bonuses if the pattern was not rejected
       if (!smallSpikeRejected) {
-        // Bonus si hay fase baja seguida de subida moderada
+        // Bonus if there's a low phase followed by a moderate rise
         const hasModerateIncrease = knownPrices.some((p, i) =>
           i > 0 && p.price > knownPrices[i-1].price * THRESHOLDS.MODERATE_RISE_MIN && p.price < knownPrices[i-1].price * THRESHOLDS.MODERATE_RISE_MAX
         );
@@ -803,14 +803,14 @@ export default class TurnipPredictor {
           this.scoreReasons.small_spike.push(`✅ Detectada subida moderada (señal de pico pequeño)`);
         }
 
-        // Penalizar si la secuencia también coincide con Large Spike P1→P2
-        // PERO: si el pico ya está en rango ideal de Small Spike (140-200%), penalizar menos
+        // Penalize if the sequence also matches Large Spike P1→P2
+        // BUT: if the peak is already in ideal Small Spike range (140-200%), penalize less
         const lsSequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
         if (lsSequence.detected && !lsSequence.hasDataAfterSequence) {
           const { period1, period2 } = lsSequence;
-          // Si el pico está en rango ideal de Small Spike, es más probable que sea Small Spike
+          // If the peak is in ideal Small Spike range, it's more likely Small Spike
           if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
-            score -= 15; // Penalización menor - el pico ya está en rango de Small Spike
+            score -= 15; // Smaller penalty - peak is already in Small Spike range
             this.scoreReasons.small_spike.push(`ℹ️ La secuencia ${Math.round(period1.rate * 100)}% → ${Math.round(period2.rate * 100)}% también podría ser Large Spike, pero el pico de ${Math.round(ratio * 100)}% es consistente con Small Spike.`);
           } else {
             score -= 50;
@@ -823,10 +823,10 @@ export default class TurnipPredictor {
       break;
 
     case PATTERNS.FLUCTUATING:
-      // REGLA DE DETECCIÓN TEMPRANA:
-      // Si el LUNES tiene precio alto (>100%), es casi seguro Fluctuante
-      // Los picos de Large/Small Spike empiezan en período 2+ (Martes+)
-      // Decreasing nunca sube del precio base
+      // EARLY DETECTION RULE:
+      // If MONDAY has a high price (>100%), it's almost certainly Fluctuating
+      // Large/Small Spike peaks start at period 2+ (Tuesday+)
+      // Decreasing never rises above base price
       const mondayPrices = knownPrices.filter(p => p.index <= PERIODS.MONDAY_PM);
       if (mondayPrices.some(p => p.price > this.buyPrice)) {
         score += 80;
@@ -834,7 +834,7 @@ export default class TurnipPredictor {
         this.scoreReasons.fluctuating.push(`✅ Precio alto el Lunes (${highMonday.price} > ${this.buyPrice}). Solo Fluctuante sube temprano.`);
       }
 
-      // Bonus si los precios varían pero sin extremos
+      // Bonus if prices vary but without extremes
       if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
         score += 50;
         this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
@@ -844,13 +844,13 @@ export default class TurnipPredictor {
         this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
       }
 
-      // Penalizar fuertemente tendencias decrecientes sostenidas
-      // El patrón fluctuante debe ALTERNAR entre fases altas y bajas, no solo bajar
+      // Heavily penalize sustained decreasing trends
+      // The fluctuating pattern must ALTERNATE between high and low phases, not just decline
       let consecutiveDecreases = 0;
       let maxConsecutiveDecreases = 0;
       let decreasesFromStart = 0;
 
-      // Verificar si baja desde el inicio (sin fase alta previa)
+      // Check if declining from the start (no prior high phase)
       for (let i = 1; i < knownPrices.length; i++) {
         if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
           consecutiveDecreases++;
@@ -863,8 +863,8 @@ export default class TurnipPredictor {
         }
       }
 
-      // Si llegamos aquí, el patrón NO fue descartado
-      // Las penalizaciones ahora son solo para casos límite
+      // If we reach here, the pattern was NOT rejected
+      // Penalties are now only for edge cases
       if (maxConsecutiveDecreases === 3) {
         score -= 20;
         this.scoreReasons.fluctuating.push(`⚠️ 3 períodos bajando consecutivos (límite máximo de una fase baja en Fluctuante)`);
@@ -872,11 +872,11 @@ export default class TurnipPredictor {
         score -= 10;
         this.scoreReasons.fluctuating.push(`⚠️ 2 períodos bajando consecutivos (posible fase baja en Fluctuante)`);
       } else if (maxConsecutiveDecreases === 1 || knownPrices.length === 1) {
-        // Solo 1 bajada o sin suficientes datos
+        // Only 1 decrease or insufficient data
         this.scoreReasons.fluctuating.push(`ℹ️ Sin suficientes datos para confirmar alternancia de fases`);
       }
 
-      score += 30; // Base score (más común)
+      score += 30; // Base score (most common pattern)
       break;
     }
 
@@ -906,7 +906,7 @@ export default class TurnipPredictor {
       }
     });
 
-    // Asegurar que tenemos probabilidades para los 4 patrones
+    // Ensure we have probabilities for all 4 patterns
     const allProbabilities = {
       fluctuating: patternResult.percentages['fluctuating'] || 0,
       large_spike: patternResult.percentages['large_spike'] || 0,
@@ -952,7 +952,7 @@ export default class TurnipPredictor {
     }
   }
 
-  // Métodos auxiliares para ajuste dinámico
+  // Helper methods for dynamic adjustment
   detectPricePhase(knownPrices) {
     if (knownPrices.length < 2) return 'unknown';
 
@@ -960,12 +960,12 @@ export default class TurnipPredictor {
     const last = prices[prices.length - 1];
     const secondLast = prices[prices.length - 2];
 
-    // Detectar tendencia reciente
-    if (last > secondLast * THRESHOLDS.RISING_THRESHOLD) return 'rising';  // Subiendo rápido
-    if (last > secondLast) return 'increasing';    // Subiendo
-    if (last < secondLast * THRESHOLDS.FALLING_THRESHOLD) return 'falling'; // Bajando rápido
-    if (last < secondLast) return 'decreasing';    // Bajando
-    return 'stable';                               // Estable
+    // Detect recent trend
+    if (last > secondLast * THRESHOLDS.RISING_THRESHOLD) return 'rising';  // Rising fast
+    if (last > secondLast) return 'increasing';    // Rising
+    if (last < secondLast * THRESHOLDS.FALLING_THRESHOLD) return 'falling'; // Falling fast
+    if (last < secondLast) return 'decreasing';    // Falling
+    return 'stable';                               // Stable
   }
 
   findPeakInKnownPrices(knownPrices) {
@@ -993,7 +993,7 @@ export default class TurnipPredictor {
     const variance = squaredDiffs.reduce((sum, d) => sum + d, 0) / prices.length;
     const stdDev = Math.sqrt(variance);
 
-    return (stdDev / avg) * 100; // Volatilidad como porcentaje
+    return (stdDev / avg) * 100; // Volatility as percentage
   }
 
   getRecommendation(pattern) {
@@ -1029,8 +1029,8 @@ export default class TurnipPredictor {
   }
 
   getBestTime(predictions, pattern) {
-    // Si es Fluctuante, no tiene sentido buscar "mejor momento"
-    // El patrón es aleatorio por diseño - cualquier día puede ser el mejor
+    // If it's Fluctuating, there's no point looking for "best time"
+    // The pattern is random by design - any day could be the best
     if (pattern === PATTERNS.FLUCTUATING) {
       return {
         pattern: 'fluctuating',
@@ -1038,7 +1038,7 @@ export default class TurnipPredictor {
       };
     }
 
-    // Para patrones predecibles (Spikes, Decreasing), buscar el máximo
+    // For predictable patterns (Spikes, Decreasing), find the maximum
     let bestPrice = 0;
     let bestDay = '';
     let bestIsConfirmed = false;
