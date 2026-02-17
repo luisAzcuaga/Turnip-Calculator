@@ -1,23 +1,23 @@
 import { PERIODS, RATES } from "../constants.js";
 import { calculateDecreasingPhaseRange, detectSpikePeakStart, priceCeil, priceFloor } from "./utils.js";
 
-// Patrón PICO GRANDE: bajo → pico altísimo (hasta 600%) → bajo
-// Basado en el algoritmo real datamineado del juego (Pattern 1)
-// Usa constantes de constants.js (RATES, DECAY, VARIANCE, PERIODS)
+// LARGE SPIKE pattern: low → very high peak (up to 600%) → low
+// Based on the actual datamined game algorithm (Pattern 1)
+// Uses constants from constants.js (RATES, DECAY, VARIANCE, PERIODS)
 
 /**
- * Calcula el rango de precios para el patrón Large Spike
- * @param {number} periodIndex - Índice del período (0-11)
- * @param {number} base - Precio base de compra
- * @param {Array} knownPrices - Array de precios conocidos con {index, price}
- * @returns {{min: number, max: number}} - Rango de precios
+ * Calculates the price range for the Large Spike pattern
+ * @param {number} periodIndex - Period index (0-11)
+ * @param {number} base - Base buy price
+ * @param {Array} knownPrices - Array of known prices with {index, price}
+ * @returns {{min: number, max: number}} - Price range
  */
 export default function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
-  // peakStart puede ser 2-7 según el algoritmo del juego (Martes AM a Jueves PM)
+  // peakStart can be 2-7 per the game algorithm (Tuesday AM to Thursday PM)
   const peakStart = detectSpikePeakStart(knownPrices, PERIODS.LARGE_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, true, base);
 
-  // Fase 1: DECRECIENTE (períodos 0 hasta peakStart-1)
-  // Empieza en 85-90%, baja 3-5% cada período hasta mínimo 40%
+  // Phase 1: DECREASING (periods 0 through peakStart-1)
+  // Starts at 85-90%, drops 3-5% each period down to a minimum of 40%
   if (periodIndex < peakStart) {
     const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
     return calculateDecreasingPhaseRange(
@@ -26,11 +26,11 @@ export default function calculateLargeSpikePattern(periodIndex, base, knownPrice
     );
   }
 
-  // Fase 2: PICO (5 períodos consecutivos desde peakStart)
+  // Phase 2: PEAK (5 consecutive periods from peakStart)
   const peakPhaseIndex = periodIndex - peakStart;
 
   if (peakPhaseIndex >= 0 && peakPhaseIndex < 5) {
-    // Rangos según el algoritmo del juego (desde RATES.LARGE_SPIKE.PEAK_PHASES)
+    // Ranges per the game algorithm (from RATES.LARGE_SPIKE.PEAK_PHASES)
     const range = RATES.LARGE_SPIKE.PEAK_PHASES[peakPhaseIndex];
     return {
       min: priceFloor(base, range.min),
@@ -38,7 +38,7 @@ export default function calculateLargeSpikePattern(periodIndex, base, knownPrice
     };
   }
 
-  // Fase 3: BAJA FINAL (después del pico)
+  // Phase 3: FINAL LOW (after the peak)
   return {
     min: priceFloor(base, RATES.LARGE_SPIKE.POST_PEAK_MIN),
     max: priceCeil(base, RATES.LARGE_SPIKE.POST_PEAK_MAX)

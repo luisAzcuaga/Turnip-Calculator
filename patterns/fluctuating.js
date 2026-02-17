@@ -1,26 +1,26 @@
 import { BUY_PRICE_MAX, BUY_PRICE_MIN, PERIODS, RATES, THRESHOLDS } from "../constants.js";
 import { priceCeil, priceFloor } from "./utils.js";
 
-// Patrón FLUCTUANTE: alterna entre fases altas y bajas
-// Basado en el algoritmo real datamineado del juego (Pattern 0)
-// Usa constantes de constants.js (RATES, PERIODS, THRESHOLDS)
+// FLUCTUATING pattern: alternates between high and low phases
+// Based on the actual datamined game algorithm (Pattern 0)
+// Uses constants from constants.js (RATES, PERIODS, THRESHOLDS)
 //
-// Estructura del patrón (12 períodos totales):
-// - Fase ALTA 1: 0-6 períodos, precios 90-140%
-// - Fase BAJA 1: 2-3 períodos, empieza 60-80%, baja 4-10% por período
-// - Fase ALTA 2: variable períodos, precios 90-140%
-// - Fase BAJA 2: 3-2 períodos (complemento de BAJA 1), empieza 60-80%, baja 4-10%
-// - Fase ALTA 3: resto de períodos, precios 90-140%
+// Pattern structure (12 total periods):
+// - HIGH phase 1: 0-6 periods, prices 90-140%
+// - LOW phase 1: 2-3 periods, starts 60-80%, drops 4-10% per period
+// - HIGH phase 2: variable periods, prices 90-140%
+// - LOW phase 2: 3-2 periods (complement of LOW 1), starts 60-80%, drops 4-10%
+// - HIGH phase 3: remaining periods, prices 90-140%
 //
-// REGLA CLAVE: decPhaseLen1 + decPhaseLen2 = 5 períodos SIEMPRE
-// - Si BAJA1 tiene 3 períodos → BAJA2 tendrá 2 períodos
-// - Si BAJA1 tiene 2 períodos → BAJA2 tendrá 3 períodos
+// KEY RULE: decPhaseLen1 + decPhaseLen2 = 5 periods ALWAYS
+// - If LOW1 has 3 periods -> LOW2 will have 2 periods
+// - If LOW1 has 2 periods -> LOW2 will have 3 periods
 
 /**
- * Detecta las fases de bajada en los precios conocidos
- * @param {Array} knownPrices - Array de precios conocidos ordenados por índice
- * @param {number} base - Precio base de compra
- * @returns {Array} - Array de fases detectadas con {startIndex, length}
+ * Detects low phases in the known prices
+ * @param {Array} knownPrices - Array of known prices sorted by index
+ * @param {number} base - Base buy price
+ * @returns {Array} - Array of detected phases with {startIndex, length}
  */
 function detectFluctuatingPhases(knownPrices, base) {
   if (knownPrices.length < 2) return [];
@@ -32,31 +32,31 @@ function detectFluctuatingPhases(knownPrices, base) {
     const current = knownPrices[i];
     const ratio = current.price / base;
 
-    // Detectar inicio de fase baja (ratio < 85% y bajando)
+    // Detect start of low phase (ratio < 85% and declining)
     if (ratio < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD && i < knownPrices.length - 1) {
       const phaseStart = current.index;
       let phaseLength = 1;
       let j = i + 1;
 
-      // Contar cuántos períodos consecutivos bajan
+      // Count how many consecutive periods are declining
       while (j < knownPrices.length) {
         const next = knownPrices[j];
         const prev = knownPrices[j - 1];
 
-        // Si el índice no es consecutivo, parar
+        // If the index is not consecutive, stop
         if (next.index !== prev.index + 1) break;
 
-        // Si el precio sube significativamente (>5%), terminó la fase baja
+        // If the price rises significantly (>5%), the low phase ended
         if (next.price > prev.price * THRESHOLDS.SLIGHT_RISE) break;
 
-        // Si está en rango de fase alta (>85%), terminó la fase baja
+        // If it is in the high phase range (>85%), the low phase ended
         if (next.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD) break;
 
         phaseLength++;
         j++;
       }
 
-      // Solo considerar fases bajas de 2 o 3 períodos
+      // Only consider low phases of 2 or 3 periods
       if (phaseLength === 2 || phaseLength === 3) {
         phases.push({ startIndex: phaseStart, length: phaseLength });
       }
@@ -71,89 +71,89 @@ function detectFluctuatingPhases(knownPrices, base) {
 }
 
 /**
- * Verifica si un período cae dentro de una fase dada
+ * Checks whether a period falls within a given phase
  */
 function isInPhase(periodIndex, phase) {
   return phase && periodIndex >= phase.startIndex && periodIndex <= phase.endIndex;
 }
 
 /**
- * Detecta si BAJA2 está en progreso basándose en los últimos precios conocidos
- * @param {Array} knownPrices - Precios conocidos ordenados por índice
- * @param {number} base - Precio base de compra
- * @param {Object} baja1 - Fase baja 1 detectada con {startIndex, endIndex}
- * @param {number} baja2ExpectedLength - Longitud esperada de BAJA2 (5 - baja1Length)
- * @returns {Object|null} - {startIndex, endIndex} de BAJA2 si detectada, null si no
+ * Detects whether LOW2 is in progress based on the latest known prices
+ * @param {Array} knownPrices - Known prices sorted by index
+ * @param {number} base - Base buy price
+ * @param {Object} lowPhase1 - Detected low phase 1 with {startIndex, endIndex}
+ * @param {number} lowPhase2ExpectedLength - Expected length of LOW2 (5 - lowPhase1Length)
+ * @returns {Object|null} - {startIndex, endIndex} of LOW2 if detected, null otherwise
  */
-function detectBaja2InProgress(knownPrices, base, baja1, baja2ExpectedLength) {
+function detectLowPhase2InProgress(knownPrices, base, lowPhase1, lowPhase2ExpectedLength) {
   if (knownPrices.length < 2) return null;
 
   const lastPrice = knownPrices[knownPrices.length - 1];
-  if (lastPrice.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD || lastPrice.index <= baja1.endIndex) {
+  if (lastPrice.price / base >= RATES.FLUCTUATING.LOW_PHASE_THRESHOLD || lastPrice.index <= lowPhase1.endIndex) {
     return null;
   }
 
-  // Retroceder para encontrar el inicio de BAJA2
-  let baja2Start = lastPrice.index;
+  // Walk backwards to find the start of LOW2
+  let lowPhase2Start = lastPrice.index;
   for (let i = knownPrices.length - 2; i >= 0; i--) {
     const p = knownPrices[i];
     if (p.price / base < RATES.FLUCTUATING.LOW_PHASE_THRESHOLD &&
-        p.index > baja1.endIndex &&
-        p.index === baja2Start - 1) {
-      baja2Start = p.index;
+        p.index > lowPhase1.endIndex &&
+        p.index === lowPhase2Start - 1) {
+      lowPhase2Start = p.index;
     } else {
       break;
     }
   }
 
-  return { startIndex: baja2Start, endIndex: baja2Start + baja2ExpectedLength - 1 };
+  return { startIndex: lowPhase2Start, endIndex: lowPhase2Start + lowPhase2ExpectedLength - 1 };
 }
 
 /**
- * Analiza la estructura completa del patrón Fluctuante
- * @param {Array} knownPrices - Array de precios conocidos ordenados por índice
- * @param {number} base - Precio base de compra
- * @returns {Object|null} - Estructura detectada con {baja1, baja2} o null
+ * Analyzes the complete structure of the Fluctuating pattern
+ * @param {Array} knownPrices - Array of known prices sorted by index
+ * @param {number} base - Base buy price
+ * @returns {Object|null} - Detected structure with {lowPhase1, lowPhase2} or null
  */
 function analyzeFluctuatingStructure(knownPrices, base) {
   if (knownPrices.length === 0) return null;
 
   const lowPhases = detectFluctuatingPhases(knownPrices, base);
 
-  if (lowPhases.length === 0) return { baja1: null, baja2: null };
+  if (lowPhases.length === 0) return { lowPhase1: null, lowPhase2: null };
 
-  const baja1 = lowPhases[0];
-  const baja1End = baja1.startIndex + baja1.length - 1;
-  const baja1Phase = { startIndex: baja1.startIndex, endIndex: baja1End };
+  const first = lowPhases[0];
+  const firstEnd = first.startIndex + first.length - 1;
+  const lowPhase1 = { startIndex: first.startIndex, endIndex: firstEnd };
 
   if (lowPhases.length === 1) {
-    return { baja1: baja1Phase, baja2: null };
+    return { lowPhase1, lowPhase2: null };
   }
 
-  const baja2 = lowPhases[1];
-  const baja2End = baja2.startIndex + baja2.length - 1;
+  const second = lowPhases[1];
+  const secondEnd = second.startIndex + second.length - 1;
 
   return {
-    baja1: baja1Phase,
-    baja2: { startIndex: baja2.startIndex, endIndex: baja2End }
+    lowPhase1,
+    lowPhase2: { startIndex: second.startIndex, endIndex: secondEnd }
   };
 }
 
 /**
- * Calcula el rango de precios para el patrón Fluctuating
- * @param {number} periodIndex - Índice del período (0-11)
- * @param {number} base - Precio base de compra
- * @param {Array} knownPrices - Array de precios conocidos con {index, price}
- * @returns {{min: number, max: number}} - Rango de precios
+ * Calculates the price range for the Fluctuating pattern
+ * @param {number} periodIndex - Period index (0-11)
+ * @param {number} base - Base buy price
+ * @param {Array} knownPrices - Array of known prices with {index, price}
+ * @returns {{min: number, max: number}} - Price range
  */
 export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
-  // Validación defensiva: si no hay precio base, no podemos predecir
+  // Defensive validation: cannot predict without a base price
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
     console.warn('Fluctuating pattern: Precio base inválido', base);
     return { min: 0, max: 0 };
   }
 
-  // Si tenemos un precio conocido para este período exacto, devolverlo
+  // If we have a known price for this exact period, return it
   const knownPrice = knownPrices.find(p => p.index === periodIndex);
   if (knownPrice) {
     return { min: knownPrice.price, max: knownPrice.price };
@@ -168,38 +168,38 @@ export default function calculateFluctuatingPattern(periodIndex, base, knownPric
     max: priceCeil(base, RATES.FLUCTUATING.HIGH_PHASE_MAX)
   };
 
-  // Analizar estructura y predecir según fase detectada
+  // Analyze structure and predict based on detected phase
   const structure = analyzeFluctuatingStructure(knownPrices, base);
 
-  if (structure && structure.baja1) {
-    // Estructura completa: ambas fases bajas detectadas
-    if (structure.baja2) {
-      if (isInPhase(periodIndex, structure.baja1) || isInPhase(periodIndex, structure.baja2)) {
+  if (structure && structure.lowPhase1) {
+    // Full structure: both low phases detected
+    if (structure.lowPhase2) {
+      if (isInPhase(periodIndex, structure.lowPhase1) || isInPhase(periodIndex, structure.lowPhase2)) {
         return LOW;
       }
       return HIGH;
     }
 
-    // Estructura parcial: solo BAJA1 detectada
-    if (isInPhase(periodIndex, structure.baja1)) {
+    // Partial structure: only LOW1 detected
+    if (isInPhase(periodIndex, structure.lowPhase1)) {
       return LOW;
     }
 
-    const baja1Length = structure.baja1.endIndex - structure.baja1.startIndex + 1;
-    const baja2 = detectBaja2InProgress(knownPrices, base, structure.baja1, 5 - baja1Length);
+    const lowPhase1Length = structure.lowPhase1.endIndex - structure.lowPhase1.startIndex + 1;
+    const lowPhase2 = detectLowPhase2InProgress(knownPrices, base, structure.lowPhase1, 5 - lowPhase1Length);
 
-    if (baja2) {
-      if (isInPhase(periodIndex, baja2)) return LOW;
-      if (periodIndex > baja2.endIndex) return HIGH;
+    if (lowPhase2) {
+      if (isInPhase(periodIndex, lowPhase2)) return LOW;
+      if (periodIndex > lowPhase2.endIndex) return HIGH;
     }
 
-    // Si estamos muy tarde y ya pasó BAJA1 temprano, debe ser ALTA
-    if (periodIndex >= PERIODS.SATURDAY_AM && structure.baja1.startIndex <= PERIODS.THURSDAY_AM) {
+    // If we are late in the week and LOW1 occurred early, this must be HIGH
+    if (periodIndex >= PERIODS.SATURDAY_AM && structure.lowPhase1.startIndex <= PERIODS.THURSDAY_AM) {
       return HIGH;
     }
   }
 
-  // Sin suficiente información: usar rango completo (60-140%)
+  // Not enough information: use full range (60-140%)
   return {
     min: priceFloor(base, RATES.FLUCTUATING.MIN),
     max: priceCeil(base, RATES.FLUCTUATING.MAX)
