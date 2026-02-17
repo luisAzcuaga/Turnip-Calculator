@@ -1,167 +1,155 @@
-# 🥕 Predictor de Nabos - Animal Crossing New Horizons
+# 🥕 Turnip Price Predictor - Animal Crossing New Horizons
 
-Calculadora de precios de nabos basada en los **algoritmos reales del juego**.
+Price calculator based on the **actual in-game algorithm**.
 
-Predice cuándo vender tus nabos para ganar el máximo de bayas.
+Predicts when to sell your turnips to maximize your Bells.
 
 ---
 
 ## ✨ Features
 
-- 🎯 **Predicciones precisas** basadas en los algoritmos del juego (datamining)
-- 🧠 **Sistema inteligente** que aprende de tus precios y descarta patrones imposibles
-- 📊 **Probabilidades en tiempo real** muestra qué tan probable es cada patrón
-- 🔄 **Probabilidades de transición** usa el patrón de la semana anterior para predecir mejor
-- 💾 **Guardado automático** en tu navegador
-- ⚡ **100% offline** - no necesita internet después de cargar
-- 📱 **Responsive** - funciona en móvil, tablet y desktop
+- 🎯 **Precise predictions** based on the datamined game algorithm
+- 🧠 **Smart detection** that learns from your prices and eliminates impossible patterns
+- 📊 **Real-time probabilities** showing how likely each pattern is
+- 🔄 **Transition probabilities** using last week's pattern to improve predictions
+- 💾 **Auto-save** in your browser
+- ⚡ **100% offline** after initial load
+- 📱 **Responsive** — works on mobile, tablet, and desktop
 
 ---
 
-## 🎮 ¿Qué son los nabos?
+## 🎮 What are Turnips?
 
-Los nabos son el "mercado de valores" de Animal Crossing:
+Turnips are the "stock market" of Animal Crossing:
 
-- **Domingo**: Perico los vende a 90-110 bayas
-- **Lunes a Sábado**: El precio cambia 2 veces al día (mañana/tarde)
-- **Siguiente domingo**: Los nabos se pudren y pierdes todo
-- **Cada semana**: Tu isla tiene uno de 4 patrones de precios
+- **Sunday**: Daisy Mae sells them at 90–110 Bells
+- **Monday to Saturday**: Prices change twice a day (AM/PM)
+- **Next Sunday**: Turnips rot and you lose everything
+- **Each week**: Your island follows one of 4 price patterns
 
-**Tu objetivo:** Comprar barato el domingo, vender caro durante la semana.
-
----
-
-## 📊 Los 4 Patrones (explicados simple)
-
-### 📉 Decreciente
-**El peor patrón.**
-
-Los precios solo bajan toda la semana. Empiezan en 85-90% y caen gradualmente hasta 40%.
-
-**Qué hacer:** Vende HOY o visita otra isla. Solo va a empeorar.
+**Your goal:** Buy cheap on Sunday, sell high during the week.
 
 ---
 
-### 📊 Fluctuante
-**El patrón aleatorio.**
+## 📊 The 4 Patterns
 
-Los precios suben y bajan sin patrón claro. Puede llegar hasta 140% pero también bajar a 60%.
+### 📉 Decreasing
+**The worst pattern.**
 
-Alterna entre "fases altas" (90-140%) y "fases bajas" (60-80%).
+Prices only fall throughout the week. They start at 85–90% of the buy price and gradually drop to 40%.
 
-**Qué hacer:** Vende cuando veas precios arriba de lo que pagaste (100%+). No esperes picos gigantes, no van a pasar.
-
----
-
-### 📈 Pico Pequeño
-**Pico moderado.**
-
-Los precios están bajos la mayor parte de la semana, pero hay un **pico de 5 períodos** donde suben hasta 140-200%.
-
-El pico puede aparecer cualquier día de la semana.
-
-**Qué hacer:** Espera el pico (140-200%) y vende ahí. Después del pico, baja rápido.
-
-**Cómo identificarlo:**
-- Ves precios subiendo gradualmente (90% → 120% → 170%)
-- El pico máximo está entre 140-200%
+**What to do:** Sell today or visit another island. It only gets worse.
 
 ---
 
-### 🚀 Pico Grande
-**¡El MEJOR patrón!**
+### 📊 Fluctuating
+**The random pattern.**
 
-Como el Pico Pequeño, pero MUCHO más alto. El **pico puede llegar hasta 600%** 💰
+Prices alternate between high phases (90–140%) and low phases (60–80%) without a clear structure.
 
-El pico dura 5 períodos y alcanza su máximo en el **tercer período** (200-600%).
-
-**Qué hacer:** Espera a ver precios de 200%+ y vende inmediatamente. ¡Ese es el momento!
-
-**Cómo identificarlo:**
-- Ves una subida ENORME de golpe (90% → 160% → 450%)
-- El pico está entre 200-600%
-
-**Diferencia clave entre Pico Grande y Pico Pequeño:**
-- **Pico Grande**: El segundo período del pico sube a 140%+ (subida dramática), luego el tercer período llega a 200-600%
-- **Pico Pequeño**: El segundo período se mantiene en 90-140% (subida gradual), luego llega a 140-200%
+**What to do:** Sell whenever you see prices above your buy price (100%+). Don't wait for huge spikes — they won't come.
 
 ---
 
-## 🎯 Cómo Usar el Predictor
+### 📈 Small Spike
+**A moderate spike.**
 
-### Paso a paso:
-1. Ingresa tu **precio de compra** del domingo
-2. **Selecciona el patrón de la semana anterior** (si lo recuerdas) → Mejora mucho la precisión
-3. Ingresa precios conforme los veas en tu isla
-4. Haz clic en **"Calcular Pronóstico"**
-5. Revisa las **probabilidades** de cada patrón
+Prices are low most of the week, but there's a **5-period spike** where they rise to 140–200%.
 
-### Cómo mejorar las predicciones:
-1. **Ingresa más precios** (especialmente lunes-martes) - cada precio ayuda a descartar patrones
-2. **Selecciona el patrón anterior** si lo sabes - cambia las probabilidades base
-3. **Espera tener varios precios** antes de tomar decisiones importantes
+The spike can start on any day (Monday PM through Thursday PM).
 
----
+**What to do:** Wait for the spike (140–200%) and sell there. After the spike, prices drop fast.
 
-## 🔄 Probabilidades de Transición
-
-**Importante:** El juego NO elige patrones al azar. El patrón de esta semana **depende del patrón anterior**.
-
-| Semana pasada | Más probable esta semana |
-|---------------|--------------------------|
-| **Decreciente** | **45% Pico Grande** 🎉 |
-| **Pico Grande** | **50% Fluctuante** |
-| **Fluctuante** | **35% Pico Pequeño** |
-| **Pico Pequeño** | **45% Fluctuante** |
-
-**💡 Insight clave:**
-Si tuviste **Decreciente** la semana pasada, tienes alta probabilidad de **Pico Grande** esta semana.
-
-Por eso es importante **anotar el patrón cada semana** y seleccionarlo en el predictor.
+**How to identify it:**
+- Prices rising gradually (90% → 120% → 170%)
+- Spike peak between 140–200%
 
 ---
 
-## 💡 Consejos de Venta
+### 🚀 Large Spike
+**The best pattern!**
 
-### Estrategias por patrón:
+Like Small Spike, but much higher. The **spike can reach up to 600%** 💰
 
-**🚀 Pico Grande**
-- Espera a ver **200%+** → ESE es el momento
-- Es el mejor patrón, no vendas muy temprano
+The spike lasts 5 periods and peaks in **the third period** (200–600%).
 
-**📈 Pico Pequeño**
-- Vende cuando veas **140-200%**
-- Es el pico máximo de este patrón
+**What to do:** Wait for 200%+ prices and sell immediately. That's the moment!
 
-**📊 Fluctuante**
-- Vende cuando veas **>110%** (cualquier ganancia es buena)
-- Es impredecible, no esperes picos enormes
+**How to identify it:**
+- A dramatic jump all at once (90% → 160% → 450%)
+- Spike peak between 200–600%
 
-**📉 Decreciente**
-- Vende **INMEDIATAMENTE** o busca otra isla
-- Solo va a empeorar cada día
-
-### Qué NO hacer:
-- ❌ No esperes al sábado si tienes Decreciente
-- ❌ No vendas muy temprano si ves señales de pico
-- ❌ No tomes decisiones con pocos datos (ingresa varios precios primero)
-- ❌ No olvides anotar el patrón cada semana
+**Key difference between Large and Small Spike:**
+- **Large Spike**: Spike phase 2 jumps to 140%+ (dramatic rise), then phase 3 reaches 200–600%
+- **Small Spike**: Spike phase 2 stays at 90–140% (gradual rise), then phases 3–4 reach 140–200%
 
 ---
 
-## 📚 Para saber más
+## 🎯 How to Use the Predictor
 
-- **[ALGORITHM.md](ALGORITHM.md)**: Documentación técnica detallada de los algoritmos
-- **[Código original del juego](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b)**: Datamining por Ninji/Treeki (2020)
+1. Enter your **Sunday buy price**
+2. **Select last week's pattern** (if you remember it) → greatly improves accuracy
+3. Enter prices as you see them on your island
+4. Click **"Calculate Forecast"**
+5. Review the **probabilities** for each pattern
+
+**Tips to improve predictions:**
+1. **Enter more prices** (especially Monday–Tuesday) — each price helps eliminate patterns
+2. **Select the previous pattern** if you know it — shifts the base probabilities
+3. **Wait until you have several prices** before making important decisions
 
 ---
 
-## 🙏 Créditos
+## 🔄 Transition Probabilities
 
-- **Ninji (Treeki)** - Datamining del algoritmo original
-- **Comunidad de r/acturnips** - Verificación y documentación
-- Basado en el código real de Animal Crossing: New Horizons
+**Important:** The game does **not** pick patterns randomly. This week's pattern depends on last week's.
+
+| Last week | Most likely this week |
+|-----------|----------------------|
+| **Decreasing** | **45% Large Spike** 🎉 |
+| **Large Spike** | **50% Fluctuating** |
+| **Fluctuating** | **35% Small Spike** |
+| **Small Spike** | **45% Fluctuating** |
+
+💡 If you had **Decreasing** last week, you have a high chance of **Large Spike** this week — so it's worth tracking your pattern each week.
 
 ---
 
-**¡Disfruta prediciendo tus nabos!** 🥕✨
+## 💡 Selling Strategies
+
+**🚀 Large Spike**
+- Wait for **200%+** — that's the moment
+- Don't sell too early; this is the best pattern
+
+**📈 Small Spike**
+- Sell when you see **140–200%**
+- That's the maximum for this pattern
+
+**📊 Fluctuating**
+- Sell when above **110%** (any profit is good)
+- Unpredictable — don't wait for huge spikes
+
+**📉 Decreasing**
+- Sell **immediately** or find another island
+- It only gets worse each day
+
+### What NOT to do:
+- ❌ Don't wait until Saturday if you have Decreasing
+- ❌ Don't sell too early if you see spike signals
+- ❌ Don't make decisions with too few data points
+- ❌ Don't forget to note your pattern each week
+
+---
+
+## 📚 References
+
+- **[ALGORITHM.md](ALGORITHM.md)**: Technical documentation of the prediction algorithm
+- **[Original game code](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b)**: Datamined by Ninji/Treeki (2020)
+
+---
+
+## 🙏 Credits
+
+- **Ninji (Treeki)** — Original algorithm datamining
+- **r/acturnips community** — Verification and documentation
+- Based on the actual Animal Crossing: New Horizons source code
