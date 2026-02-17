@@ -1,7 +1,7 @@
 import { PERIODS, RATES } from "../constants.js";
-import { calculateDecreasingPhaseRange, detectSpikePeakStart, priceCeil, priceFloor } from "./utils.js";
+import { calculateDecreasingPhaseRange, detectSpikePhaseStart, priceCeil, priceFloor } from "./utils.js";
 
-// SMALL SPIKE pattern: similar to large but with a lower peak (140-200%)
+// SMALL SPIKE pattern: similar to large but with a lower max (140-200%)
 // Based on the actual datamined game algorithm (Pattern 3)
 // Uses constants from constants.js (RATES, DECAY, VARIANCE, PERIODS)
 
@@ -13,82 +13,82 @@ import { calculateDecreasingPhaseRange, detectSpikePeakStart, priceCeil, priceFl
  * @returns {{min: number, max: number}} - Price range
  */
 export default function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
-  // peakStart can be 1-7 per the game algorithm (Monday PM to Thursday PM)
-  const peakStart = detectSpikePeakStart(knownPrices, PERIODS.SMALL_SPIKE_PEAK_START_MIN, PERIODS.SPIKE_PEAK_START_MAX, false, base);
+  // spikeStart can be 1-7 per the game algorithm (Monday PM to Thursday PM)
+  const spikeStart = detectSpikePhaseStart(knownPrices, PERIODS.SMALL_SPIKE_START_MIN, PERIODS.SPIKE_START_MAX, false, base);
 
-  // Phase 1: DECREASING (periods 0 through peakStart-1)
+  // Phase 1: DECREASING (periods 0 through spikeStart-1)
   // Starts at 40-90%, drops 3-5% each period
-  if (periodIndex < peakStart) {
-    const decreasingPhase = knownPrices.filter(p => p.index < peakStart);
+  if (periodIndex < spikeStart) {
+    const decreasingPhase = knownPrices.filter(p => p.index < spikeStart);
     return calculateDecreasingPhaseRange(
       periodIndex, base, decreasingPhase, periodIndex,
       RATES.SMALL_SPIKE.START_MIN, RATES.SMALL_SPIKE.START_MAX, false
     );
   }
 
-  // Phase 2: PEAK (5 consecutive periods from peakStart)
-  const peakPhaseIndex = periodIndex - peakStart;
+  // Phase 2: SPIKE (5 consecutive periods from spikeStart)
+  const spikePhaseIndex = periodIndex - spikeStart;
 
-  if (peakPhaseIndex >= 0 && peakPhaseIndex < 5) {
+  if (spikePhaseIndex >= 0 && spikePhaseIndex < 5) {
     // Actual game algorithm (Pattern 3):
     // The game picks a random "rate" between 1.4-2.0
-    // Peak phase 0: 0.9-1.4
-    // Peak phase 1: 0.9-1.4
-    // Peak phase 2: (1.4 to rate) - 1 bell
-    // Peak phase 3: rate (TRUE PEAK)
-    // Peak phase 4: (1.4 to rate) - 1 bell
+    // Spike phase 0: 0.9-1.4
+    // Spike phase 1: 0.9-1.4
+    // Spike phase 2: (1.4 to rate) - 1 bell
+    // Spike phase 3: rate (TRUE MAX)
+    // Spike phase 4: (1.4 to rate) - 1 bell
 
-    // Get known prices for specific peak periods
-    const period3Price = knownPrices.find(p => p.index === peakStart + 2);
-    const period4Price = knownPrices.find(p => p.index === peakStart + 3);
-    const period5Price = knownPrices.find(p => p.index === peakStart + 4);
+    // Get known prices for specific spike periods
+    const spikePhase3Price = knownPrices.find(p => p.index === spikeStart + 2);
+    const spikePhase4Price = knownPrices.find(p => p.index === spikeStart + 3);
+    const spikePhase5Price = knownPrices.find(p => p.index === spikeStart + 4);
 
     // Infer the rate ONLY when we have precise data
-    // Peak phase 3 defines the exact rate
-    // Peak phases 2 and 4 give a hint of the rate (they are rate - 1)
+    // Spike phase 3 defines the exact rate
+    // Spike phases 2 and 4 give a hint of the rate (they are rate - 1)
     let inferredRate = null;
 
-    if (period4Price) {
-      // If we saw peak phase 3, we know the exact rate
-      inferredRate = period4Price.price / base;
-    } else if (period3Price || period5Price) {
-      // If we saw peak phase 2 or 4, we can infer the rate with good precision
-      // Peak phase 2/4 = (1.4 to rate) - 1, so rate >= (price + 1) / base
-      const knownPeriod = period3Price || period5Price;
+    if (spikePhase4Price) {
+      // If we saw spike phase 3, we know the exact rate
+      inferredRate = spikePhase4Price.price / base;
+    } else if (spikePhase3Price || spikePhase5Price) {
+      // If we saw spike phase 2 or 4, we can infer the rate with good precision
+      // Spike phase 2/4 = (1.4 to rate) - 1, so rate >= (price + 1) / base
+      const knownPeriod = spikePhase3Price || spikePhase5Price;
       inferredRate = (knownPeriod.price + 1) / base;
       // Clamp to valid range (1.4-2.0)
       inferredRate = Math.max(RATES.SMALL_SPIKE.PEAK_RATE_MIN, Math.min(RATES.SMALL_SPIKE.PEAK_RATE_MAX, inferredRate));
     }
-    // If we only have peak phases 0 and/or 1, do NOT infer the rate (not enough info)
+    // If we only have spike phases 0 and/or 1, do NOT infer the rate (not enough info)
 
     // Ranges per the exact game algorithm
-    if (peakPhaseIndex === 0 || peakPhaseIndex === 1) {
-      // Peak phases 0 and 1: 0.9-1.4
+    if (spikePhaseIndex === 0 || spikePhaseIndex === 1) {
+      // Spike phases 0 and 1: 0.9-1.4
       return {
-        min: priceFloor(base, RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MIN),
-        max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_PHASE_INITIAL_MAX)
+        min: priceFloor(base, RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MIN),
+        max: priceCeil(base, RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MAX)
       };
-    } else if (peakPhaseIndex === 3) {
-      // Peak phase 3: TRUE PEAK (rate * base) - no variance, it is the exact rate
+    } else if (spikePhaseIndex === 3) {
+      // Spike phase 3: TRUE MAX (rate * base) - no variance, it is the exact rate
 
-      // If we already saw peak phase 3, use that exact value
-      if (period4Price) {
+      // If we already saw spike phase 3, use that exact value
+      if (spikePhase4Price) {
         return {
-          min: period4Price.price,
-          max: period4Price.price
+          min: spikePhase4Price.price,
+          max: spikePhase4Price.price
         };
       }
 
-      // If we saw peak phase 2, we know peak phase 3 >= peak phase 2 + 1
-      if (period3Price) {
+      // If we saw spike phase 2, we know spike phase 3 >= spike phase 2 + 1
+      if (spikePhase3Price) {
         return {
-          min: period3Price.price + 1,
+          min: spikePhase3Price.price + 1,
           max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)
         };
       }
 
-      // If we saw peak phase 4, we can infer the rate and show the exact value
-      if (period5Price && inferredRate) {
+      // If we saw spike phase 4, we can infer the rate and show the exact value
+      if (spikePhase5Price && inferredRate) {
         const exactPrice = Math.round(base * inferredRate);
         return {
           min: exactPrice,
@@ -102,31 +102,31 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
         max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)
       };
     } else {
-      // Peak phases 2 and 4: (1.4 to rate) * base - 1 bell
+      // Spike phases 2 and 4: (1.4 to rate) * base - 1 bell
 
-      // If we have the inferred rate (from peak phase 3), use it to narrow the range
-      if (inferredRate && period4Price) {
+      // If we have the inferred rate (from spike phase 3), use it to narrow the range
+      if (inferredRate && spikePhase4Price) {
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
           max: Math.ceil(base * inferredRate - 1)
         };
       }
 
-      // If we saw the other peak phase (2 or 4), use that price as reference
-      if (peakPhaseIndex === 2 && period5Price) {
-        // Calculating peak phase 2, but we already saw peak phase 4
+      // If we saw the other spike phase (2 or 4), use that price as reference
+      if (spikePhaseIndex === 2 && spikePhase5Price) {
+        // Calculating spike phase 2, but we already saw spike phase 4
         // Both use the same formula, so they can be similar
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-          max: Math.max(period5Price.price, Math.ceil(base * inferredRate - 1))
+          max: Math.max(spikePhase5Price.price, Math.ceil(base * inferredRate - 1))
         };
       }
 
-      if (peakPhaseIndex === 4 && period3Price) {
-        // Calculating peak phase 4, but we already saw peak phase 2
+      if (spikePhaseIndex === 4 && spikePhase3Price) {
+        // Calculating spike phase 4, but we already saw spike phase 2
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-          max: Math.max(period3Price.price, Math.ceil(base * inferredRate - 1))
+          max: Math.max(spikePhase3Price.price, Math.ceil(base * inferredRate - 1))
         };
       }
 
@@ -138,8 +138,8 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
     }
   }
 
-  // Phase 3: FINAL DECREASING (after the peak)
-  const phaseStart = peakStart + 5;
+  // Phase 3: FINAL DECREASING (after the spike)
+  const phaseStart = spikeStart + 5;
   const finalDecreasingPhase = knownPrices.filter(p => p.index >= phaseStart);
   return calculateDecreasingPhaseRange(
     periodIndex, base, finalDecreasingPhase, periodIndex - phaseStart,

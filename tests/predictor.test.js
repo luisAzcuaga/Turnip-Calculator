@@ -145,15 +145,15 @@ describe('TurnipPredictor', () => {
     });
   });
 
-  describe('#findPeakInKnownPrices', () => {
+  describe('#findMaxInKnownPrices', () => {
     it('should return null for empty array', () => {
       const p = new TurnipPredictor(100);
-      expect(p.findPeakInKnownPrices([])).toBeNull();
+      expect(p.findMaxInKnownPrices([])).toBeNull();
     });
 
-    it('should find the peak price and its index', () => {
+    it('should find the max price and its index', () => {
       const p = new TurnipPredictor(100);
-      const result = p.findPeakInKnownPrices([
+      const result = p.findMaxInKnownPrices([
         { index: 0, price: 90 },
         { index: 2, price: 150 },
         { index: 4, price: 85 },
@@ -163,7 +163,7 @@ describe('TurnipPredictor', () => {
 
     it('should handle single-element array', () => {
       const p = new TurnipPredictor(100);
-      const result = p.findPeakInKnownPrices([{ index: 3, price: 200 }]);
+      const result = p.findMaxInKnownPrices([{ index: 3, price: 200 }]);
       expect(result).toEqual({ price: 200, index: 3 });
     });
   });
@@ -192,17 +192,17 @@ describe('TurnipPredictor', () => {
   // PATTERN POSSIBILITY HELPERS
   // ==========================================================================
 
-  describe('#validatePrePeakSlope', () => {
+  describe('#validatePreSpikeSlope', () => {
     it('should accept valid rate drops (<=5% per period)', () => {
       const p = new TurnipPredictor(100);
       const prices = [
         { index: 0, price: 88, day: 'mon_am' },
         { index: 1, price: 85, day: 'mon_pm' }, // 3% drop
       ];
-      expect(p.validatePrePeakSlope(prices, true)).toEqual({ invalid: false });
+      expect(p.validatePreSpikeSlope(prices, true)).toEqual({ invalid: false });
     });
 
-    it('should reject rate drops >5% per period in pre-peak phase', () => {
+    it('should reject rate drops >5% per period in pre-spike phase', () => {
       const p = new TurnipPredictor(100);
       // 85 → 75: prevRate=0.85, currRate=0.75, drop=0.10 > 0.05
       // Price 85 < buyPrice*0.90 (90), so spike hasn't started yet
@@ -210,20 +210,20 @@ describe('TurnipPredictor', () => {
         { index: 0, price: 85, day: 'mon_am' },
         { index: 1, price: 75, day: 'mon_pm' },
       ];
-      const result = p.validatePrePeakSlope(prices, true);
+      const result = p.validatePreSpikeSlope(prices, true);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain('5%');
     });
 
-    it('should reject early rises before minimum peak start', () => {
+    it('should reject early rises before minimum spike start', () => {
       const p = new TurnipPredictor(100);
-      // For large spike, minPeakStart = 2. Rise >10% at period 1 is too early.
+      // For large spike, minSpikeStart = 2. Rise >10% at period 1 is too early.
       // 85 → 95: ratio = 95/85 = 1.118 > 1.10
       const prices = [
         { index: 0, price: 85, day: 'mon_am' },
         { index: 1, price: 95, day: 'mon_pm' },
       ];
-      const result = p.validatePrePeakSlope(prices, true);
+      const result = p.validatePreSpikeSlope(prices, true);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain('antes del período');
     });
@@ -234,7 +234,7 @@ describe('TurnipPredictor', () => {
         { index: 0, price: 90, day: 'mon_am' },
         { index: 3, price: 75, day: 'tue_pm' }, // gap, non-consecutive
       ];
-      expect(p.validatePrePeakSlope(prices, true)).toEqual({ invalid: false });
+      expect(p.validatePreSpikeSlope(prices, true)).toEqual({ invalid: false });
     });
   });
 
@@ -480,7 +480,7 @@ describe('TurnipPredictor', () => {
       expect(p.isPossibleSmallSpike(prices)).toBe(false);
     });
 
-    it('should accept prices with moderate peak in 140-200% range late in week', () => {
+    it('should accept prices with moderate max in 140-200% range late in week', () => {
       const p = new TurnipPredictor(100);
       const prices = [
         { index: 0, price: 85, day: 'mon_am' },
@@ -617,7 +617,7 @@ describe('TurnipPredictor', () => {
       expect(score).toBeGreaterThanOrEqual(160);
     });
 
-    it('should give score to small_spike with peak in 150-190% sweet spot', () => {
+    it('should give score to small_spike with max in 150-190% sweet spot', () => {
       const p = new TurnipPredictor(100);
       const prices = [
         { index: 0, price: 85, day: 'mon_am' },

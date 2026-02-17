@@ -79,9 +79,9 @@ export const PERIODS = {
   SATURDAY_PM: 11,  // Last period
 
   // Semantic aliases
-  SMALL_SPIKE_PEAK_START_MIN: 1,  // Monday PM
-  LARGE_SPIKE_PEAK_START_MIN: 2,  // Tuesday AM
-  SPIKE_PEAK_START_MAX: 7,        // Thursday PM (both) - latest start for 5 periods
+  SMALL_SPIKE_START_MIN: 1,  // Monday PM
+  LARGE_SPIKE_START_MIN: 2,  // Tuesday AM
+  SPIKE_START_MAX: 7,        // Thursday PM (both) - latest start for 5 periods
   LATE_WEEK_START: 8,             // Friday AM
   LAST_PERIOD: 11,                // Saturday PM
 };
@@ -113,45 +113,45 @@ export const RATES = {
 
   // === LARGE SPIKE PATTERN ===
   LARGE_SPIKE: {
-    // Pre-peak phase
+    // Pre-spike phase
     START_MIN: 0.85,  // 85%
     START_MAX: 0.90,  // 90%
     FLOOR: 0.40,      // 40%
 
-    // Peak phases (5 periods)
-    PEAK_PHASES: [
-      { min: 0.90, max: 1.40 },  // Period 1 [0]: initial rise
-      { min: 1.40, max: 2.00 },  // Period 2 [1]: sharp rise
-      { min: 2.00, max: 6.00 },  // Period 3 [2]: PEAK MAXIMUM
-      { min: 1.40, max: 2.00 },  // Period 4 [3]: decline
-      { min: 0.90, max: 1.40 },  // Period 5 [4]: final decline
+    // Spike phases (5 periods)
+    SPIKE_PHASES: [
+      { min: 0.90, max: 1.40 },  // Spike phase 1 [0]: initial rise
+      { min: 1.40, max: 2.00 },  // Spike phase 2 [1]: sharp rise
+      { min: 2.00, max: 6.00 },  // Spike phase 3 [2]: MAXIMUM
+      { min: 1.40, max: 2.00 },  // Spike phase 4 [3]: decline
+      { min: 0.90, max: 1.40 },  // Spike phase 5 [4]: final decline
     ],
 
-    // Post-peak phase
+    // Post-spike phase
     POST_PEAK_MIN: 0.40,
     POST_PEAK_MAX: 0.90,
   },
 
   // === SMALL SPIKE PATTERN ===
   SMALL_SPIKE: {
-    // Pre-peak phase
+    // Pre-spike phase
     START_MIN: 0.40,  // 40% - can start very low
     START_MAX: 0.90,  // 90%
     FLOOR: 0.40,      // 40%
 
-    // Peak range (the game picks a random "rate")
+    // Spike range (the game picks a random "rate")
     PEAK_RATE_MIN: 1.40,  // 140%
     PEAK_RATE_MAX: 2.00,  // 200%
 
-    // Peak phases
-    // Period 1 and 2: 0.9-1.4
-    // Period 3: (1.4 to rate) - 1 bell (intermediate)
-    // Period 4: rate (ACTUAL PEAK)
-    // Period 5: (1.4 to rate) - 1 bell (intermediate)
-    PEAK_PHASE_INITIAL_MIN: 0.90,
-    PEAK_PHASE_INITIAL_MAX: 1.40,
+    // Spike phases
+    // Spike phase 1 and 2: 0.9-1.4
+    // Spike phase 3: (1.4 to rate) - 1 bell (intermediate)
+    // Spike phase 4: rate (ACTUAL MAX)
+    // Spike phase 5: (1.4 to rate) - 1 bell (intermediate)
+    SPIKE_PHASE_INITIAL_MIN: 0.90,
+    SPIKE_PHASE_INITIAL_MAX: 1.40,
 
-    // Post-peak phase
+    // Post-spike phase
     POST_PEAK_MIN: 0.40,
     POST_PEAK_MAX: 0.90,
   },
@@ -217,7 +217,7 @@ export const THRESHOLDS = {
   FLUCTUATING_RISE: 1.02,          // 2% rise to detect trend
   FLUCTUATING_MODERATE_MIN: 0.80,  // 80%
   FLUCTUATING_MODERATE_MAX: 1.50,  // 150%
-  FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2,  // Max 2 consecutive rises (3 prices = peak)
+  FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2,  // Max 2 consecutive rises (3 prices = local max)
   FLUCTUATING_MAX_CONSECUTIVE_DECREASES: 3,  // Max 3 consecutive drops (4 prices)
 
   // === Decreasing ===
