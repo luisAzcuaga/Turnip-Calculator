@@ -404,8 +404,8 @@ describe("patterns/utils", () => {
       ];
       const result = detectLargeSpikeSequence(knownPrices, buyPrice);
       expect(result.detected).toBe(true);
-      expect(result.period1.index).toBe(3);
-      expect(result.period2.index).toBe(4);
+      expect(result.peakPhase1.index).toBe(3);
+      expect(result.peakPhase2.index).toBe(4);
     });
 
     it("should not detect when sequence is not consecutive", () => {

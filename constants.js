@@ -120,11 +120,11 @@ export const RATES = {
 
     // Peak phases (5 periods)
     PEAK_PHASES: [
-      { min: 0.90, max: 1.40 },  // Period 1 [0]: initial rise
-      { min: 1.40, max: 2.00 },  // Period 2 [1]: sharp rise
-      { min: 2.00, max: 6.00 },  // Period 3 [2]: PEAK MAXIMUM
-      { min: 1.40, max: 2.00 },  // Period 4 [3]: decline
-      { min: 0.90, max: 1.40 },  // Period 5 [4]: final decline
+      { min: 0.90, max: 1.40 },  // Peak phase 1 [0]: initial rise
+      { min: 1.40, max: 2.00 },  // Peak phase 2 [1]: sharp rise
+      { min: 2.00, max: 6.00 },  // Peak phase 3 [2]: PEAK MAXIMUM
+      { min: 1.40, max: 2.00 },  // Peak phase 4 [3]: decline
+      { min: 0.90, max: 1.40 },  // Peak phase 5 [4]: final decline
     ],
 
     // Post-peak phase
@@ -144,10 +144,10 @@ export const RATES = {
     PEAK_RATE_MAX: 2.00,  // 200%
 
     // Peak phases
-    // Period 1 and 2: 0.9-1.4
-    // Period 3: (1.4 to rate) - 1 bell (intermediate)
-    // Period 4: rate (ACTUAL PEAK)
-    // Period 5: (1.4 to rate) - 1 bell (intermediate)
+    // Peak phase 1 and 2: 0.9-1.4
+    // Peak phase 3: (1.4 to rate) - 1 bell (intermediate)
+    // Peak phase 4: rate (ACTUAL PEAK)
+    // Peak phase 5: (1.4 to rate) - 1 bell (intermediate)
     PEAK_PHASE_INITIAL_MIN: 0.90,
     PEAK_PHASE_INITIAL_MAX: 1.40,
 

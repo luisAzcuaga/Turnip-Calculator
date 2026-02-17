@@ -276,7 +276,7 @@ export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, is
  * Detects Large Spike sequence: Peak phase 1 (90-140%) → Peak phase 2 (140-200%)
  * @param {Array} knownPrices - Array of known prices with indices
  * @param {number} buyPrice - Base buy price
- * @returns {Object} - { detected, period1, period2, hasDataAfterSequence } or { detected: false }
+ * @returns {Object} - { detected, peakPhase1, peakPhase2, hasDataAfterSequence } or { detected: false }
  */
 export function detectLargeSpikeSequence(knownPrices, buyPrice) {
   if (knownPrices.length < 2) return { detected: false };
@@ -298,8 +298,8 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
           const pricesAfter = knownPrices.filter(p => p.index > current.index);
           return {
             detected: true,
-            period1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
-            period2: { price: current.price, rate: rate, index: current.index },
+            peakPhase1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
+            peakPhase2: { price: current.price, rate: rate, index: current.index },
             hasDataAfterSequence: pricesAfter.length > 0
           };
         }

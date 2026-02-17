@@ -39,22 +39,22 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
     // Peak phase 4: (1.4 to rate) - 1 bell
 
     // Get known prices for specific peak periods
-    const period3Price = knownPrices.find(p => p.index === peakStart + 2);
-    const period4Price = knownPrices.find(p => p.index === peakStart + 3);
-    const period5Price = knownPrices.find(p => p.index === peakStart + 4);
+    const peakPhase3Price = knownPrices.find(p => p.index === peakStart + 2);
+    const peakPhase4Price = knownPrices.find(p => p.index === peakStart + 3);
+    const peakPhase5Price = knownPrices.find(p => p.index === peakStart + 4);
 
     // Infer the rate ONLY when we have precise data
     // Peak phase 3 defines the exact rate
     // Peak phases 2 and 4 give a hint of the rate (they are rate - 1)
     let inferredRate = null;
 
-    if (period4Price) {
+    if (peakPhase4Price) {
       // If we saw peak phase 3, we know the exact rate
-      inferredRate = period4Price.price / base;
-    } else if (period3Price || period5Price) {
+      inferredRate = peakPhase4Price.price / base;
+    } else if (peakPhase3Price || peakPhase5Price) {
       // If we saw peak phase 2 or 4, we can infer the rate with good precision
       // Peak phase 2/4 = (1.4 to rate) - 1, so rate >= (price + 1) / base
-      const knownPeriod = period3Price || period5Price;
+      const knownPeriod = peakPhase3Price || peakPhase5Price;
       inferredRate = (knownPeriod.price + 1) / base;
       // Clamp to valid range (1.4-2.0)
       inferredRate = Math.max(RATES.SMALL_SPIKE.PEAK_RATE_MIN, Math.min(RATES.SMALL_SPIKE.PEAK_RATE_MAX, inferredRate));
@@ -72,23 +72,23 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
       // Peak phase 3: TRUE PEAK (rate * base) - no variance, it is the exact rate
 
       // If we already saw peak phase 3, use that exact value
-      if (period4Price) {
+      if (peakPhase4Price) {
         return {
-          min: period4Price.price,
-          max: period4Price.price
+          min: peakPhase4Price.price,
+          max: peakPhase4Price.price
         };
       }
 
       // If we saw peak phase 2, we know peak phase 3 >= peak phase 2 + 1
-      if (period3Price) {
+      if (peakPhase3Price) {
         return {
-          min: period3Price.price + 1,
+          min: peakPhase3Price.price + 1,
           max: priceCeil(base, RATES.SMALL_SPIKE.PEAK_RATE_MAX)
         };
       }
 
       // If we saw peak phase 4, we can infer the rate and show the exact value
-      if (period5Price && inferredRate) {
+      if (peakPhase5Price && inferredRate) {
         const exactPrice = Math.round(base * inferredRate);
         return {
           min: exactPrice,
@@ -105,7 +105,7 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
       // Peak phases 2 and 4: (1.4 to rate) * base - 1 bell
 
       // If we have the inferred rate (from peak phase 3), use it to narrow the range
-      if (inferredRate && period4Price) {
+      if (inferredRate && peakPhase4Price) {
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
           max: Math.ceil(base * inferredRate - 1)
@@ -113,20 +113,20 @@ export default function calculateSmallSpikePattern(periodIndex, base, knownPrice
       }
 
       // If we saw the other peak phase (2 or 4), use that price as reference
-      if (peakPhaseIndex === 2 && period5Price) {
+      if (peakPhaseIndex === 2 && peakPhase5Price) {
         // Calculating peak phase 2, but we already saw peak phase 4
         // Both use the same formula, so they can be similar
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-          max: Math.max(period5Price.price, Math.ceil(base * inferredRate - 1))
+          max: Math.max(peakPhase5Price.price, Math.ceil(base * inferredRate - 1))
         };
       }
 
-      if (peakPhaseIndex === 4 && period3Price) {
+      if (peakPhaseIndex === 4 && peakPhase3Price) {
         // Calculating peak phase 4, but we already saw peak phase 2
         return {
           min: Math.floor(base * RATES.SMALL_SPIKE.PEAK_RATE_MIN - 1),
-          max: Math.max(period3Price.price, Math.ceil(base * inferredRate - 1))
+          max: Math.max(peakPhase3Price.price, Math.ceil(base * inferredRate - 1))
         };
       }
 
