@@ -4,7 +4,7 @@ import {
   decreasingMaxForPeriod,
   decreasingMin,
   detectLargeSpikeSequence,
-  detectSpikePeakStart,
+  detectSpikePhaseStart,
   detectSpikeStart,
   getPeriodName,
   getSpikeStartRange,
@@ -206,16 +206,16 @@ describe("patterns/utils", () => {
   describe("getSpikeStartRange", () => {
     it("should return large spike range (Martes AM to Jueves PM)", () => {
       const range = getSpikeStartRange(true);
-      expect(range.min).toBe(PERIODS.LARGE_SPIKE_PEAK_START_MIN); // 2
-      expect(range.max).toBe(PERIODS.SPIKE_PEAK_START_MAX); // 7
+      expect(range.min).toBe(PERIODS.LARGE_SPIKE_START_MIN); // 2
+      expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
       expect(range.minName).toBe("Martes PM");
       expect(range.maxName).toBe("Jueves PM");
     });
 
     it("should return small spike range (Lunes PM to Jueves PM)", () => {
       const range = getSpikeStartRange(false);
-      expect(range.min).toBe(PERIODS.SMALL_SPIKE_PEAK_START_MIN); // 1
-      expect(range.max).toBe(PERIODS.SPIKE_PEAK_START_MAX); // 7
+      expect(range.min).toBe(PERIODS.SMALL_SPIKE_START_MIN); // 1
+      expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
       expect(range.minName).toBe("Martes AM");
       expect(range.maxName).toBe("Jueves PM");
     });
@@ -328,61 +328,61 @@ describe("patterns/utils", () => {
   });
 
   // ============================================================================
-  // detectSpikePeakStart
+  // detectSpikePhaseStart
   // ============================================================================
-  describe("detectSpikePeakStart", () => {
+  describe("detectSpikePhaseStart", () => {
     const buyPrice = 100;
-    const minPeakStart = PERIODS.LARGE_SPIKE_PEAK_START_MIN; // 2
-    const maxPeakStart = PERIODS.SPIKE_PEAK_START_MAX; // 7
+    const minSpikeStart = PERIODS.LARGE_SPIKE_START_MIN; // 2
+    const maxSpikeStart = PERIODS.SPIKE_START_MAX; // 7
 
     it("should return default (Wednesday PM) with no known prices", () => {
-      const result = detectSpikePeakStart([], minPeakStart, maxPeakStart, true, buyPrice);
+      const result = detectSpikePhaseStart([], minSpikeStart, maxSpikeStart, true, buyPrice);
       expect(result).toBe(PERIODS.WEDNESDAY_PM); // 5
     });
 
-    it("should detect peak from trend reversal", () => {
-      // Falling then rising: peak starts where rise begins
+    it("should detect spike from trend reversal", () => {
+      // Falling then rising: spike starts where rise begins
       const knownPrices = [
         { index: 0, price: 88 },
         { index: 1, price: 84 },
         { index: 2, price: 90 }, // reversal here
       ];
-      const result = detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, true, buyPrice);
+      const result = detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart, true, buyPrice);
       expect(result).toBe(2);
     });
 
-    it("should detect peak from confirmed large spike (>200%)", () => {
+    it("should detect spike from confirmed large spike (>200%)", () => {
       const knownPrices = [
         { index: 3, price: 85 },
-        { index: 4, price: 350 }, // 350% = confirmed large spike peak
+        { index: 4, price: 350 }, // 350% = confirmed large spike
         { index: 5, price: 150 }, // declining after max
       ];
-      const result = detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, true, buyPrice);
-      // Max at index 4, peak 3rd period → peakStart = max(2, 4-2) = 2
+      const result = detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart, true, buyPrice);
+      // Max at index 4, spike phase 3 → spikeStart = max(2, 4-2) = 2
       expect(result).toBe(2);
     });
 
-    it("should clamp to min/max peak start range", () => {
+    it("should clamp to min/max spike start range", () => {
       // Trend reversal at index 0, but min is 2
       const knownPrices = [
         { index: 0, price: 90 },
         { index: 1, price: 85 },
         { index: 2, price: 95 },
       ];
-      const result = detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, true, buyPrice);
-      expect(result).toBeGreaterThanOrEqual(minPeakStart);
-      expect(result).toBeLessThanOrEqual(maxPeakStart);
+      const result = detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart, true, buyPrice);
+      expect(result).toBeGreaterThanOrEqual(minSpikeStart);
+      expect(result).toBeLessThanOrEqual(maxSpikeStart);
     });
 
     it("should use middle of range as fallback", () => {
-      // Early decreasing prices with no rise or peak signal
+      // Early decreasing prices with no rise or spike signal
       const knownPrices = [
         { index: 0, price: 88 },
         { index: 1, price: 85 },
       ];
-      const result = detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, true, buyPrice);
-      expect(result).toBeGreaterThanOrEqual(minPeakStart);
-      expect(result).toBeLessThanOrEqual(maxPeakStart);
+      const result = detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart, true, buyPrice);
+      expect(result).toBeGreaterThanOrEqual(minSpikeStart);
+      expect(result).toBeLessThanOrEqual(maxSpikeStart);
     });
   });
 
@@ -404,8 +404,8 @@ describe("patterns/utils", () => {
       ];
       const result = detectLargeSpikeSequence(knownPrices, buyPrice);
       expect(result.detected).toBe(true);
-      expect(result.peakPhase1.index).toBe(3);
-      expect(result.peakPhase2.index).toBe(4);
+      expect(result.spikePhase1.index).toBe(3);
+      expect(result.spikePhase2.index).toBe(4);
     });
 
     it("should not detect when sequence is not consecutive", () => {

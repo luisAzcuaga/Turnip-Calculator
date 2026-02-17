@@ -8,7 +8,7 @@ describe("patterns/large-spike", () => {
 
   describe("without known prices (algorithm defaults)", () => {
     it("should return decreasing range for early periods", () => {
-      // Period 0: pre-peak, should be in 85-90% range area
+      // Period 0: pre-spike, should be in 85-90% range area
       const result = calculateLargeSpikePattern(0, base);
       expect(result.min).toBeLessThanOrEqual(result.max);
       expect(result.min).toBeGreaterThanOrEqual(Math.floor(base * RATES.FLOOR));
@@ -22,11 +22,11 @@ describe("patterns/large-spike", () => {
       }
     });
 
-    it("should have high max during potential peak periods", () => {
+    it("should have high max during potential spike periods", () => {
       // Some middle periods should have spike-level maximums
-      // since peak could start at various points
-      const peakPeriods = [3, 4, 5, 6];
-      const hasHighMax = peakPeriods.some(i => {
+      // since spike could start at various points
+      const spikePeriods = [3, 4, 5, 6];
+      const hasHighMax = spikePeriods.some(i => {
         const result = calculateLargeSpikePattern(i, base);
         return result.max > base;
       });
@@ -34,15 +34,15 @@ describe("patterns/large-spike", () => {
     });
   });
 
-  describe("peak phase rates", () => {
-    it("should match PEAK_PHASES rates for peak periods (default peakStart)", () => {
-      // Without known prices, peakStart defaults to WEDNESDAY_PM (5)
-      // Peak phases: periods 5, 6, 7, 8, 9
-      const peakStart = 5; // default
-      const expectedPhases = RATES.LARGE_SPIKE.PEAK_PHASES;
+  describe("spike phase rates", () => {
+    it("should match SPIKE_PHASES rates for spike periods (default spikeStart)", () => {
+      // Without known prices, spikeStart defaults to WEDNESDAY_PM (5)
+      // Spike phases: periods 5, 6, 7, 8, 9
+      const spikeStart = 5; // default
+      const expectedPhases = RATES.LARGE_SPIKE.SPIKE_PHASES;
 
       for (let phase = 0; phase < 5; phase++) {
-        const periodIndex = peakStart + phase;
+        const periodIndex = spikeStart + phase;
         if (periodIndex > 11) break;
 
         const result = calculateLargeSpikePattern(periodIndex, base);
@@ -53,23 +53,23 @@ describe("patterns/large-spike", () => {
       }
     });
 
-    it("should have the highest range in peak phase 3 (200-600%)", () => {
-      // Phase 3 (index 2 in PEAK_PHASES) has the max range
-      const peakStart = 5;
-      const result = calculateLargeSpikePattern(peakStart + 2, base);
+    it("should have the highest range in spike phase 3 (200-600%)", () => {
+      // Phase 3 (index 2 in SPIKE_PHASES) has the max range
+      const spikeStart = 5;
+      const result = calculateLargeSpikePattern(spikeStart + 2, base);
       expect(result.max).toBe(Math.ceil(base * 6.0)); // 600%
       expect(result.min).toBe(Math.floor(base * 2.0)); // 200%
     });
   });
 
-  describe("post-peak phase", () => {
-    it("should return post-peak range after peak ends", () => {
-      // Default peakStart=5, peak occupies 5-9, post-peak at 10+
-      const peakStart = 5;
-      const postPeakIndex = peakStart + 5; // 10
+  describe("post-spike phase", () => {
+    it("should return post-spike range after spike ends", () => {
+      // Default spikeStart=5, spike occupies 5-9, post-spike at 10+
+      const spikeStart = 5;
+      const postSpikeIndex = spikeStart + 5; // 10
 
-      if (postPeakIndex <= 11) {
-        const result = calculateLargeSpikePattern(postPeakIndex, base);
+      if (postSpikeIndex <= 11) {
+        const result = calculateLargeSpikePattern(postSpikeIndex, base);
         expect(result.min).toBe(Math.floor(base * RATES.LARGE_SPIKE.POST_PEAK_MIN));
         expect(result.max).toBe(Math.ceil(base * RATES.LARGE_SPIKE.POST_PEAK_MAX));
       }
@@ -77,25 +77,25 @@ describe("patterns/large-spike", () => {
   });
 
   describe("with known prices", () => {
-    it("should project from known decreasing prices in pre-peak phase", () => {
+    it("should project from known decreasing prices in pre-spike phase", () => {
       const knownPrices = [
         { index: 0, price: 88 },
         { index: 1, price: 84 },
       ];
-      // These are decreasing, so pattern detects pre-peak phase
+      // These are decreasing, so pattern detects pre-spike phase
       const result = calculateLargeSpikePattern(0, base, knownPrices);
-      // Period 0 is the last known at index 0 in pre-peak
+      // Period 0 is the last known at index 0 in pre-spike
       expect(result.min).toBeLessThanOrEqual(result.max);
     });
 
-    it("should detect peak from trend reversal", () => {
-      // Falling then rising → peak detected
+    it("should detect spike from trend reversal", () => {
+      // Falling then rising → spike detected
       const knownPrices = [
         { index: 0, price: 88 },
         { index: 1, price: 84 },
         { index: 2, price: 95 }, // reversal
       ];
-      // Period 2 should be near the start of peak phase
+      // Period 2 should be near the start of spike phase
       const result = calculateLargeSpikePattern(2, base, knownPrices);
       expect(result.min).toBeLessThanOrEqual(result.max);
     });

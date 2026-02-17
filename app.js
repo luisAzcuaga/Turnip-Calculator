@@ -407,16 +407,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (spikeStarted && spikeStartIndex >= 0) {
       const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
-      // Large Spike: peak phase 3 (peakStart + 2, relative to peak)
-      // Small Spike: peak phase 4 (peakStart + 3, relative to peak)
-      const peaksInPhase = patternKey === PATTERNS.LARGE_SPIKE ? 2 : 3;
-      const maxPeriodIndex = spikeStartIndex + peaksInPhase;
+      // Large Spike: spike phase 3 (spikeStart + 2, relative to spike)
+      // Small Spike: spike phase 4 (spikeStart + 3, relative to spike)
+      const periodsToMax = patternKey === PATTERNS.LARGE_SPIKE ? 2 : 3;
+      const maxPeriodIndex = spikeStartIndex + periodsToMax;
       const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
 
       // Detect if we are in phase 1 (start of spike) and haven't seen phase 2 yet
-      const peakPhase2Index = spikeStartIndex + 1;
-      const isInPeakPhase1 = lastKnownIndex === spikeStartIndex;
-      const hasPeakPhase2Data = lastKnownIndex >= peakPhase2Index;
+      const spikePhase2Index = spikeStartIndex + 1;
+      const isInSpikePhase1 = lastKnownIndex === spikeStartIndex;
+      const hasSpikePhase2Data = lastKnownIndex >= spikePhase2Index;
 
       const uncertaintyPrefix = isPrimary ? '' : 'Puede que ';
       const conditionalPhrase = isPrimary ? '' : ' Si es correcto,';
@@ -426,16 +426,16 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxRange = patternKey === PATTERNS.LARGE_SPIKE ? '200-600%' : '140-200%';
 
         // If in phase 1 and we haven't seen phase 2, mention that phase 2 is decisive
-        if (isInPeakPhase1 && !hasPeakPhase2Data) {
-          const peakPhase2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
-          const nextDay = DAYS_CONFIG[peakPhase2Index]?.name || 'siguiente período';
+        if (isInSpikePhase1 && !hasSpikePhase2Data) {
+          const spikePhase2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
+          const nextDay = DAYS_CONFIG[spikePhase2Index]?.name || 'siguiente período';
           messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;
 
           if (patternKey === PATTERNS.LARGE_SPIKE) {
-            messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${peakPhase2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
+            messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${spikePhase2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
           } else { // small_spike
-            const minThreshold = Math.floor(buyPrice * RATES.LARGE_SPIKE.PEAK_PHASES[0].min);
-            const maxThreshold = peakPhase2Threshold - 1; // < 140%
+            const minThreshold = Math.floor(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[0].min);
+            const maxThreshold = spikePhase2Threshold - 1; // < 140%
             messages += `<br/>&emsp;&emsp;• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado`;
           }
           messages += `</li>`;

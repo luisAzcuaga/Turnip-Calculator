@@ -93,8 +93,8 @@ export function getPeriodName(periodIndex) {
  */
 export function getSpikeStartRange(isLargeSpike) {
   return {
-    min: isLargeSpike ? PERIODS.LARGE_SPIKE_PEAK_START_MIN : PERIODS.SMALL_SPIKE_PEAK_START_MIN,
-    max: PERIODS.SPIKE_PEAK_START_MAX,
+    min: isLargeSpike ? PERIODS.LARGE_SPIKE_START_MIN : PERIODS.SMALL_SPIKE_START_MIN,
+    max: PERIODS.SPIKE_START_MAX,
     minName: isLargeSpike ? 'Martes PM' : 'Martes AM',
     maxName: 'Jueves PM',
   };
@@ -184,15 +184,15 @@ export function detectSpikeStart(prices, buyPrice) {
 }
 
 /**
- * Dynamically detects where the peak phase starts in Spike patterns
+ * Dynamically detects where the spike phase starts in Spike patterns
  * @param {Array} knownPrices - Array of known prices with {index, price}
- * @param {number} minPeakStart - Minimum index where the peak can start
- * @param {number} maxPeakStart - Maximum index where the peak can start
+ * @param {number} minSpikeStart - Minimum index where the spike can start
+ * @param {number} maxSpikeStart - Maximum index where the spike can start
  * @param {boolean} isLargeSpike - True if large spike, false if small
  * @param {number} buyPrice - Base buy price
- * @returns {number} - Estimated index where the peak starts
+ * @returns {number} - Estimated index where the spike starts
  */
-export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, isLargeSpike, buyPrice) {
+export function detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart, isLargeSpike, buyPrice) {
   if (knownPrices.length === 0) {
     return PERIODS.WEDNESDAY_PM; // Default: Wednesday PM (typical period)
   }
@@ -209,20 +209,20 @@ export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, is
     pricesAfterMax.some(p => p.price < maxPrice * 0.95); // Dropped at least 5%
 
   // PRIORITY 1: If the spike already passed (prices declining after the max),
-  // use the max as reference to calculate peakStart
+  // use the max as reference to calculate spikeStart
   if (maxPriceData && hasDecliningPricesAfterMax) {
     const ratio = maxPrice / buyPrice;
 
-    // Large Spike: max peak at peak phase 3 (200-600%)
+    // Large Spike: max price at spike phase 3 (200-600%)
     if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-      const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 2);
-      return Math.min(maxPeakStart, estimatedPeakStart);
+      const estimatedSpikeStart = Math.max(minSpikeStart, maxPriceData.index - 2);
+      return Math.min(maxSpikeStart, estimatedSpikeStart);
     }
 
-    // Small Spike: max peak at peak phase 4 (140-200%)
+    // Small Spike: max price at spike phase 4 (140-200%)
     if (!isLargeSpike && ratio >= THRESHOLDS.SMALL_SPIKE_MIN) {
-      const estimatedPeakStart = Math.max(minPeakStart, maxPriceData.index - 3);
-      return Math.min(maxPeakStart, estimatedPeakStart);
+      const estimatedSpikeStart = Math.max(minSpikeStart, maxPriceData.index - 3);
+      return Math.min(maxSpikeStart, estimatedSpikeStart);
     }
   }
 
@@ -242,9 +242,9 @@ export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, is
   });
 
   if (trendReversal !== -1) {
-    // The reversal occurs at the current period, that's the spike start (Peak phase 1 = 90-140%)
-    const estimatedStart = Math.max(minPeakStart, knownPrices[trendReversal].index);
-    return Math.min(maxPeakStart, estimatedStart);
+    // The reversal occurs at the current period, that's the spike start (Spike phase 1 = 90-140%)
+    const estimatedStart = Math.max(minSpikeStart, knownPrices[trendReversal].index);
+    return Math.min(maxSpikeStart, estimatedStart);
   }
 
   // Look for the first price that rises significantly (>30%)
@@ -256,8 +256,8 @@ export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, is
   });
 
   if (firstSignificantRise !== -1) {
-    const estimatedStart = Math.max(minPeakStart, knownPrices[firstSignificantRise].index);
-    return Math.min(maxPeakStart, estimatedStart);
+    const estimatedStart = Math.max(minSpikeStart, knownPrices[firstSignificantRise].index);
+    return Math.min(maxSpikeStart, estimatedStart);
   }
 
   // If there's a decreasing trend, the spike has probably passed or is near
@@ -265,24 +265,24 @@ export function detectSpikePeakStart(knownPrices, minPeakStart, maxPeakStart, is
 
   // If we're in a late low phase, assume the spike will come soon
   if (lastKnownIndex >= PERIODS.WEDNESDAY_AM) {
-    return Math.max(minPeakStart, Math.min(maxPeakStart, lastKnownIndex));
+    return Math.max(minSpikeStart, Math.min(maxSpikeStart, lastKnownIndex));
   }
 
   // Fallback: use the middle period of the valid range
-  return Math.floor((minPeakStart + maxPeakStart) / 2);
+  return Math.floor((minSpikeStart + maxSpikeStart) / 2);
 }
 
 /**
- * Detects Large Spike sequence: Peak phase 1 (90-140%) → Peak phase 2 (140-200%)
+ * Detects Large Spike sequence: Spike phase 1 (90-140%) → Spike phase 2 (140-200%)
  * @param {Array} knownPrices - Array of known prices with indices
  * @param {number} buyPrice - Base buy price
- * @returns {Object} - { detected, peakPhase1, peakPhase2, hasDataAfterSequence } or { detected: false }
+ * @returns {Object} - { detected, spikePhase1, spikePhase2, hasDataAfterSequence } or { detected: false }
  */
 export function detectLargeSpikeSequence(knownPrices, buyPrice) {
   if (knownPrices.length < 2) return { detected: false };
 
-  const p1Range = RATES.LARGE_SPIKE.PEAK_PHASES[0]; // 90-140%
-  const p2Range = RATES.LARGE_SPIKE.PEAK_PHASES[1]; // 140-200%
+  const p1Range = RATES.LARGE_SPIKE.SPIKE_PHASES[0]; // 90-140%
+  const p2Range = RATES.LARGE_SPIKE.SPIKE_PHASES[1]; // 140-200%
 
   // Look for price in P2 range (140-200%) with previous price in P1 range (90-140%)
   for (const current of knownPrices) {
@@ -298,8 +298,8 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
           const pricesAfter = knownPrices.filter(p => p.index > current.index);
           return {
             detected: true,
-            peakPhase1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
-            peakPhase2: { price: current.price, rate: rate, index: current.index },
+            spikePhase1: { price: previousPeriod.price, rate: prevRate, index: previousPeriod.index },
+            spikePhase2: { price: current.price, rate: rate, index: current.index },
             hasDataAfterSequence: pricesAfter.length > 0
           };
         }
@@ -311,7 +311,7 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
 }
 
 /**
- * Calculates the price range for a decreasing phase (pre-peak or post-peak).
+ * Calculates the price range for a decreasing phase (pre-spike or post-spike).
  * Consolidates shared logic between large-spike and small-spike.
  *
  * @param {number} periodIndex - Absolute period index (0-11)
