@@ -1,4 +1,4 @@
-import { DAYS_CONFIG, DECAY, PERIODS, RATES, THRESHOLDS, VARIANCE } from "../constants.js";
+import { DAYS_CONFIG, DECAY, PERIODS, RATES, THRESHOLDS } from "../constants.js";
 
 // Shared utilities for price patterns
 // Helper functions used by multiple patterns
@@ -331,17 +331,7 @@ export function calculateDecreasingPhaseRange(
     const lastKnown = phaseKnownPrices[phaseKnownPrices.length - 1];
     const periodsAhead = periodIndex - lastKnown.index;
 
-    // 2+ prices: project using observed rate decay
-    if (phaseKnownPrices.length >= 2 && periodsAhead > 0) {
-      const avgRateDrop = calculateAvgRateDrop(phaseKnownPrices, base);
-      const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
-      return {
-        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
-        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
-      };
-    }
-
-    // 1 price: manual rate decay (3-5 points per period)
+    // Project using game bounds: drops 3–5% per period from the last known price
     if (periodsAhead > 0) {
       const lastKnownRate = lastKnown.price / base;
       const minProjectedRate = lastKnownRate - (DECAY.MAX_PER_PERIOD * periodsAhead);
