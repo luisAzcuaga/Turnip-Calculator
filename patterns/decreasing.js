@@ -1,5 +1,5 @@
-import { DECAY, RATES, VARIANCE } from "../constants.js";
-import { calculateAvgRateDrop, priceCeil, priceFloor, projectPriceFromRate } from "./utils.js";
+import { DECAY, RATES } from "../constants.js";
+import { priceCeil, priceFloor } from "./utils.js";
 
 // DECREASING pattern: steady decline
 // Based on the actual datamined game algorithm (Pattern 2)
@@ -17,24 +17,21 @@ import { calculateAvgRateDrop, priceCeil, priceFloor, projectPriceFromRate } fro
  * @returns {{min: number, max: number}} - Price range
  */
 export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
-  // If we have known data, estimate the actual rate of decline
-  if (knownPrices.length >= 2) {
+  // With any known price, project using game bounds: drops 3–5% per period
+  if (knownPrices.length >= 1) {
     const lastKnown = knownPrices[knownPrices.length - 1];
     const periodsAhead = periodIndex - lastKnown.index;
 
     if (periodsAhead > 0) {
-      const avgRateDrop = calculateAvgRateDrop(knownPrices, base);
-      const projected = projectPriceFromRate(lastKnown.price, base, avgRateDrop, periodsAhead);
+      const lastRate = lastKnown.price / base;
+      const minRate = Math.max(RATES.FLOOR, lastRate - (DECAY.MAX_PER_PERIOD * periodsAhead));
+      const maxRate = Math.max(RATES.FLOOR, lastRate - (DECAY.MIN_PER_PERIOD * periodsAhead));
       return {
-        min: Math.floor(projected * VARIANCE.PROJECTED_MIN),
-        max: Math.ceil(projected * VARIANCE.PROJECTED_MAX)
+        min: priceFloor(base, minRate),
+        max: priceCeil(base, maxRate)
       };
     } else if (periodsAhead === 0) {
-      // Same period, return the known price
-      return {
-        min: lastKnown.price,
-        max: lastKnown.price
-      };
+      return { min: lastKnown.price, max: lastKnown.price };
     }
   }
 

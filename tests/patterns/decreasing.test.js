@@ -1,4 +1,4 @@
-import { RATES, VARIANCE } from "../../constants.js";
+import { DECAY, RATES } from "../../constants.js";
 import { describe, expect, it } from "vitest";
 
 import calculateDecreasingPattern from "../../patterns/decreasing.js";
@@ -59,20 +59,17 @@ describe("patterns/decreasing", () => {
       expect(result.max).toBe(84);
     });
 
-    it("should project future prices with variance from 2+ known prices", () => {
+    it("should project future prices using game bounds from last known price", () => {
       const knownPrices = [
         { index: 0, price: 88 }, // rate 0.88
-        { index: 1, price: 84 }, // rate 0.84, drop = 0.04
+        { index: 1, price: 84 }, // rate 0.84
       ];
-      // avgRateDrop = 0.04
-      // For period 3 (2 periods ahead of index 1):
-      // projected rate = 0.84 - (0.04 * 2) = 0.76
-      // projected price = 100 * 0.76 = 76
-      // min = floor(76 * 0.90) = floor(68.4) = 68
-      // max = ceil(76 * 1.10) = ceil(83.6) = 84
+      // For period 3 (2 periods ahead of index 1), rate 0.84:
+      // worst case: 0.84 - (5% * 2) = 0.74 → floor(100 * 0.74) = 74
+      // best case:  0.84 - (3% * 2) = 0.78 → ceil(100 * 0.78)  = 78
       const result = calculateDecreasingPattern(3, base, knownPrices);
-      expect(result.min).toBe(Math.floor(76 * VARIANCE.PROJECTED_MIN));
-      expect(result.max).toBe(Math.ceil(76 * VARIANCE.PROJECTED_MAX));
+      expect(result.min).toBe(Math.floor(base * (0.84 - DECAY.MAX_PER_PERIOD * 2)));
+      expect(result.max).toBe(Math.ceil(base * (0.84 - DECAY.MIN_PER_PERIOD * 2)));
     });
 
     it("should use algorithm defaults when predicting before known prices", () => {
