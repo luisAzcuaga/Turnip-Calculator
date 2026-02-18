@@ -200,8 +200,7 @@ export const THRESHOLDS = {
   SHARP_DROP: 0.60,                // Drop to 60% = dramatic
 
   // === Fluctuating ===
-  FLUCTUATING_MODERATE_MIN: 0.80,  // 80%
-  FLUCTUATING_MODERATE_MAX: 1.50,  // 150%
+  FLUCTUATING_MODERATE_MIN: 0.80,  // 80% — below this is a low phase (less typical as max)
 
   // === Decreasing ===
   DECREASING_LOW_AVG: 0.80,        // Average < 80% = strong signal
