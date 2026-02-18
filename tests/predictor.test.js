@@ -576,8 +576,8 @@ describe('TurnipPredictor', () => {
       const p = new TurnipPredictor(100);
       const prices = [{ index: 0, price: 105, day: 'mon_am' }];
       const score = p.calculatePatternScore('fluctuating', prices);
-      // Monday high: +80, moderate range: +50, base: +30 = 160
-      expect(score).toBeGreaterThanOrEqual(160);
+      // Monday high: +80, base: +30 = 110
+      expect(score).toBeGreaterThanOrEqual(110);
     });
 
     it('should give score to small_spike with max in 150-190% sweet spot', () => {

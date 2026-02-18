@@ -777,14 +777,6 @@ export default class TurnipPredictor {
         this.scoreReasons.fluctuating.push(`✅ Precio alto el Lunes (${highMonday.price} > ${this.buyPrice}). Solo Fluctuante sube temprano.`);
       }
 
-      // Bonus if the max price is in the typical Fluctuating range (80-140%)
-      if (ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
-        score += 50;
-        this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
-      } else {
-        this.scoreReasons.fluctuating.push(`⚠️ Precio muy bajo (${Math.round(ratio * 100)}%), menos común en Fluctuante`);
-      }
-
       score += 30; // Base score (most common pattern)
       break;
     }
