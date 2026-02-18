@@ -323,9 +323,10 @@ input.best-selling-time {
   display: flex;
   gap: 15px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
-button {
+.button-group button {
   padding: 15px 30px;
   font-size: 1.1rem;
   border: none;
@@ -333,9 +334,10 @@ button {
   cursor: pointer;
   font-weight: bold;
   transition: all 0.3s ease;
+  height: 50px;
 }
 
-button:disabled {
+.button-group button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -351,13 +353,14 @@ button:disabled {
   box-shadow: 0 6px 20px rgba(102, 187, 106, 0.4);
 }
 
-.btn-secondary {
+.btn-clear {
   background: #e0e0e0;
   color: #616161;
 }
 
-.btn-secondary:hover {
-  background: #d0d0d0;
+.btn-clear:hover {
+  background: #dd4444;
+  color: #ffffff;
 }
 
 .btn-share {
@@ -367,6 +370,14 @@ button:disabled {
 
 .btn-share:hover {
   background: #d0d0d0;
+}
+
+.btn-coffee {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Sección de resultados */
@@ -637,10 +648,6 @@ footer p {
 
   .prices-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .button-group {
-    flex-direction: column;
   }
 
   button {
