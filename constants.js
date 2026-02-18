@@ -200,12 +200,8 @@ export const THRESHOLDS = {
   SHARP_DROP: 0.60,                // Drop to 60% = dramatic
 
   // === Fluctuating ===
-  FLUCTUATING_DROP: 0.98,          // 2% drop to detect trend
-  FLUCTUATING_RISE: 1.02,          // 2% rise to detect trend
   FLUCTUATING_MODERATE_MIN: 0.80,  // 80%
   FLUCTUATING_MODERATE_MAX: 1.50,  // 150%
-  FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2,  // Max 2 consecutive rises (3 prices = local max)
-  FLUCTUATING_MAX_CONSECUTIVE_DECREASES: 3,  // Max 3 consecutive drops (4 prices)
 
   // === Decreasing ===
   DECREASING_LOW_AVG: 0.80,        // Average < 80% = strong signal
