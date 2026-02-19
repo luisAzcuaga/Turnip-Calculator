@@ -188,13 +188,15 @@ export const DECAY = {
 
 export const THRESHOLDS = {
   // === Detection ranges ===
-  // TODO: These two variables make no sense to me. What's perfect min, wouldn't that be 140% and 200%
-  SMALL_SPIKE_PERFECT_MIN: 1.50,   // 150% - "perfect" range
-  SMALL_SPIKE_PERFECT_MAX: 1.90,   // 190%
-  // TODO: does it refer to the max of a small spike, i believe we have RATES.SMALL_SPIKE.PEAK_PHASES to check this.
+  // Scoring heuristic sub-range within the Small Spike peak (140-200%).
+  // Prices in 150-190% are less ambiguous with Large Spike and score higher.
+  SMALL_SPIKE_PERFECT_MIN: 1.50,   // 150% - ideal scoring lower bound
+  SMALL_SPIKE_PERFECT_MAX: 1.90,   // 190% - ideal scoring upper bound
+  // Below 140% peak but potentially approaching it; could be a pre-peak period.
   SMALL_SPIKE_PRE_PEAK: 1.20,      // 120% - possible pre-peak
-  // TODO: what's with this? near the limit, so what?
-  LARGE_SPIKE_NEAR_LIMIT: 1.90,    // 190% - near the limit
+  // In the ambiguous 150-200% zone, prices at 190%+ are closer to the 200% Large Spike floor
+  // and score higher for Large Spike than those in the 150-190% range.
+  LARGE_SPIKE_NEAR_LIMIT: 1.90,    // 190% - near the 200% Large Spike floor
 
   // === Price changes ===
   SIGNIFICANT_RISE: 1.10,          // 10% rise = significant

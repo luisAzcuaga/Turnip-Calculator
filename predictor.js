@@ -359,8 +359,6 @@ export default class TurnipPredictor {
 
     DAYS_CONFIG.forEach((day, index) => {
       const price = this.knownPrices[day.key];
-      // TODO: Do we need to check again if prices are undefined, we cleared that before and pricesWithIndex is agnostic.
-      // At this point there is no need for checking this since "validatePrices" already checked.
       if (price !== undefined && price !== null && price !== '') {
         predictions[day.key] = {
           min: parseInt(price),
