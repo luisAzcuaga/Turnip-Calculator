@@ -178,24 +178,13 @@ export default class TurnipPredictor {
 
     switch (pattern) {
     case PATTERNS.DECREASING:
-      // Penalize if there are increases
-      const isDecreasing = knownPrices.every((current, i) => {
-        if (i === 0) return true;
+      // reasonsToRejectDecreasing already gates this — any increasing price rejects the pattern.
+      // If we reach here, all prices are confirmed non-increasing.
+      score = 100;
+      this.scoreReasons.decreasing.push(`✅ Todos los precios bajan consecutivamente (patrón perfecto de Decreciente)`);
 
-        return current.price <= knownPrices[i - 1].price;
-      });
-
-      // TODO: here we are doing the same as reasonsToRejectDecreasing
-      if (isDecreasing) {
-        score = 100;
-        this.scoreReasons.decreasing.push(`✅ Todos los precios bajan consecutivamente (patrón perfecto de Decreciente)`);
-      } else {
-        score = 20;
-        this.scoreReasons.decreasing.push(`❌ Hay precios que suben (Decreciente solo baja)`);
-      }
-
-      // Bonus if average is low
-      // TODO: does this make sense? we know that the prices decrease 3-5%
+      // Bonus if average is below 80% of buy price — confirms a strong overall decline.
+      // At 3-5% drop per period, reaching a low average is a reliable Decreasing signal.
       if (avgPrice < this.buyPrice * THRESHOLDS.DECREASING_LOW_AVG) {
         score += 30;
         this.scoreReasons.decreasing.push(`✅ Promedio bajo (${Math.round(avgPrice)} < ${Math.round(THRESHOLDS.DECREASING_LOW_AVG * 100)}% del base)`);
@@ -248,15 +237,14 @@ export default class TurnipPredictor {
       score += 10; // Reduced base score (less common than Small Spike)
       break;
 
-    // TODO: several thing on the small spike don't make sense to me. Let's check them one by one.
     case PATTERNS.SMALL_SPIKE:
       // Flag to detect if the pattern has been rejected
       let smallSpikeRejected = false;
 
       // Bonus if there's a moderate max in the exact Small Spike range
       if (ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && ratio < RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
-        // Within the perfect Small Spike range
-        // TODO: What is this perfect min?
+        // Within the Small Spike peak range (140-200%).
+        // The "ideal" sub-range (150-190%) is less ambiguous with Large Spike and scores highest.
         if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio <= THRESHOLDS.SMALL_SPIKE_PERFECT_MAX) {
           score += 90;
           this.scoreReasons.small_spike.push(`✅ ¡Pico perfecto! ${maxPrice} bayas (${Math.round(ratio * 100)}%) en rango ideal de Small Spike (140-200%)`);
@@ -334,12 +322,12 @@ export default class TurnipPredictor {
       }
       break;
 
-    // TODO: we are completely sure it's fluctuating if this happens on period 0
     case PATTERNS.FLUCTUATING:
       // EARLY DETECTION RULE:
-      // If MONDAY has a high price (>100%), it's almost certainly Fluctuating
-      // Large/Small Spike spikes start at period 2+ (Tuesday+)
-      // Decreasing never rises above base price
+      // A price above the buy price on Monday is a near-certain Fluctuating signal.
+      // Large/Small Spike phases start at Tuesday AM (period 2) at the earliest.
+      // Decreasing never exceeds the buy price.
+      // The +80 score is sufficient — other patterns score much lower in this scenario.
       const mondayPrices = knownPrices.filter(p => p.index <= PERIODS.MONDAY_PM);
       if (mondayPrices.some(p => p.price > this.buyPrice)) {
         score += 80;
@@ -347,48 +335,14 @@ export default class TurnipPredictor {
         this.scoreReasons.fluctuating.push(`✅ Precio alto el Lunes (${highMonday.price} > ${this.buyPrice}). Solo Fluctuante sube temprano.`);
       }
 
-      // Bonus if prices vary but without extremes
-      // TODO: OH SNAP, this no longer exists, how come eslint isn't complaining hehe (FLUCTUATING_MODERATE_MAX, FLUCTUATING_MODERATE_MIN)
-      if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
+      // Bonus if max price is within the normal Fluctuating range (60-140%)
+      if (ratio < RATES.FLUCTUATING.MAX && ratio > RATES.FLUCTUATING.MIN) {
         score += 50;
         this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
-      } else if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
+      } else if (ratio < RATES.FLUCTUATING.MIN) {
         this.scoreReasons.fluctuating.push(`⚠️ Precio muy bajo (${Math.round(ratio * 100)}%), menos común en Fluctuante`);
-      } else if (ratio >= THRESHOLDS.FLUCTUATING_MODERATE_MAX) {
+      } else if (ratio >= RATES.FLUCTUATING.MAX) {
         this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
-      }
-
-      // TODO: this no longer applies, we don't care about sustained drops or increases when it comes to fluctuating
-      // Heavily penalize sustained decreasing trends
-      // The fluctuating pattern must ALTERNATE between high and low phases, not just decline
-      let consecutiveDecreases = 0;
-      let maxConsecutiveDecreases = 0;
-      let decreasesFromStart = 0;
-
-      // Check if declining from the start (no prior high phase)
-      for (let i = 1; i < knownPrices.length; i++) {
-        if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
-          consecutiveDecreases++;
-          maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
-          if (i === decreasesFromStart + 1) {
-            decreasesFromStart++;
-          }
-        } else {
-          consecutiveDecreases = 0;
-        }
-      }
-      // TODO: Same here, fluctuating no longer cares about this.
-      // If we reach here, the pattern was NOT rejected
-      // Penalties are now only for edge cases
-      if (maxConsecutiveDecreases === 3) {
-        score -= 20;
-        this.scoreReasons.fluctuating.push(`⚠️ 3 períodos bajando consecutivos (límite máximo de una fase baja en Fluctuante)`);
-      } else if (maxConsecutiveDecreases === 2) {
-        score -= 10;
-        this.scoreReasons.fluctuating.push(`⚠️ 2 períodos bajando consecutivos (posible fase baja en Fluctuante)`);
-      } else if (maxConsecutiveDecreases === 1 || knownPrices.length === 1) {
-        // Only 1 decrease or insufficient data
-        this.scoreReasons.fluctuating.push(`ℹ️ Sin suficientes datos para confirmar alternancia de fases`);
       }
 
       score += 30; // Base score (most common pattern)
