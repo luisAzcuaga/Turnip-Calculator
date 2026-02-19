@@ -3,12 +3,11 @@ import {
   PATTERN_NAMES, PERIODS, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX,
   TURNIP_PRICE_MIN
 } from "./constants.js";
+import { calculateDecreasingPattern, isPossibleDecreasing } from "./patterns/decreasing.js";
+import { calculateFluctuatingPattern, isPossibleFluctuating } from "./patterns/fluctuating.js";
+import { calculateLargeSpikePattern, isPossibleLargeSpike } from './patterns/large-spike.js';
+import { calculateSmallSpikePattern, isPossibleSmallSpike } from "./patterns/small-spike.js";
 import { detectLargeSpikeSequence } from "./patterns/utils.js";
-
-import calculateDecreasingPattern, { isPossibleDecreasing } from "./patterns/decreasing.js";
-import calculateFluctuatingPattern, { isPossibleFluctuating } from "./patterns/fluctuating.js";
-import calculateLargeSpikePattern, { isPossibleLargeSpike } from './patterns/large-spike.js';
-import calculateSmallSpikePattern, { isPossibleSmallSpike } from "./patterns/small-spike.js";
 
 // Turnip Price Predictor - Animal Crossing New Horizons
 // Based on the actual in-game patterns

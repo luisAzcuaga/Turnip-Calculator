@@ -207,7 +207,7 @@ export function isPossibleFluctuating(knownPrices, buyPrice) {
   return { possible: true, reasons: [] };
 }
 
-export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
+export function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Defensive validation: cannot predict without a base price
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
     console.warn('Fluctuating pattern: Precio base inválido', base);

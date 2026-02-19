@@ -1,7 +1,6 @@
+import { calculateLargeSpikePattern, isPossibleLargeSpike } from "../../patterns/large-spike.js";
 import { describe, expect, it } from "vitest";
-
 import { RATES } from "../../constants.js";
-import calculateLargeSpikePattern, { isPossibleLargeSpike } from "../../patterns/large-spike.js";
 
 describe("patterns/large-spike", () => {
   const base = 100;

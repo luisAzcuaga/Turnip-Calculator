@@ -130,7 +130,7 @@ export function isPossibleSmallSpike(knownPrices, buyPrice) {
   return { possible: true, reasons: [] };
 }
 
-export default function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
+export function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   // spikeStart can be 1-7 per the game algorithm (Monday PM to Thursday PM)
   const spikeStart = detectSpikePhaseStart(knownPrices, PERIODS.SMALL_SPIKE_START_MIN, PERIODS.SPIKE_START_MAX, false, base);
 

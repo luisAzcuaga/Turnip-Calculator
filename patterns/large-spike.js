@@ -102,7 +102,7 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
   return { possible: true, reasons: [] };
 }
 
-export default function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
+export function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {
   // spikeStart can be 2-7 per the game algorithm (Tuesday AM to Thursday PM)
   const spikeStart = detectSpikePhaseStart(knownPrices, PERIODS.LARGE_SPIKE_START_MIN, PERIODS.SPIKE_START_MAX, true, base);
 

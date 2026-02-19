@@ -31,7 +31,7 @@ export function isPossibleDecreasing(knownPrices, buyPrice) {
   return { possible, reasons: [] };
 }
 
-export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
+export function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // With any known price, project using game bounds: drops 3–5% per period
   if (knownPrices.length >= 1) {
     const lastKnown = knownPrices[knownPrices.length - 1];

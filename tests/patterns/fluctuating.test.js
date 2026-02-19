@@ -1,7 +1,6 @@
 import { BUY_PRICE_MIN, RATES } from "../../constants.js";
+import { calculateFluctuatingPattern, isPossibleFluctuating } from "../../patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
-
-import calculateFluctuatingPattern, { isPossibleFluctuating } from "../../patterns/fluctuating.js";
 
 describe("patterns/fluctuating", () => {
   const base = 100;

@@ -1,7 +1,6 @@
+import { calculateSmallSpikePattern, isPossibleSmallSpike } from "../../patterns/small-spike.js";
 import { describe, expect, it } from "vitest";
-
 import { RATES } from "../../constants.js";
-import calculateSmallSpikePattern, { isPossibleSmallSpike } from "../../patterns/small-spike.js";
 
 describe("patterns/small-spike", () => {
   const base = 100;

@@ -1,7 +1,7 @@
 import { DECAY, RATES } from "../../constants.js";
+import { calculateDecreasingPattern, isPossibleDecreasing } from "../../patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
 
-import calculateDecreasingPattern, { isPossibleDecreasing } from "../../patterns/decreasing.js";
 
 describe("patterns/decreasing", () => {
   const base = 100;
