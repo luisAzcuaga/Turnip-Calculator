@@ -1,5 +1,5 @@
-import { DECAY, RATES } from "../../constants.js";
-import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "../../patterns/decreasing.js";
+import { DECAY, RATES } from "../../lib/constants.js";
+import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "../../lib/patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
 
 

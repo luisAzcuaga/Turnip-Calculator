@@ -1,5 +1,5 @@
-import { BUY_PRICE_MIN, RATES } from "../../constants.js";
-import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../patterns/fluctuating.js";
+import { BUY_PRICE_MIN, RATES } from "../../lib/constants.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../lib/patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
 
 describe("patterns/fluctuating", () => {

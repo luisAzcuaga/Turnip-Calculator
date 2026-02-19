@@ -1,6 +1,6 @@
-import { calculateSmallSpikePattern, reasonsToRejectSmallSpike } from "../../patterns/small-spike.js";
+import { calculateSmallSpikePattern, reasonsToRejectSmallSpike } from "../../lib/patterns/small-spike.js";
 import { describe, expect, it } from "vitest";
-import { RATES } from "../../constants.js";
+import { RATES } from "../../lib/constants.js";
 
 describe("patterns/small-spike", () => {
   const base = 100;

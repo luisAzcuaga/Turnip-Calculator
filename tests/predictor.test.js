@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import TurnipPredictor from '../predictor';
+import TurnipPredictor from '../lib/predictor';
 
 import defaultBaseInstance from './fixtures/defaultBaseInstance';
 import defaultPrediction from './fixtures/defaultPrediction';

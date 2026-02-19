@@ -1,4 +1,4 @@
-import { PERIODS, RATES } from "../../constants.js";
+import { PERIODS, RATES } from "../../lib/constants.js";
 import {
   calculateAvgRateDrop,
   decreasingMaxForPeriod,
@@ -14,7 +14,7 @@ import {
   priceFloor,
   priceRatio,
   projectPriceFromRate,
-} from "../../patterns/utils.js";
+} from "../../lib/patterns/utils.js";
 import { describe, expect, it } from "vitest";
 
 describe("patterns/utils", () => {
@@ -449,7 +449,7 @@ describe("patterns/utils", () => {
   });
 });
 
-import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeSlope } from "../../patterns/utils.js";
+import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeSlope } from "../../lib/patterns/utils.js";
 
 describe("patterns/utils — spike validation helpers", () => {
   const base = 100;
