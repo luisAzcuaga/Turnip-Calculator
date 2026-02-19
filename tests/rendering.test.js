@@ -200,40 +200,19 @@ describe('buildRejectionReasonsHTML — unlikely patterns (>0%)', () => {
 });
 
 describe('buildRejectionReasonsHTML — fallback state', () => {
-  it('shows the analysis fallback when no rejected or unlikely patterns exist (primary = 100%)', () => {
-    // All non-primary at 0%, but... wait, that'd show the descartados section.
-    // This case is when primary has no recommendations AND no patterns are excluded:
-    // Actually the fallback triggers when rejected.length === 0 AND unlikely.length === 0,
-    // which means all non-primary patterns are also primary (impossible) or there's only 1 pattern.
-    // In practice this happens when primary = only pattern shown and the rest are all at 0% but
-    // we're looking at a filtered scenario. Let's test with an unreachable but representable state:
-    // Simulate by making primary absorb all and having empty arrays.
+  it('skips the primary section but still shows unlikely patterns when recommendations are empty', () => {
     const html = buildRejectionReasonsHTML(
-      {}, {},
-      { [PATTERNS.FLUCTUATING]: 100, [PATTERNS.LARGE_SPIKE]: 0, [PATTERNS.SMALL_SPIKE]: 0, [PATTERNS.DECREASING]: 0 },
-      PATTERNS.FLUCTUATING,
-      [],  // no recommendations → primary section skipped
-      [], 100
-    );
-    // rejected (LARGE_SPIKE, SMALL_SPIKE, DECREASING are all 0%) → descartados shows
-    // So the fallback won't show here. Let me adjust: make all non-primary > 0 and all empty reasons
-    const html2 = buildRejectionReasonsHTML(
       {}, {},
       { [PATTERNS.FLUCTUATING]: 70, [PATTERNS.LARGE_SPIKE]: 10, [PATTERNS.SMALL_SPIKE]: 10, [PATTERNS.DECREASING]: 10 },
       PATTERNS.FLUCTUATING,
       [],
       [], 100
     );
-    expect(html2).not.toContain('⭐ Patrón más probable');
-    expect(html2).toContain('Patrones menos probables');
+    expect(html).not.toContain('⭐ Patrón más probable');
+    expect(html).toContain('Patrones menos probables');
   });
 
-  it('shows the análisis fallback when no alternatives exist and no recommendations', () => {
-    // The fallback only triggers when unlikely.length === 0 AND rejected.length === 0.
-    // That means the primary pattern is the only one, and no other pattern keys are in PATTERN_NAMES.
-    // Since PATTERN_NAMES always has 4 keys, this state can't really happen in production.
-    // We can test it by setting all non-primary as primary (same key) — not possible.
-    // Instead, let's verify the fallback message is NOT shown in normal conditions.
+  it('does not show the análisis fallback in normal conditions', () => {
     const html = buildRejectionReasonsHTML(
       {}, {},
       { [PATTERNS.FLUCTUATING]: 100, [PATTERNS.LARGE_SPIKE]: 0, [PATTERNS.SMALL_SPIKE]: 0, [PATTERNS.DECREASING]: 0 },
