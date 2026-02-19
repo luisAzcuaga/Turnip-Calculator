@@ -1,5 +1,5 @@
-import { PATTERNS, PATTERN_NAMES } from '../constants.js';
-import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from '../rendering.js';
+import { PATTERNS, PATTERN_NAMES } from '../../lib/constants.js';
+import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from '../../lib/ui/rendering.js';
 import { describe, expect, it } from "vitest";
 
 // ─── buildProbabilityPanelHTML ────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { decodeFromBase64, encodeToBase64, getDataFromURL } from '../lib/ui/sharing.js';
+import { decodeFromBase64, encodeToBase64, getDataFromURL } from '../../lib/ui/sharing.js';
 import { describe, expect, it } from "vitest";
 
 describe('encodeToBase64', () => {
