@@ -177,14 +177,13 @@ describe('TurnipPredictor', () => {
       expect(score).toBe(100);
     });
 
-    it('should give low score to decreasing when prices rise', () => {
-      const p = new TurnipPredictor(100);
-      const prices = [
-        { index: 0, price: 88, day: 'mon_am' },
-        { index: 1, price: 90, day: 'mon_pm' }, // rises
-      ];
-      const score = p.calculatePatternScore('decreasing', prices);
-      expect(score).toBe(20);
+    it('should reject decreasing when prices rise (via detectPossiblePatterns)', () => {
+      // calculatePatternScore for 'decreasing' is only reached after reasonsToRejectDecreasing
+      // has confirmed no prices rise. Test the rejection path directly instead.
+      const p = new TurnipPredictor(100, { mon_am: 88, mon_pm: 90 }); // rises
+      const possible = p.detectPossiblePatterns();
+      expect(possible).not.toContain('decreasing');
+      expect(p.rejectionReasons.decreasing.length).toBeGreaterThan(0);
     });
 
     it('should give high score to large_spike with confirmed 200%+ price', () => {
