@@ -185,8 +185,8 @@ export function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) 
     if (spikePhaseIndex === 0 || spikePhaseIndex === 1) {
       // Spike phases 0 and 1: 0.9-1.4
       return {
-        min: priceFloor(base, RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MIN),
-        max: priceCeil(base, RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MAX)
+        min: priceFloor(base, RATES.SMALL_SPIKE.SPIKE_PHASES[0].min),
+        max: priceCeil(base, RATES.SMALL_SPIKE.SPIKE_PHASES[0].max)
       };
     } else if (spikePhaseIndex === 3) {
       // Spike phase 3: TRUE MAX (rate * base) - no variance, it is the exact rate

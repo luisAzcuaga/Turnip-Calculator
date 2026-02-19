@@ -139,13 +139,15 @@ export const RATES = {
     PEAK_RATE_MIN: 1.40,  // 140%
     PEAK_RATE_MAX: 2.00,  // 200%
 
-    // Spike phases
-    // Spike phase 1 and 2: 0.9-1.4
-    // Spike phase 3: (1.4 to rate) - 1 bell (intermediate)
-    // Spike phase 4: rate (ACTUAL MAX)
-    // Spike phase 5: (1.4 to rate) - 1 bell (intermediate)
-    SPIKE_PHASE_INITIAL_MIN: 0.90,
-    SPIKE_PHASE_INITIAL_MAX: 1.40,
+    // Spike phases (5 consecutive periods)
+    // Phases 2 & 4 are rate-dependent: actual price = ceil(rate × base) − 1 bell
+    SPIKE_PHASES: [
+      { min: 0.90, max: 1.40 },  // Phase 0: initial rise
+      { min: 0.90, max: 1.40 },  // Phase 1: initial rise (same range)
+      { min: 1.40, max: 2.00 },  // Phase 2: intermediate (rate − 1 bell, bounded by peak range)
+      { min: 1.40, max: 2.00 },  // Phase 3: TRUE MAX (exact rate)
+      { min: 1.40, max: 2.00 },  // Phase 4: intermediate decline (rate − 1 bell)
+    ],
 
     // Post-spike phase
     POST_PEAK_MIN: 0.40,

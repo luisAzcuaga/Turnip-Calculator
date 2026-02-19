@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function () {
           if (patternKey === PATTERNS.LARGE_SPIKE) {
             messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${spikePhase2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
           } else { // small_spike
-            const minThreshold = Math.floor(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[0].min);
+            const minThreshold = Math.floor(buyPrice * RATES.SMALL_SPIKE.SPIKE_PHASES[0].min);
             const maxThreshold = spikePhase2Threshold - 1; // < 140%
             messages += `<br/>&emsp;&emsp;• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado`;
           }

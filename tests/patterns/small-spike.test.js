@@ -33,13 +33,13 @@ describe("patterns/small-spike", () => {
 
   describe("spike phase (initial periods)", () => {
     it("should use 90-140% range for first two spike periods", () => {
-      // spikePhaseIndex 0 and 1 use SPIKE_PHASE_INITIAL rates
+      // spikePhaseIndex 0 and 1 use SPIKE_PHASES[0] rates
       const result0 = calculateSmallSpikePattern(defaultSpikeStart, base);
       const result1 = calculateSmallSpikePattern(defaultSpikeStart + 1, base);
 
       for (const result of [result0, result1]) {
-        expect(result.min).toBe(Math.floor(base * RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MIN));
-        expect(result.max).toBe(Math.ceil(base * RATES.SMALL_SPIKE.SPIKE_PHASE_INITIAL_MAX));
+        expect(result.min).toBe(Math.floor(base * RATES.SMALL_SPIKE.SPIKE_PHASES[0].min));
+        expect(result.max).toBe(Math.ceil(base * RATES.SMALL_SPIKE.SPIKE_PHASES[0].max));
       }
     });
   });
