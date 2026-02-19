@@ -1,17 +1,13 @@
 import {
   BUY_PRICE_MAX,  BUY_PRICE_MIN, CONFIDENCE, DAYS_CONFIG, DEFAULT_PROBABILITIES, PATTERNS, 
-  PATTERN_NAMES, PERIODS, RATES, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX, 
+  PATTERN_NAMES, PERIODS, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX,
   TURNIP_PRICE_MIN
 } from "./constants.js";
-import {
-  decreasingMaxForPeriod, decreasingMin, detectLargeSpikeSequence, detectSpikeStart, getPeriodName,
-  getSpikeStartRange, isValidRateDrop, largeSpikeStartRange, priceRatio
-} from "./patterns/utils.js";
-
-import calculateDecreasingPattern from "./patterns/decreasing.js";
-import calculateFluctuatingPattern from "./patterns/fluctuating.js";
-import calculateLargeSpikePattern from './patterns/large-spike.js';
-import calculateSmallSpikePattern from "./patterns/small-spike.js";
+import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "./patterns/decreasing.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "./patterns/fluctuating.js";
+import { calculateLargeSpikePattern, reasonsToRejectLargeSpike } from './patterns/large-spike.js';
+import { calculateSmallSpikePattern, reasonsToRejectSmallSpike } from "./patterns/small-spike.js";
+import { detectLargeSpikeSequence } from "./patterns/utils.js";
 
 // Turnip Price Predictor - Animal Crossing New Horizons
 // Based on the actual in-game patterns
@@ -98,424 +94,31 @@ export default class TurnipPredictor {
     const knownPrices = this.getPriceArrayWithIndex();
 
     if (knownPrices.length === 0) {
-      // No data, all patterns are possible
       return Object.values(PATTERNS);
     }
 
     const possiblePatterns = [];
 
-    // Check each pattern
-    if (this.isPossibleDecreasing(knownPrices)) {
-      possiblePatterns.push(PATTERNS.DECREASING);
-    }
-    if (this.isPossibleLargeSpike(knownPrices)) {
-      possiblePatterns.push(PATTERNS.LARGE_SPIKE);
-    }
-    if (this.isPossibleSmallSpike(knownPrices)) {
-      possiblePatterns.push(PATTERNS.SMALL_SPIKE);
-    }
-    if (this.isPossibleFluctuating(knownPrices)) {
-      possiblePatterns.push(PATTERNS.FLUCTUATING);
-    }
+    const decreasingRejects = reasonsToRejectDecreasing(knownPrices, this.buyPrice);
+    if (decreasingRejects) this.rejectionReasons.decreasing.push(...decreasingRejects);
+    else possiblePatterns.push(PATTERNS.DECREASING);
 
-    // If no pattern matches, return fluctuating as fallback
+    const largeSpikeRejects = reasonsToRejectLargeSpike(knownPrices, this.buyPrice);
+    if (largeSpikeRejects) this.rejectionReasons.large_spike.push(...largeSpikeRejects);
+    else possiblePatterns.push(PATTERNS.LARGE_SPIKE);
+
+    const smallSpikeRejects = reasonsToRejectSmallSpike(knownPrices, this.buyPrice);
+    if (smallSpikeRejects) this.rejectionReasons.small_spike.push(...smallSpikeRejects);
+    else possiblePatterns.push(PATTERNS.SMALL_SPIKE);
+
+    const fluctuatingRejects = reasonsToRejectFluctuating(knownPrices, this.buyPrice);
+    if (fluctuatingRejects) this.rejectionReasons.fluctuating.push(...fluctuatingRejects);
+    else possiblePatterns.push(PATTERNS.FLUCTUATING);
+
     return possiblePatterns.length > 0 ? possiblePatterns : [PATTERNS.FLUCTUATING];
   }
 
-  // Helper: Validates slope in pre-spike phase for both spike types
-  // Returns { invalid: boolean, reason?: string }
-  validatePreSpikeSlope(knownPrices, isLargeSpike) {
-    const patternName = isLargeSpike ? 'Large Spike' : 'Small Spike';
-    const minSpikeStart = isLargeSpike ? PERIODS.LARGE_SPIKE_START_MIN : PERIODS.SMALL_SPIKE_START_MIN;
 
-    const spikeThreshold = this.buyPrice * RATES.LARGE_SPIKE.START_MAX;
-    let spikeStarted = false;
-    let previous = knownPrices[0];
-
-    for (const current of knownPrices.slice(1)) {
-      // Only validate if periods are consecutive
-      if (current.index !== previous.index + 1) {
-        spikeStarted = spikeStarted || previous.price >= spikeThreshold;
-        previous = current;
-        continue;
-      }
-
-      const ratio = priceRatio(current.price, previous.price);
-
-      // Only validate rate drop in PRE-SPIKE phase
-      if (!spikeStarted) {
-        const rateValidation = isValidRateDrop(previous.price, current.price, this.buyPrice);
-
-        if (!rateValidation.valid) {
-          const prevPercent = ((previous.price / this.buyPrice) * 100).toFixed(1);
-          const currPercent = ((current.price / this.buyPrice) * 100).toFixed(1);
-          const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
-          return {
-            invalid: true,
-            reason: `Precio cayó de ${previous.price} bayas (${prevPercent}%) a ${current.price} bayas (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. ${patternName} solo puede bajar máximo 5% por período en fase pre-pico.`
-          };
-        }
-      }
-
-      // If it rises too early
-      if (current.index < minSpikeStart && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
-        const risePercent = Math.round((ratio - 1) * 100);
-        const spikeRange = getSpikeStartRange(isLargeSpike);
-        return {
-          invalid: true,
-          reason: `Subió ${risePercent}% antes del período ${minSpikeStart}. ${patternName} no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`
-        };
-      }
-
-      spikeStarted = spikeStarted || previous.price >= spikeThreshold;
-      previous = current;
-    }
-
-    return { invalid: false };
-  }
-
-  // Helper: Checks if it's too late for a spike (no significant rises)
-  isTooLateForSpike(knownPrices, spikeType) {
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-
-    // If we've reached Thursday PM or later, check for any significant rise
-    if (maxKnownIndex >= PERIODS.THURSDAY_PM) {
-      const hasSignificantRise = knownPrices.some((current, i) => {
-        if (i === 0) return false;
-        const previous = knownPrices[i - 1];
-        return current.price > previous.price * THRESHOLDS.SIGNIFICANT_RISE;
-      });
-
-      if (!hasSignificantRise) {
-        return {
-          tooLate: true,
-          reason: `Llegamos a ${getPeriodName(maxKnownIndex)} sin ninguna subida. ${spikeType} necesita empezar antes de Viernes AM (período 8) para que quepan los 5 períodos de pico.`
-        };
-      }
-    }
-
-    return { tooLate: false };
-  }
-
-  // Detects spike phase 2 to differentiate Large vs Small Spike
-  // Spike phase 2 Large Spike: 140-200% | Spike phase 2 Small Spike: 90-140%
-  detectSpikeConfirmation(knownPrices) {
-    if (knownPrices.length < 2) return { detected: false };
-
-    const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const hasLargeSpikeConfirmed = (maxPrice / this.buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
-
-    // Use helper to detect Large Spike P1->P2 sequence
-    const sequence = detectLargeSpikeSequence(knownPrices, this.buyPrice);
-
-    if (sequence.detected) {
-      const { spikePhase2, hasDataAfterSequence } = sequence;
-      const percent = (spikePhase2.rate * 100).toFixed(1);
-
-      // Determine isLargeSpike based on context
-      let isLargeSpike;
-      if (hasLargeSpikeConfirmed) {
-        isLargeSpike = true; // Max >200% confirms Large Spike
-      } else if (!hasDataAfterSequence) {
-        isLargeSpike = null; // Indeterminate - max may still come
-      } else {
-        isLargeSpike = false; // Prices after sequence never reached 200%
-      }
-
-      return {
-        detected: true,
-        isLargeSpike,
-        price: spikePhase2.price,
-        percent,
-        day: getPeriodName(spikePhase2.index)
-      };
-    }
-
-    // Indirect method: Detect spike start and verify Period 2
-    const spikeDetection = detectSpikeStart(knownPrices, this.buyPrice);
-    if (!spikeDetection.detected) return { detected: false };
-
-    const spikeStartPrice = knownPrices[spikeDetection.startIndex];
-    const spikeStartIndex = spikeStartPrice.index;
-    const confirmationData = knownPrices.find(p => p.index === spikeStartIndex + 1);
-    if (!confirmationData) return { detected: false };
-
-    // CRITICAL: Only consider as spike sequence if the price RISES
-    // If the price drops (e.g. 129 -> 107), it's not the real spike start
-    if (confirmationData.price <= spikeStartPrice.price) {
-      return { detected: false };
-    }
-
-    const confirmationRate = confirmationData.price / this.buyPrice;
-
-    return {
-      detected: true,
-      isLargeSpike: confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN,
-      price: confirmationData.price,
-      percent: (confirmationRate * 100).toFixed(1),
-      day: getPeriodName(spikeStartIndex + 1)
-    };
-  }
-
-  // Check if the DECREASING pattern is possible
-  isPossibleDecreasing(knownPrices) {
-    // In the decreasing pattern, each price must be <= the previous
-    // and all must be between 85% and 40% of the base price
-    return knownPrices.every((current, i) => {
-      const { price, index } = current;
-      const expectedMax = decreasingMaxForPeriod(this.buyPrice, index);
-      const expectedMin = decreasingMin(this.buyPrice);
-
-      // Price must be within the decreasing pattern range
-      if (price > expectedMax || price < expectedMin) {
-        return false;
-      }
-
-      // Verify there are no increases (Decreasing only goes down)
-      if (i > 0 && price > knownPrices[i - 1].price) {
-        return false;
-      }
-
-      return true;
-    });
-  }
-
-  // Check if the LARGE SPIKE pattern is possible
-  // Validation priority: single-price -> simple aggregates -> complex analysis
-  isPossibleLargeSpike(knownPrices) {
-    if (knownPrices.length === 0) return true;
-
-    // 1. SINGLE-PRICE: Monday AM (period 0) must be between 85-90% of base price
-    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
-    if (mondayAM) {
-      const startRange = largeSpikeStartRange(this.buyPrice);
-      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
-      if (mondayAM.price < startRange.min) {
-        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-        return false;
-      }
-      if (mondayAM.price > startRange.max) {
-        this.rejectionReasons.large_spike.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-        return false;
-      }
-    }
-
-    // 2. SIMPLE AGGREGATES: Precompute values used by multiple validations
-    const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = priceRatio(maxPrice, this.buyPrice);
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-
-    // If a very high price is found (200%+), it's definitely a large spike
-    if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
-      return true;
-    }
-
-    // 3. TIMING: If too late without a rise, reject
-    const lateCheck = this.isTooLateForSpike(knownPrices, 'Large Spike');
-    if (lateCheck.tooLate) {
-      this.rejectionReasons.large_spike.push(lateCheck.reason);
-      return false;
-    }
-
-    // If very late (Saturday PM) and max was low, reject
-    if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
-      const spikeRange = getSpikeStartRange(true);
-      this.rejectionReasons.large_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-      return false;
-    }
-
-    // 4. SLOPE: Validate slope in pre-spike phase
-    const slopeCheck = this.validatePreSpikeSlope(knownPrices, true);
-    if (slopeCheck.invalid) {
-      this.rejectionReasons.large_spike.push(slopeCheck.reason);
-      return false;
-    }
-
-    // If the max is low (<140%) and there's a sharp drop after, reject
-    if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
-      const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
-      if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
-        const pricesAfterMax = knownPrices.slice(maxPriceIndex + 1);
-        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
-        if (hasSharpDrop) {
-          this.rejectionReasons.large_spike.push(`El precio máximo fue ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) y luego cayó más de 40%. El pico ya pasó y fue muy bajo para Large Spike.`);
-          return false;
-        }
-      }
-    }
-
-    // 5. COMPLEX: P1->P2 spike sequence analysis
-    const confirmation = this.detectSpikeConfirmation(knownPrices);
-    if (confirmation.detected) {
-      if (confirmation.isLargeSpike === false) {
-        this.rejectionReasons.large_spike.push(`${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
-        return false;
-      }
-    }
-
-    // Max in Small Spike range (140-200%) + late in the week -> probably not Large Spike
-    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      if (!confirmation.detected || !confirmation.isLargeSpike) {
-        const hasRapidIncrease = knownPrices.some((current, i) => {
-          if (i === 0) return false;
-          const previous = knownPrices[i - 1];
-          return current.price > previous.price * THRESHOLDS.RAPID_INCREASE;
-        });
-
-        if (!hasRapidIncrease) {
-          const spikeRange = getSpikeStartRange(true);
-          this.rejectionReasons.large_spike.push(`Pico máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-          return false;
-        }
-      }
-    }
-
-    // Otherwise, keep as possible (spike may still come)
-    return true;
-  }
-
-  // Check if the SMALL SPIKE pattern is possible
-  // Validation priority: single-price -> simple aggregates -> complex analysis
-  isPossibleSmallSpike(knownPrices) {
-    if (knownPrices.length === 0) return true;
-
-    // 1. SINGLE-PRICE: Monday AM (period 0) is always in pre-spike phase (40-90%)
-    const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
-    if (mondayAM) {
-      const mondayRatio = priceRatio(mondayAM.price, this.buyPrice);
-      if (mondayRatio > RATES.SMALL_SPIKE.START_MAX) {
-        this.rejectionReasons.small_spike.push(`Lunes AM (${mondayAM.price}) está a ${Math.round(mondayRatio * 100)}% del precio base. Small Spike requiere que el período 0 esté en fase pre-pico (40-90%).`);
-        return false;
-      }
-    }
-
-    // 2. SIMPLE AGGREGATES: Precompute values used by multiple validations
-    const maxPrice = Math.max(...knownPrices.map(p => p.price));
-    const maxRatio = priceRatio(maxPrice, this.buyPrice);
-    const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
-
-    // If a very high price is found (> 200%), it can't be a small spike
-    if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
-      this.rejectionReasons.small_spike.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
-      return false;
-    }
-
-    // 3. TIMING: If too late without a rise, reject
-    const lateCheck = this.isTooLateForSpike(knownPrices, 'Small Spike');
-    if (lateCheck.tooLate) {
-      this.rejectionReasons.small_spike.push(lateCheck.reason);
-      return false;
-    }
-
-    // If very late in the week (Saturday PM) and there was no significant spike
-    if (maxKnownIndex >= PERIODS.LAST_PERIOD) {
-      if (maxRatio < RATES.LARGE_SPIKE.START_MAX) {
-        const spikeRange = getSpikeStartRange(false);
-        this.rejectionReasons.small_spike.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return false;
-      }
-    }
-
-    // If max is in the perfect Small Spike range (140-200%)
-    // and we're at Friday or later -> strong confirmation
-    if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
-      return true;
-    }
-
-    // 4. SLOPE: Validate slope in pre-spike phase
-    const slopeCheck = this.validatePreSpikeSlope(knownPrices, false);
-    if (slopeCheck.invalid) {
-      this.rejectionReasons.small_spike.push(slopeCheck.reason);
-      return false;
-    }
-
-    // If max didn't reach 140% and already dropped significantly -> invalid spike
-    if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
-      const maxPriceData = knownPrices.find(p => p.price === maxPrice);
-      if (maxPriceData) {
-        const pricesAfterMax = knownPrices.filter(p => p.index > maxPriceData.index);
-        const hasSharpDrop = pricesAfterMax.some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
-
-        if (hasSharpDrop) {
-          this.rejectionReasons.small_spike.push(`El precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) no alcanzó el 140% requerido para Small Spike. Los precios subieron y bajaron sin formar un pico válido.`);
-          return false;
-        }
-      }
-    }
-
-    // 5. COMPLEX: P1->P2 spike sequence analysis
-    const confirmation = this.detectSpikeConfirmation(knownPrices);
-    if (confirmation.detected) {
-      const confirmationRate = parseFloat(confirmation.percent) / 100;
-
-      // P2 at 140%+ is IMPOSSIBLE for Small Spike
-      // Small Spike: P1 (90-140%) → P2 (90-140%) → P3-4 (140-200% peak)
-      // Large Spike: P1 (90-140%) → P2 (140-200%) → P3 (200-600% peak)
-      if (confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN) {
-        const spikeStatus = confirmation.isLargeSpike === true
-          ? 'ya confirmado con pico >200%'
-          : 'esperando el pico real de 200-600% en el siguiente período';
-        this.rejectionReasons.small_spike.push(
-          `${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). ` +
-          `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
-          `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${spikeStatus}).`
-        );
-        return false;
-      }
-    }
-
-    // 6. PATTERN ANALYSIS: Detect multiple rise-fall cycles (-> Fluctuating, not Spike)
-    if (knownPrices.length >= 4) {
-      for (let i = 1; i < knownPrices.length - 1; i++) {
-        const prev = knownPrices[i - 1];
-        const curr = knownPrices[i];
-        const next = knownPrices[i + 1];
-
-        if (curr.price > prev.price && curr.price > next.price) {
-          const localMaxRatio = curr.price / this.buyPrice;
-
-          if (localMaxRatio >= 1.0) {
-            const pricesAfterLocalMax = knownPrices.filter(p => p.index > curr.index);
-            const minAfterLocalMax = Math.min(...pricesAfterLocalMax.map(p => p.price));
-            const dropFromLocalMax = minAfterLocalMax / curr.price;
-
-            if (dropFromLocalMax < 0.50) {
-              const minPriceData = pricesAfterLocalMax.find(p => p.price === minAfterLocalMax);
-              if (minPriceData) {
-                const pricesAfterMin = knownPrices.filter(p => p.index > minPriceData.index);
-                const hasRisenAgain = pricesAfterMin.some(p => p.price > minAfterLocalMax * 1.5);
-
-                if (hasRisenAgain) {
-                  this.rejectionReasons.small_spike.push(`Detectado patrón de múltiples subidas y bajadas: pico en ${curr.price} bayas (${Math.round(localMaxRatio * 100)}%), cayó a ${minAfterLocalMax} bayas, y subió de nuevo. Esto es Fluctuante, no Small Spike.`);
-                  return false;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Otherwise, keep as possible
-    return true;
-  }
-
-  // Check if the FLUCTUATING pattern is possible
-  isPossibleFluctuating(knownPrices) {
-    // The fluctuating pattern allows prices between 60% and 140% of base
-    const inRange = knownPrices.every(({ price }) => {
-      const ratio = priceRatio(price, this.buyPrice);
-      // If there are very high or very low prices, probably not fluctuating
-      return ratio >= RATES.FLUCTUATING.MIN && ratio <= RATES.FLUCTUATING.MAX;
-    });
-
-    if (!inRange) {
-      this.rejectionReasons.fluctuating.push(`Precio fuera del rango de Fluctuante (60-140%)`);
-      return false;
-    }
-
-    return true;
-  }
 
   // Get base probabilities based on previous pattern
   getBaseProbabilities() {
@@ -775,6 +378,48 @@ export default class TurnipPredictor {
         score += 80;
         const highMonday = mondayPrices.find(p => p.price > this.buyPrice);
         this.scoreReasons.fluctuating.push(`✅ Precio alto el Lunes (${highMonday.price} > ${this.buyPrice}). Solo Fluctuante sube temprano.`);
+      }
+
+      // Bonus if prices vary but without extremes
+      if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
+        score += 50;
+        this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
+      } else if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
+        this.scoreReasons.fluctuating.push(`⚠️ Precio muy bajo (${Math.round(ratio * 100)}%), menos común en Fluctuante`);
+      } else if (ratio >= THRESHOLDS.FLUCTUATING_MODERATE_MAX) {
+        this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
+      }
+
+      // Heavily penalize sustained decreasing trends
+      // The fluctuating pattern must ALTERNATE between high and low phases, not just decline
+      let consecutiveDecreases = 0;
+      let maxConsecutiveDecreases = 0;
+      let decreasesFromStart = 0;
+
+      // Check if declining from the start (no prior high phase)
+      for (let i = 1; i < knownPrices.length; i++) {
+        if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
+          consecutiveDecreases++;
+          maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
+          if (i === decreasesFromStart + 1) {
+            decreasesFromStart++;
+          }
+        } else {
+          consecutiveDecreases = 0;
+        }
+      }
+
+      // If we reach here, the pattern was NOT rejected
+      // Penalties are now only for edge cases
+      if (maxConsecutiveDecreases === 3) {
+        score -= 20;
+        this.scoreReasons.fluctuating.push(`⚠️ 3 períodos bajando consecutivos (límite máximo de una fase baja en Fluctuante)`);
+      } else if (maxConsecutiveDecreases === 2) {
+        score -= 10;
+        this.scoreReasons.fluctuating.push(`⚠️ 2 períodos bajando consecutivos (posible fase baja en Fluctuante)`);
+      } else if (maxConsecutiveDecreases === 1 || knownPrices.length === 1) {
+        // Only 1 decrease or insufficient data
+        this.scoreReasons.fluctuating.push(`ℹ️ Sin suficientes datos para confirmar alternancia de fases`);
       }
 
       score += 30; // Base score (most common pattern)

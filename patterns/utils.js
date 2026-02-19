@@ -310,6 +310,131 @@ export function detectLargeSpikeSequence(knownPrices, buyPrice) {
   return { detected: false };
 }
 
+// ============================================================================
+// SPIKE VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Validates the slope in the pre-spike phase for both spike types.
+ * Returns { invalid: boolean, reason?: string }
+ */
+export function validatePreSpikeSlope(knownPrices, isLargeSpike, buyPrice) {
+  const patternName = isLargeSpike ? 'Large Spike' : 'Small Spike';
+  const minSpikeStart = isLargeSpike ? PERIODS.LARGE_SPIKE_START_MIN : PERIODS.SMALL_SPIKE_START_MIN;
+  const spikeThreshold = buyPrice * RATES.LARGE_SPIKE.START_MAX;
+  let spikeStarted = false;
+  let previous = knownPrices[0];
+
+  for (const current of knownPrices.slice(1)) {
+    if (current.index !== previous.index + 1) {
+      spikeStarted = spikeStarted || previous.price >= spikeThreshold;
+      previous = current;
+      continue;
+    }
+
+    const ratio = priceRatio(current.price, previous.price);
+
+    if (!spikeStarted) {
+      const rateValidation = isValidRateDrop(previous.price, current.price, buyPrice);
+      if (!rateValidation.valid) {
+        const prevPercent = ((previous.price / buyPrice) * 100).toFixed(1);
+        const currPercent = ((current.price / buyPrice) * 100).toFixed(1);
+        const dropPoints = (rateValidation.rateDrop * 100).toFixed(1);
+        return {
+          invalid: true,
+          reason: `Precio cayó de ${previous.price} bayas (${prevPercent}%) a ${current.price} bayas (${currPercent}%), <strong>caída de ${dropPoints}%</strong>. ${patternName} solo puede bajar máximo 5% por período en fase pre-pico.`
+        };
+      }
+    }
+
+    if (current.index < minSpikeStart && ratio > THRESHOLDS.SIGNIFICANT_RISE) {
+      const risePercent = Math.round((ratio - 1) * 100);
+      const spikeRange = getSpikeStartRange(isLargeSpike);
+      return {
+        invalid: true,
+        reason: `Subió ${risePercent}% antes del período ${minSpikeStart}. ${patternName} no puede subir temprano. El pico solo puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`
+      };
+    }
+
+    spikeStarted = spikeStarted || previous.price >= spikeThreshold;
+    previous = current;
+  }
+
+  return { invalid: false };
+}
+
+/**
+ * Checks if it's too late for a spike (no significant rises by Thursday PM+).
+ * Returns { tooLate: boolean, reason?: string }
+ */
+export function isTooLateForSpike(knownPrices, spikeType) {
+  const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+
+  if (maxKnownIndex >= PERIODS.THURSDAY_PM) {
+    const hasSignificantRise = knownPrices.some((current, i) => {
+      if (i === 0) return false;
+      const previous = knownPrices[i - 1];
+      return current.price > previous.price * THRESHOLDS.SIGNIFICANT_RISE;
+    });
+
+    if (!hasSignificantRise) {
+      return {
+        tooLate: true,
+        reason: `Llegamos a ${getPeriodName(maxKnownIndex)} sin ninguna subida. ${spikeType} necesita empezar antes de Viernes AM (período 8) para que quepan los 5 períodos de pico.`
+      };
+    }
+  }
+
+  return { tooLate: false };
+}
+
+/**
+ * Detects spike P1→P2 sequence to differentiate Large vs Small Spike.
+ * Returns { detected: boolean, isLargeSpike?: boolean|null, price?, percent?, day? }
+ */
+export function detectSpikeConfirmation(knownPrices, buyPrice) {
+  if (knownPrices.length < 2) return { detected: false };
+
+  const maxPrice = Math.max(...knownPrices.map(p => p.price));
+  const hasLargeSpikeConfirmed = (maxPrice / buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
+  const sequence = detectLargeSpikeSequence(knownPrices, buyPrice);
+
+  if (sequence.detected) {
+    const { spikePhase2, hasDataAfterSequence } = sequence;
+    const percent = (spikePhase2.rate * 100).toFixed(1);
+
+    let isLargeSpike;
+    if (hasLargeSpikeConfirmed) {
+      isLargeSpike = true;
+    } else if (!hasDataAfterSequence) {
+      isLargeSpike = null;
+    } else {
+      isLargeSpike = false;
+    }
+
+    return { detected: true, isLargeSpike, price: spikePhase2.price, percent, day: getPeriodName(spikePhase2.index) };
+  }
+
+  const spikeDetection = detectSpikeStart(knownPrices, buyPrice);
+  if (!spikeDetection.detected) return { detected: false };
+
+  const spikeStartPrice = knownPrices[spikeDetection.startIndex];
+  const spikeStartIndex = spikeStartPrice.index;
+  const confirmationData = knownPrices.find(p => p.index === spikeStartIndex + 1);
+  if (!confirmationData) return { detected: false };
+
+  if (confirmationData.price <= spikeStartPrice.price) return { detected: false };
+
+  const confirmationRate = confirmationData.price / buyPrice;
+  return {
+    detected: true,
+    isLargeSpike: confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN,
+    price: confirmationData.price,
+    percent: (confirmationRate * 100).toFixed(1),
+    day: getPeriodName(spikeStartIndex + 1)
+  };
+}
+
 /**
  * Calculates the price range for a decreasing phase (pre-spike or post-spike).
  * Consolidates shared logic between large-spike and small-spike.

@@ -1,7 +1,6 @@
 import { BUY_PRICE_MIN, RATES } from "../../constants.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
-
-import calculateFluctuatingPattern from "../../patterns/fluctuating.js";
 
 describe("patterns/fluctuating", () => {
   const base = 100;
@@ -160,5 +159,24 @@ describe("patterns/fluctuating", () => {
       expect(result8.min).toBe(Math.floor(base * RATES.FLUCTUATING.HIGH_PHASE_MIN));
       expect(result8.max).toBe(Math.ceil(base * RATES.FLUCTUATING.HIGH_PHASE_MAX));
     });
+  });
+});
+
+describe("isPossibleFluctuating", () => {
+  const base = 100;
+
+  it("should accept prices within 60-140% range", () => {
+    const prices = [
+      { index: 0, price: 105 },
+      { index: 1, price: 95 },
+      { index: 2, price: 110 },
+    ];
+    expect(reasonsToRejectFluctuating(prices, base)).toBeNull();
+  });
+
+  it("should reject when price is outside 60-140% range", () => {
+    // 160/100 = 1.60 > 1.40 → out of range
+    const prices = [{ index: 0, price: 160 }];
+    expect(reasonsToRejectFluctuating(prices, base)).not.toBeNull();
   });
 });

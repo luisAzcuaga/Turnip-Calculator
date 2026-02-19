@@ -1,5 +1,5 @@
 import { BUY_PRICE_MAX, BUY_PRICE_MIN, PERIODS, RATES, THRESHOLDS } from "../constants.js";
-import { priceCeil, priceFloor } from "./utils.js";
+import { priceCeil, priceFloor, priceRatio } from "./utils.js";
 
 // FLUCTUATING pattern: alternates between high and low phases
 // Based on the actual datamined game algorithm (Pattern 0)
@@ -146,7 +146,27 @@ function analyzeFluctuatingStructure(knownPrices, base) {
  * @param {Array} knownPrices - Array of known prices with {index, price}
  * @returns {{min: number, max: number}} - Price range
  */
-export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
+/**
+ * Checks whether the Fluctuating pattern is consistent with the known prices.
+ * Returns { rejectReasons: string[] }
+ */
+export function reasonsToRejectFluctuating(knownPrices, buyPrice) {
+  const rejectReasons = [];
+
+  const inRange = knownPrices.every(({ price }) => {
+    const ratio = priceRatio(price, buyPrice);
+    return ratio >= RATES.FLUCTUATING.MIN && ratio <= RATES.FLUCTUATING.MAX;
+  });
+
+  if (!inRange) {
+    rejectReasons.push(`Precio fuera del rango de Fluctuante (60-140%)`);
+    return rejectReasons;
+  }
+
+  return null;
+}
+
+export function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Defensive validation: cannot predict without a base price
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {
     console.warn('Fluctuating pattern: Precio base inválido', base);

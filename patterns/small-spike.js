@@ -1,5 +1,9 @@
-import { PERIODS, RATES } from "../constants.js";
-import { calculateDecreasingPhaseRange, detectSpikePhaseStart, priceCeil, priceFloor } from "./utils.js";
+import { PERIODS, RATES, THRESHOLDS } from "../constants.js";
+import {
+  calculateDecreasingPhaseRange, detectSpikeConfirmation, detectSpikePhaseStart,
+  getSpikeStartRange, isTooLateForSpike,
+  priceCeil, priceFloor, priceRatio, validatePreSpikeSlope
+} from "./utils.js";
 
 // SMALL SPIKE pattern: similar to large but with a lower max (140-200%)
 // Based on the actual datamined game algorithm (Pattern 3)
@@ -12,7 +16,121 @@ import { calculateDecreasingPhaseRange, detectSpikePhaseStart, priceCeil, priceF
  * @param {Array} knownPrices - Array of known prices with {index, price}
  * @returns {{min: number, max: number}} - Price range
  */
-export default function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
+/**
+ * Checks whether the Small Spike pattern is consistent with the known prices.
+ * Returns { rejectReasons: string[] }
+ */
+export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
+  if (knownPrices.length === 0) return null;
+
+  const rejectReasons = [];
+
+  // 1. SINGLE-PRICE: Monday AM must be in pre-spike range (40-90%)
+  const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
+  if (mondayAM) {
+    const mondayRatio = priceRatio(mondayAM.price, buyPrice);
+    if (mondayRatio > RATES.SMALL_SPIKE.START_MAX) {
+      rejectReasons.push(`Lunes AM (${mondayAM.price}) está a ${Math.round(mondayRatio * 100)}% del precio base. Small Spike requiere que el período 0 esté en fase pre-pico (40-90%).`);
+      return rejectReasons;
+    }
+  }
+
+  // 2. SIMPLE AGGREGATES
+  const maxPrice = Math.max(...knownPrices.map(p => p.price));
+  const maxRatio = priceRatio(maxPrice, buyPrice);
+  const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
+
+  if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
+    rejectReasons.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
+    return rejectReasons;
+  }
+
+  // 3. TIMING
+  const lateCheck = isTooLateForSpike(knownPrices, 'Small Spike');
+  if (lateCheck.tooLate) {
+    rejectReasons.push(lateCheck.reason);
+    return rejectReasons;
+  }
+
+  if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < RATES.LARGE_SPIKE.START_MAX) {
+    const spikeRange = getSpikeStartRange(false);
+    rejectReasons.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Small Spike necesita un pico de 140-200%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
+    return rejectReasons;
+  }
+
+  if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
+    return null;
+  }
+
+  // 4. SLOPE
+  const slopeCheck = validatePreSpikeSlope(knownPrices, false, buyPrice);
+  if (slopeCheck.invalid) {
+    rejectReasons.push(slopeCheck.reason);
+    return rejectReasons;
+  }
+
+  if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
+    const maxPriceData = knownPrices.find(p => p.price === maxPrice);
+    if (maxPriceData) {
+      const hasSharpDrop = knownPrices.filter(p => p.index > maxPriceData.index).some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
+      if (hasSharpDrop) {
+        rejectReasons.push(`El precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) no alcanzó el 140% requerido para Small Spike. Los precios subieron y bajaron sin formar un pico válido.`);
+        return rejectReasons;
+      }
+    }
+  }
+
+  // 5. COMPLEX: P1→P2 sequence
+  const confirmation = detectSpikeConfirmation(knownPrices, buyPrice);
+  if (confirmation.detected) {
+    const confirmationRate = parseFloat(confirmation.percent) / 100;
+    if (confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN) {
+      const spikeStatus = confirmation.isLargeSpike === true
+        ? 'ya confirmado con pico >200%'
+        : 'esperando el pico real de 200-600% en el siguiente período';
+      rejectReasons.push(
+        `${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). ` +
+        `El Período 2 del pico está en rango 140-200%, lo cual es IMPOSIBLE para Small Spike ` +
+        `(Small Spike debe tener Período 2 en 90-140%). Esto confirma Large Spike (${spikeStatus}).`
+      );
+      return rejectReasons;
+    }
+  }
+
+  // 6. PATTERN ANALYSIS: Multiple rise-fall cycles → Fluctuating, not Spike
+  if (knownPrices.length >= 4) {
+    for (let i = 1; i < knownPrices.length - 1; i++) {
+      const prev = knownPrices[i - 1];
+      const curr = knownPrices[i];
+      const next = knownPrices[i + 1];
+
+      if (curr.price > prev.price && curr.price > next.price) {
+        const localMaxRatio = curr.price / buyPrice;
+
+        if (localMaxRatio >= 1.0) {
+          const pricesAfterLocalMax = knownPrices.filter(p => p.index > curr.index);
+          const minAfterLocalMax = Math.min(...pricesAfterLocalMax.map(p => p.price));
+          const dropFromLocalMax = minAfterLocalMax / curr.price;
+
+          if (dropFromLocalMax < 0.50) {
+            const minPriceData = pricesAfterLocalMax.find(p => p.price === minAfterLocalMax);
+            if (minPriceData) {
+              const hasRisenAgain = knownPrices.filter(p => p.index > minPriceData.index).some(p => p.price > minAfterLocalMax * 1.5);
+              if (hasRisenAgain) {
+                rejectReasons.push(`Detectado patrón de múltiples subidas y bajadas: pico en ${curr.price} bayas (${Math.round(localMaxRatio * 100)}%), cayó a ${minAfterLocalMax} bayas, y subió de nuevo. Esto es Fluctuante, no Small Spike.`);
+                return rejectReasons;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+export function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   // spikeStart can be 1-7 per the game algorithm (Monday PM to Thursday PM)
   const spikeStart = detectSpikePhaseStart(knownPrices, PERIODS.SMALL_SPIKE_START_MIN, PERIODS.SPIKE_START_MAX, false, base);
 

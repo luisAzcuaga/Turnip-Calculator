@@ -1,5 +1,5 @@
 import { DECAY, RATES } from "../constants.js";
-import { priceCeil, priceFloor } from "./utils.js";
+import { decreasingMaxForPeriod, decreasingMin, priceCeil, priceFloor } from "./utils.js";
 
 // DECREASING pattern: steady decline
 // Based on the actual datamined game algorithm (Pattern 2)
@@ -16,7 +16,31 @@ import { priceCeil, priceFloor } from "./utils.js";
  * @param {Array} knownPrices - Array of known prices with {index, price}
  * @returns {{min: number, max: number}} - Price range
  */
-export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
+/**
+ * Checks whether the Decreasing pattern is consistent with the known prices.
+ * Returns { rejectReasons: string[] }
+ */
+export function reasonsToRejectDecreasing(knownPrices, buyPrice) {
+  const rejectReasons = [];
+  for (let i = 0; i < knownPrices.length; i++) {
+    const { price, index } = knownPrices[i];
+    if (price > decreasingMaxForPeriod(buyPrice, index)) {
+      rejectReasons.push(`Precio ${price} excede el máximo para período ${index} en patrón Decreciente.`);
+      return rejectReasons;
+    }
+    if (price < decreasingMin(buyPrice)) {
+      rejectReasons.push(`Precio ${price} está por debajo del mínimo (40%) para patrón Decreciente.`);
+      return rejectReasons;
+    }
+    if (i > 0 && price > knownPrices[i - 1].price) {
+      rejectReasons.push(`Precio ${price} sube respecto al período anterior (${knownPrices[i - 1].price}). El patrón Decreciente solo puede bajar.`);
+      return rejectReasons;
+    }
+  }
+  return null;
+}
+
+export function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // With any known price, project using game bounds: drops 3–5% per period
   if (knownPrices.length >= 1) {
     const lastKnown = knownPrices[knownPrices.length - 1];
