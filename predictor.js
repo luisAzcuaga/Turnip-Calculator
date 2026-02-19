@@ -952,50 +952,6 @@ export default class TurnipPredictor {
     }
   }
 
-  // Helper methods for dynamic adjustment
-  detectPricePhase(knownPrices) {
-    if (knownPrices.length < 2) return 'unknown';
-
-    const prices = knownPrices.map(p => p.price);
-    const last = prices[prices.length - 1];
-    const secondLast = prices[prices.length - 2];
-
-    // Detect recent trend
-    if (last > secondLast * THRESHOLDS.RISING_THRESHOLD) return 'rising';  // Rising fast
-    if (last > secondLast) return 'increasing';    // Rising
-    if (last < secondLast * THRESHOLDS.FALLING_THRESHOLD) return 'falling'; // Falling fast
-    if (last < secondLast) return 'decreasing';    // Falling
-    return 'stable';                               // Stable
-  }
-
-  findMaxInKnownPrices(knownPrices) {
-    if (knownPrices.length === 0) return null;
-
-    let maxPrice = 0;
-    let maxIndex = -1;
-
-    knownPrices.forEach(p => {
-      if (p.price > maxPrice) {
-        maxPrice = p.price;
-        maxIndex = p.index;
-      }
-    });
-
-    return { price: maxPrice, index: maxIndex };
-  }
-
-  calculateVolatility(knownPrices) {
-    if (knownPrices.length < 2) return 0;
-
-    const prices = knownPrices.map(p => p.price);
-    const avg = prices.reduce((sum, p) => sum + p, 0) / prices.length;
-    const squaredDiffs = prices.map(p => Math.pow(p - avg, 2));
-    const variance = squaredDiffs.reduce((sum, d) => sum + d, 0) / prices.length;
-    const stdDev = Math.sqrt(variance);
-
-    return (stdDev / avg) * 100; // Volatility as percentage
-  }
-
   getRecommendation(pattern) {
     let rec = [];
 
