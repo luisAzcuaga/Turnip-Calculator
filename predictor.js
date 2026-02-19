@@ -3,10 +3,10 @@ import {
   PATTERN_NAMES, PERIODS, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX,
   TURNIP_PRICE_MIN
 } from "./constants.js";
-import { calculateDecreasingPattern, isPossibleDecreasing } from "./patterns/decreasing.js";
-import { calculateFluctuatingPattern, isPossibleFluctuating } from "./patterns/fluctuating.js";
-import { calculateLargeSpikePattern, isPossibleLargeSpike } from './patterns/large-spike.js';
-import { calculateSmallSpikePattern, isPossibleSmallSpike } from "./patterns/small-spike.js";
+import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "./patterns/decreasing.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "./patterns/fluctuating.js";
+import { calculateLargeSpikePattern, reasonsToRejectLargeSpike } from './patterns/large-spike.js';
+import { calculateSmallSpikePattern, reasonsToRejectSmallSpike } from "./patterns/small-spike.js";
 import { detectLargeSpikeSequence } from "./patterns/utils.js";
 
 // Turnip Price Predictor - Animal Crossing New Horizons
@@ -99,21 +99,21 @@ export default class TurnipPredictor {
 
     const possiblePatterns = [];
 
-    const decreasing = isPossibleDecreasing(knownPrices, this.buyPrice);
-    if (decreasing.possible) possiblePatterns.push(PATTERNS.DECREASING);
-    else this.rejectionReasons.decreasing.push(...decreasing.reasons);
+    const decreasingRejects = reasonsToRejectDecreasing(knownPrices, this.buyPrice);
+    if (decreasingRejects) this.rejectionReasons.decreasing.push(...decreasingRejects);
+    else possiblePatterns.push(PATTERNS.DECREASING);
 
-    const largeSpike = isPossibleLargeSpike(knownPrices, this.buyPrice);
-    if (largeSpike.possible) possiblePatterns.push(PATTERNS.LARGE_SPIKE);
-    else this.rejectionReasons.large_spike.push(...largeSpike.reasons);
+    const largeSpikeRejects = reasonsToRejectLargeSpike(knownPrices, this.buyPrice);
+    if (largeSpikeRejects) this.rejectionReasons.large_spike.push(...largeSpikeRejects);
+    else possiblePatterns.push(PATTERNS.LARGE_SPIKE);
 
-    const smallSpike = isPossibleSmallSpike(knownPrices, this.buyPrice);
-    if (smallSpike.possible) possiblePatterns.push(PATTERNS.SMALL_SPIKE);
-    else this.rejectionReasons.small_spike.push(...smallSpike.reasons);
+    const smallSpikeRejects = reasonsToRejectSmallSpike(knownPrices, this.buyPrice);
+    if (smallSpikeRejects) this.rejectionReasons.small_spike.push(...smallSpikeRejects);
+    else possiblePatterns.push(PATTERNS.SMALL_SPIKE);
 
-    const fluctuating = isPossibleFluctuating(knownPrices, this.buyPrice);
-    if (fluctuating.possible) possiblePatterns.push(PATTERNS.FLUCTUATING);
-    else this.rejectionReasons.fluctuating.push(...fluctuating.reasons);
+    const fluctuatingRejects = reasonsToRejectFluctuating(knownPrices, this.buyPrice);
+    if (fluctuatingRejects) this.rejectionReasons.fluctuating.push(...fluctuatingRejects);
+    else possiblePatterns.push(PATTERNS.FLUCTUATING);
 
     return possiblePatterns.length > 0 ? possiblePatterns : [PATTERNS.FLUCTUATING];
   }

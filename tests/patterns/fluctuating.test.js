@@ -1,5 +1,5 @@
 import { BUY_PRICE_MIN, RATES } from "../../constants.js";
-import { calculateFluctuatingPattern, isPossibleFluctuating } from "../../patterns/fluctuating.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
 
 describe("patterns/fluctuating", () => {
@@ -171,13 +171,13 @@ describe("isPossibleFluctuating", () => {
       { index: 1, price: 95 },
       { index: 2, price: 110 },
     ];
-    expect(isPossibleFluctuating(prices, base).possible).toBe(true);
+    expect(reasonsToRejectFluctuating(prices, base)).toBeNull();
   });
 
   it("should reject when price is outside 60-140% range", () => {
     // 160/100 = 1.60 > 1.40 → out of range
     const prices = [{ index: 0, price: 160 }];
-    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+    expect(reasonsToRejectFluctuating(prices, base)).not.toBeNull();
   });
 
   it("should reject when 2+ consecutive decreases from start", () => {
@@ -187,7 +187,7 @@ describe("isPossibleFluctuating", () => {
       { index: 1, price: 95 },
       { index: 2, price: 90 },
     ];
-    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+    expect(reasonsToRejectFluctuating(prices, base)).not.toBeNull();
   });
 
   it("should reject when too many consecutive decreases (>3)", () => {
@@ -200,7 +200,7 @@ describe("isPossibleFluctuating", () => {
       { index: 4, price: 95 },  // decrease
       { index: 5, price: 90 },  // decrease → 4 consecutive
     ];
-    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+    expect(reasonsToRejectFluctuating(prices, base)).not.toBeNull();
   });
 
   it("should reject when too many consecutive increases (>2)", () => {
@@ -211,6 +211,6 @@ describe("isPossibleFluctuating", () => {
       { index: 2, price: 90 }, // increase
       { index: 3, price: 95 }, // increase → 3 consecutive
     ];
-    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+    expect(reasonsToRejectFluctuating(prices, base)).not.toBeNull();
   });
 });

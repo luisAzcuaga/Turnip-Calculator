@@ -1,4 +1,4 @@
-import { calculateLargeSpikePattern, isPossibleLargeSpike } from "../../patterns/large-spike.js";
+import { calculateLargeSpikePattern, reasonsToRejectLargeSpike } from "../../patterns/large-spike.js";
 import { describe, expect, it } from "vitest";
 import { RATES } from "../../constants.js";
 
@@ -117,7 +117,7 @@ describe("isPossibleLargeSpike", () => {
   const base = 100;
 
   it("should return true for empty prices", () => {
-    expect(isPossibleLargeSpike([], base).possible).toBe(true);
+    expect(reasonsToRejectLargeSpike([], base)).toBeNull();
   });
 
   it("should confirm immediately with price >= 200%", () => {
@@ -125,19 +125,19 @@ describe("isPossibleLargeSpike", () => {
       { index: 0, price: 88 },
       { index: 4, price: 250 },
     ];
-    expect(isPossibleLargeSpike(prices, base).possible).toBe(true);
+    expect(reasonsToRejectLargeSpike(prices, base)).toBeNull();
   });
 
   it("should reject when Monday AM is below 85% of buyPrice", () => {
     // largeSpikeStartRange(100) = {min: 85, max: 90}. Price 80 < 85 → rejected
     const prices = [{ index: 0, price: 80 }];
-    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+    expect(reasonsToRejectLargeSpike(prices, base)).not.toBeNull();
   });
 
   it("should reject when Monday AM exceeds 90% of buyPrice", () => {
     // largeSpikeStartRange(100) = {min: 85, max: 90}. Price 95 > 90 → rejected
     const prices = [{ index: 0, price: 95 }];
-    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+    expect(reasonsToRejectLargeSpike(prices, base)).not.toBeNull();
   });
 
   it("should reject when too late (Thursday PM+) with no significant rise", () => {
@@ -146,7 +146,7 @@ describe("isPossibleLargeSpike", () => {
       { index: 1, price: 85 },
       { index: 7, price: 82 },
     ];
-    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+    expect(reasonsToRejectLargeSpike(prices, base)).not.toBeNull();
   });
 
   it("should reject when max price is low and sharp drop follows", () => {
@@ -157,6 +157,6 @@ describe("isPossibleLargeSpike", () => {
       { index: 4, price: 120 },
       { index: 5, price: 60 },
     ];
-    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+    expect(reasonsToRejectLargeSpike(prices, base)).not.toBeNull();
   });
 });

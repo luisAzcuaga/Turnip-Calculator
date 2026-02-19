@@ -18,17 +18,26 @@ import { decreasingMaxForPeriod, decreasingMin, priceCeil, priceFloor } from "./
  */
 /**
  * Checks whether the Decreasing pattern is consistent with the known prices.
- * Returns { possible: boolean, reasons: string[] }
+ * Returns { rejectReasons: string[] }
  */
-export function isPossibleDecreasing(knownPrices, buyPrice) {
-  const possible = knownPrices.every((current, i) => {
-    const { price, index } = current;
-    if (price > decreasingMaxForPeriod(buyPrice, index)) return false;
-    if (price < decreasingMin(buyPrice)) return false;
-    if (i > 0 && price > knownPrices[i - 1].price) return false;
-    return true;
-  });
-  return { possible, reasons: [] };
+export function reasonsToRejectDecreasing(knownPrices, buyPrice) {
+  const rejectReasons = [];
+  for (let i = 0; i < knownPrices.length; i++) {
+    const { price, index } = knownPrices[i];
+    if (price > decreasingMaxForPeriod(buyPrice, index)) {
+      rejectReasons.push(`Precio ${price} excede el máximo para período ${index} en patrón Decreciente.`);
+      return rejectReasons;
+    }
+    if (price < decreasingMin(buyPrice)) {
+      rejectReasons.push(`Precio ${price} está por debajo del mínimo (40%) para patrón Decreciente.`);
+      return rejectReasons;
+    }
+    if (i > 0 && price > knownPrices[i - 1].price) {
+      rejectReasons.push(`Precio ${price} sube respecto al período anterior (${knownPrices[i - 1].price}). El patrón Decreciente solo puede bajar.`);
+      return rejectReasons;
+    }
+  }
+  return null;
 }
 
 export function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {

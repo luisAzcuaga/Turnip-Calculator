@@ -18,12 +18,12 @@ import {
  */
 /**
  * Checks whether the Large Spike pattern is consistent with the known prices.
- * Returns { possible: boolean, reasons: string[] }
+ * Returns { rejectReasons: string[] }
  */
-export function isPossibleLargeSpike(knownPrices, buyPrice) {
-  if (knownPrices.length === 0) return { possible: true, reasons: [] };
+export function reasonsToRejectLargeSpike(knownPrices, buyPrice) {
+  if (knownPrices.length === 0) return null;
 
-  const reasons = [];
+  const rejectReasons = [];
 
   // 1. SINGLE-PRICE: Monday AM must be between 85-90%
   const mondayAM = knownPrices.find(p => p.index === PERIODS.MONDAY_AM);
@@ -31,12 +31,12 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
     const startRange = largeSpikeStartRange(buyPrice);
     const mondayRatio = priceRatio(mondayAM.price, buyPrice);
     if (mondayAM.price < startRange.min) {
-      reasons.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-      return { possible: false, reasons };
+      rejectReasons.push(`Lunes AM (${mondayAM.price}) está muy bajo (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
+      return rejectReasons;
     }
     if (mondayAM.price > startRange.max) {
-      reasons.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
-      return { possible: false, reasons };
+      rejectReasons.push(`Lunes AM (${mondayAM.price}) está muy alto (${Math.round(mondayRatio * 100)}%). Large Spike debe empezar entre 85-90%.`);
+      return rejectReasons;
     }
   }
 
@@ -45,26 +45,26 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
   const maxRatio = priceRatio(maxPrice, buyPrice);
   const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-  if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) return { possible: true, reasons: [] };
+  if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) return null;
 
   // 3. TIMING
   const lateCheck = isTooLateForSpike(knownPrices, 'Large Spike');
   if (lateCheck.tooLate) {
-    reasons.push(lateCheck.reason);
-    return { possible: false, reasons };
+    rejectReasons.push(lateCheck.reason);
+    return rejectReasons;
   }
 
   if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
     const spikeRange = getSpikeStartRange(true);
-    reasons.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-    return { possible: false, reasons };
+    rejectReasons.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
+    return rejectReasons;
   }
 
   // 4. SLOPE
   const slopeCheck = validatePreSpikeSlope(knownPrices, true, buyPrice);
   if (slopeCheck.invalid) {
-    reasons.push(slopeCheck.reason);
-    return { possible: false, reasons };
+    rejectReasons.push(slopeCheck.reason);
+    return rejectReasons;
   }
 
   if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
@@ -72,8 +72,8 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
     if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
       const hasSharpDrop = knownPrices.slice(maxPriceIndex + 1).some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
       if (hasSharpDrop) {
-        reasons.push(`El precio máximo fue ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) y luego cayó más de 40%. El pico ya pasó y fue muy bajo para Large Spike.`);
-        return { possible: false, reasons };
+        rejectReasons.push(`El precio máximo fue ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) y luego cayó más de 40%. El pico ya pasó y fue muy bajo para Large Spike.`);
+        return rejectReasons;
       }
     }
   }
@@ -81,8 +81,8 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
   // 5. COMPLEX: P1→P2 sequence
   const confirmation = detectSpikeConfirmation(knownPrices, buyPrice);
   if (confirmation.detected && confirmation.isLargeSpike === false) {
-    reasons.push(`${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
-    return { possible: false, reasons };
+    rejectReasons.push(`${confirmation.day} tiene ${confirmation.price} bayas (${confirmation.percent}%). Large Spike necesita ≥140% en el Período 2 seguido de ≥200% en Período 3.`);
+    return rejectReasons;
   }
 
   if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
@@ -93,13 +93,13 @@ export function isPossibleLargeSpike(knownPrices, buyPrice) {
       });
       if (!hasRapidIncrease) {
         const spikeRange = getSpikeStartRange(true);
-        reasons.push(`Pico máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
-        return { possible: false, reasons };
+        rejectReasons.push(`Pico máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) está en rango de Small Spike (140-200%). Ya es tarde en la semana sin señales de Large Spike. Large Spike puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
+        return rejectReasons;
       }
     }
   }
 
-  return { possible: true, reasons: [] };
+  return null;
 }
 
 export function calculateLargeSpikePattern(periodIndex, base, knownPrices = []) {

@@ -148,10 +148,10 @@ function analyzeFluctuatingStructure(knownPrices, base) {
  */
 /**
  * Checks whether the Fluctuating pattern is consistent with the known prices.
- * Returns { possible: boolean, reasons: string[] }
+ * Returns { rejectReasons: string[] }
  */
-export function isPossibleFluctuating(knownPrices, buyPrice) {
-  const reasons = [];
+export function reasonsToRejectFluctuating(knownPrices, buyPrice) {
+  const rejectReasons = [];
 
   const inRange = knownPrices.every(({ price }) => {
     const ratio = priceRatio(price, buyPrice);
@@ -159,8 +159,8 @@ export function isPossibleFluctuating(knownPrices, buyPrice) {
   });
 
   if (!inRange) {
-    reasons.push(`Precio fuera del rango de Fluctuante (60-140%)`);
-    return { possible: false, reasons };
+    rejectReasons.push(`Precio fuera del rango de Fluctuante (60-140%)`);
+    return rejectReasons;
   }
 
   if (knownPrices.length >= 2) {
@@ -189,22 +189,22 @@ export function isPossibleFluctuating(knownPrices, buyPrice) {
 
     if (decreasesFromStart >= 2) {
       const numPrices = decreasesFromStart + 1;
-      reasons.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
-      return { possible: false, reasons };
+      rejectReasons.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
+      return rejectReasons;
     }
 
     if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
-      reasons.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
-      return { possible: false, reasons };
+      rejectReasons.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
+      return rejectReasons;
     }
 
     if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
-      reasons.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
-      return { possible: false, reasons };
+      rejectReasons.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
+      return rejectReasons;
     }
   }
 
-  return { possible: true, reasons: [] };
+  return null;
 }
 
 export function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
