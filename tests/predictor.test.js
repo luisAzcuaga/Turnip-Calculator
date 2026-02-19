@@ -610,41 +610,40 @@ describe('TurnipPredictor', () => {
     });
   });
 
-  describe('#getRecommendation', () => {
+  describe('#getRecommendations', () => {
     it('should return decreasing recommendations', () => {
       const p = new TurnipPredictor(100);
-      const rec = p.getRecommendation('decreasing');
+      const rec = p.getRecommendations('decreasing');
       expect(rec).toHaveLength(3);
       expect(rec[0]).toContain('bajarán');
     });
 
     it('should return large_spike recommendations', () => {
       const p = new TurnipPredictor(100);
-      const rec = p.getRecommendation('large_spike');
+      const rec = p.getRecommendations('large_spike');
       expect(rec).toHaveLength(3);
       expect(rec[0]).toContain('pico altísimo');
     });
 
     it('should return small_spike recommendations', () => {
       const p = new TurnipPredictor(100);
-      const rec = p.getRecommendation('small_spike');
+      const rec = p.getRecommendations('small_spike');
       expect(rec).toHaveLength(2);
       expect(rec[0]).toContain('pico moderado');
     });
 
     it('should return fluctuating recommendations', () => {
       const p = new TurnipPredictor(100);
-      const rec = p.getRecommendation('fluctuating');
+      const rec = p.getRecommendations('fluctuating');
       expect(rec).toHaveLength(3);
       expect(rec[0]).toContain('variables');
     });
   });
 
-  describe('#getBestTime', () => {
+  describe('#getBestSellDay', () => {
     it('should return no-optimal message for fluctuating pattern', () => {
       const p = new TurnipPredictor(100);
-      const result = p.getBestTime({}, 'fluctuating');
-      expect(result.pattern).toBe('fluctuating');
+      const result = p.getBestSellDay({}, 'fluctuating');
       expect(result.message).toContain('No hay momento óptimo');
     });
 
@@ -655,22 +654,20 @@ describe('TurnipPredictor', () => {
         mon_pm: { isUserInput: false, max: 200 },
         tue_am: { isUserInput: false, max: 150 },
       };
-      const result = p.getBestTime(predictions, 'large_spike');
-      expect(result.pattern).toBe('predictable');
+      const result = p.getBestSellDay(predictions, 'large_spike');
       expect(result.day).toBe('mon_pm');
       expect(result.price).toBe(200);
-      expect(result.isUserInput).toBe(false);
     });
 
-    it('should correctly identify confirmed vs predicted prices', () => {
+    it('should correctly pick highest price regardless of input type', () => {
       const p = new TurnipPredictor(100);
       const predictions = {
         mon_am: { isUserInput: true, max: 300 },
         mon_pm: { isUserInput: false, max: 200 },
       };
-      const result = p.getBestTime(predictions, 'small_spike');
+      const result = p.getBestSellDay(predictions, 'small_spike');
       expect(result.day).toBe('mon_am');
-      expect(result.isUserInput).toBe(true);
+      expect(result.price).toBe(300);
     });
   });
 

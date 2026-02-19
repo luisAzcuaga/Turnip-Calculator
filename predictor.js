@@ -925,8 +925,8 @@ export default class TurnipPredictor {
         percentage: alt.percentage
       })),
       predictions: predictions,
-      recommendation: this.getRecommendation(pattern),
-      bestTime: this.getBestTime(predictions, pattern),
+      recommendations: this.getRecommendations(pattern),
+      bestSellDay: this.getBestSellDay(predictions, pattern),
       rejectionReasons: this.rejectionReasons,
       scoreReasons: this.scoreReasons
     };
@@ -952,7 +952,7 @@ export default class TurnipPredictor {
     }
   }
 
-  getRecommendation(pattern) {
+  getRecommendations(pattern) {
     let rec = [];
 
     switch (pattern) {
@@ -984,35 +984,21 @@ export default class TurnipPredictor {
     return rec;
   }
 
-  getBestTime(predictions, pattern) {
-    // If it's Fluctuating, there's no point looking for "best time"
-    // The pattern is random by design - any day could be the best
+  getBestSellDay(predictions, pattern) {
     if (pattern === PATTERNS.FLUCTUATING) {
-      return {
-        pattern: 'fluctuating',
-        message: 'No hay momento óptimo predecible en patrón aleatorio'
-      };
+      return { message: 'No hay momento óptimo predecible en patrón aleatorio' };
     }
 
-    // For predictable patterns (Spikes, Decreasing), find the maximum
     let bestPrice = 0;
     let bestDay = '';
-    let bestIsConfirmed = false;
 
     Object.entries(predictions).forEach(([key, data]) => {
-      const maxPrice = data.max;
-      if (maxPrice > bestPrice) {
-        bestPrice = maxPrice;
+      if (data.max > bestPrice) {
+        bestPrice = data.max;
         bestDay = key;
-        bestIsConfirmed = data.isUserInput;
       }
     });
 
-    return {
-      pattern: 'predictable',
-      day: bestDay,
-      price: bestPrice,
-      isUserInput: bestIsConfirmed
-    };
+    return { day: bestDay, price: bestPrice };
   }
 }

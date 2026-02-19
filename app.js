@@ -261,10 +261,10 @@ document.addEventListener('DOMContentLoaded', function () {
     fillInputsWithPredictions(results.predictions);
 
     // Mark the best time to sell
-    markBestSellingTime(results.bestTime);
+    markBestSellingTime(results.bestSellDay);
 
     // Show debug info with integrated recommendations
-    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendation);
+    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendations);
   }
 
   function displayProbabilityPanel(patternName, allProbabilities) {
@@ -363,8 +363,7 @@ document.addEventListener('DOMContentLoaded', function () {
       input.classList.remove('best-selling-time');
     });
 
-    // Only mark for predictable patterns
-    if (bestTime.pattern === PATTERNS.FLUCTUATING || !bestTime.day) {
+    if (!bestTime.day) {
       return;
     }
 
