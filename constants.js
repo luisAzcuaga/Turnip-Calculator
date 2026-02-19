@@ -188,9 +188,12 @@ export const DECAY = {
 
 export const THRESHOLDS = {
   // === Detection ranges ===
+  // TODO: These two variables make no sense to me. What's perfect min, wouldn't that be 140% and 200%
   SMALL_SPIKE_PERFECT_MIN: 1.50,   // 150% - "perfect" range
   SMALL_SPIKE_PERFECT_MAX: 1.90,   // 190%
+  // TODO: does it refer to the max of a small spike, i believe we have RATES.SMALL_SPIKE.PEAK_PHASES to check this.
   SMALL_SPIKE_PRE_PEAK: 1.20,      // 120% - possible pre-peak
+  // TODO: what's with this? near the limit, so what?
   LARGE_SPIKE_NEAR_LIMIT: 1.90,    // 190% - near the limit
 
   // === Price changes ===

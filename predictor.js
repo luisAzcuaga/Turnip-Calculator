@@ -128,6 +128,9 @@ export default class TurnipPredictor {
   }
 
   // Detect the most likely pattern with confidence info
+  // TODO: This methods seems to be doing the same twice.
+  // it does sorting, getBaseProbabilities when there is no price
+  // and then the same when we know at least one price.
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
     const knownPrices = this.getPriceArrayWithIndex();
@@ -223,6 +226,7 @@ export default class TurnipPredictor {
         return current.price <= knownPrices[i - 1].price;
       });
 
+      // TODO: here we are doing the same as reasonsToRejectDecreasing
       if (isDecreasing) {
         score = 100;
         this.scoreReasons.decreasing.push(`✅ Todos los precios bajan consecutivamente (patrón perfecto de Decreciente)`);
@@ -232,6 +236,7 @@ export default class TurnipPredictor {
       }
 
       // Bonus if average is low
+      // TODO: does this make sense? we know that the prices decrease 3-5%
       if (avgPrice < this.buyPrice * THRESHOLDS.DECREASING_LOW_AVG) {
         score += 30;
         this.scoreReasons.decreasing.push(`✅ Promedio bajo (${Math.round(avgPrice)} < ${Math.round(THRESHOLDS.DECREASING_LOW_AVG * 100)}% del base)`);
@@ -284,6 +289,7 @@ export default class TurnipPredictor {
       score += 10; // Reduced base score (less common than Small Spike)
       break;
 
+    // TODO: several thing on the small spike don't make sense to me. Let's check them one by one.
     case PATTERNS.SMALL_SPIKE:
       // Flag to detect if the pattern has been rejected
       let smallSpikeRejected = false;
@@ -291,6 +297,7 @@ export default class TurnipPredictor {
       // Bonus if there's a moderate max in the exact Small Spike range
       if (ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && ratio < RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
         // Within the perfect Small Spike range
+        // TODO: What is this perfect min?
         if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio <= THRESHOLDS.SMALL_SPIKE_PERFECT_MAX) {
           score += 90;
           this.scoreReasons.small_spike.push(`✅ ¡Pico perfecto! ${maxPrice} bayas (${Math.round(ratio * 100)}%) en rango ideal de Small Spike (140-200%)`);
@@ -368,6 +375,7 @@ export default class TurnipPredictor {
       }
       break;
 
+    // TODO: we are completely sure it's fluctuating if this happens on period 0
     case PATTERNS.FLUCTUATING:
       // EARLY DETECTION RULE:
       // If MONDAY has a high price (>100%), it's almost certainly Fluctuating
@@ -381,6 +389,7 @@ export default class TurnipPredictor {
       }
 
       // Bonus if prices vary but without extremes
+      // TODO: OH SNAP, this no longer exists, how come eslint isn't complaining hehe (FLUCTUATING_MODERATE_MAX, FLUCTUATING_MODERATE_MIN)
       if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
         score += 50;
         this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
@@ -390,6 +399,7 @@ export default class TurnipPredictor {
         this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
       }
 
+      // TODO: this no longer applies, we don't care about sustained drops or increases when it comes to fluctuating
       // Heavily penalize sustained decreasing trends
       // The fluctuating pattern must ALTERNATE between high and low phases, not just decline
       let consecutiveDecreases = 0;
@@ -408,7 +418,7 @@ export default class TurnipPredictor {
           consecutiveDecreases = 0;
         }
       }
-
+      // TODO: Same here, fluctuating no longer cares about this.
       // If we reach here, the pattern was NOT rejected
       // Penalties are now only for edge cases
       if (maxConsecutiveDecreases === 3) {
@@ -436,6 +446,8 @@ export default class TurnipPredictor {
 
     DAYS_CONFIG.forEach((day, index) => {
       const price = this.knownPrices[day.key];
+      // TODO: Do we need to check again if prices are undefined, we cleared that before and pricesWithIndex is agnostic.
+      // At this point there is no need for checking this since "validatePrices" already checked.
       if (price !== undefined && price !== null && price !== '') {
         predictions[day.key] = {
           min: parseInt(price),
