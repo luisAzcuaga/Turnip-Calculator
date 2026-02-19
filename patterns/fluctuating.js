@@ -163,47 +163,6 @@ export function reasonsToRejectFluctuating(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (knownPrices.length >= 2) {
-    const { maxConsecutiveDecreases, decreasesFromStart, maxConsecutiveIncreases } = knownPrices
-      .slice(1)
-      .reduce(
-        (acc, current, i) => {
-          const previous = knownPrices[i];
-          if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
-            acc.consecutiveDecreases++;
-            acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
-            acc.consecutiveIncreases = 0;
-            if (i + 1 === acc.decreasesFromStart + 1) acc.decreasesFromStart++;
-          } else if (current.price > previous.price * THRESHOLDS.FLUCTUATING_RISE) {
-            acc.consecutiveIncreases++;
-            acc.maxConsecutiveIncreases = Math.max(acc.maxConsecutiveIncreases, acc.consecutiveIncreases);
-            acc.consecutiveDecreases = 0;
-          } else {
-            acc.consecutiveDecreases = 0;
-            acc.consecutiveIncreases = 0;
-          }
-          return acc;
-        },
-        { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0, consecutiveIncreases: 0, maxConsecutiveIncreases: 0 }
-      );
-
-    if (decreasesFromStart >= 2) {
-      const numPrices = decreasesFromStart + 1;
-      rejectReasons.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
-      return rejectReasons;
-    }
-
-    if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
-      rejectReasons.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
-      return rejectReasons;
-    }
-
-    if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
-      rejectReasons.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
-      return rejectReasons;
-    }
-  }
-
   return null;
 }
 
