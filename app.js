@@ -1,8 +1,11 @@
-import { BUY_PRICE_MAX, BUY_PRICE_MIN, DEBOUNCE_DELAY, LOADING_DELAY, PRICE_INPUT_IDS, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
+import {
+  BUY_PRICE_MAX, BUY_PRICE_MIN, DEBOUNCE_DELAY, LOADING_DELAY, PRICE_INPUT_IDS, TURNIP_PRICE_MAX,
+  TURNIP_PRICE_MIN
+} from "./constants.js";
 
-import TurnipPredictor from "./predictor.js";
-import { encodeToBase64, decodeFromBase64, getDataFromURL } from "./sharing.js";
 import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from "./rendering.js";
+import { encodeToBase64, getDataFromURL } from "./sharing.js";
+import TurnipPredictor from "./predictor.js";
 
 // App.js - User interface handling
 

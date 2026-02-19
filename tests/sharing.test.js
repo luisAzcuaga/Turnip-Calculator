@@ -1,5 +1,5 @@
+import { decodeFromBase64, encodeToBase64, getDataFromURL } from '../sharing.js';
 import { describe, expect, it } from "vitest";
-import { encodeToBase64, decodeFromBase64, getDataFromURL } from '../sharing.js';
 
 describe('encodeToBase64', () => {
   it('produces a non-empty base64 string', () => {

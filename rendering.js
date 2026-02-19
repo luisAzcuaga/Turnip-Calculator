@@ -1,4 +1,4 @@
-import { DAYS_CONFIG, PATTERN_NAMES, PATTERNS, PRICE_INPUT_IDS, RATES } from "./constants.js";
+import { DAYS_CONFIG, PATTERNS, PATTERN_NAMES, PRICE_INPUT_IDS, RATES } from "./constants.js";
 import { detectSpikeStart } from "./patterns/utils.js";
 
 // Build HTML for the probability distribution panel

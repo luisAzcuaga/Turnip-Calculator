@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from '../rendering.js';
 import { PATTERNS, PATTERN_NAMES } from '../constants.js';
+import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from '../rendering.js';
+import { describe, expect, it } from "vitest";
 
 // ─── buildProbabilityPanelHTML ────────────────────────────────────────────────
 
