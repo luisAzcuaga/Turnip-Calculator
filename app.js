@@ -1,7 +1,8 @@
-import { BUY_PRICE_MAX, BUY_PRICE_MIN, DAYS_CONFIG, DEBOUNCE_DELAY, LOADING_DELAY, PATTERNS, PATTERN_DECODE_MAP, PATTERN_ENCODE_MAP, PATTERN_NAMES, PRICE_INPUT_IDS, RATES, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
+import { BUY_PRICE_MAX, BUY_PRICE_MIN, DEBOUNCE_DELAY, LOADING_DELAY, PRICE_INPUT_IDS, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
 
 import TurnipPredictor from "./predictor.js";
-import { detectSpikeStart } from "./patterns/utils.js";
+import { encodeToBase64, decodeFromBase64, getDataFromURL } from "./sharing.js";
+import { buildProbabilityPanelHTML, buildRejectionReasonsHTML } from "./rendering.js";
 
 // App.js - User interface handling
 
@@ -51,75 +52,16 @@ const utils = {
     input.title = '';
   },
 
-  // Encode data to base64 for URL
-  // Compact format: buyPrice|pattern|price1|price2|...|price12
-  // pattern: f=fluctuating, l=large_spike, s=small_spike, d=decreasing, empty=none
-  encodeToBase64(data) {
-    try {
-      // Build compact string
-      const chunks = [
-        data.buyPrice || '',
-        PATTERN_ENCODE_MAP[data.previousPattern] || ''
-      ];
-
-      // Add prices in order
-      PRICE_INPUT_IDS.forEach(id => {
-        chunks.push(data[id] || '');
-      });
-
-      // Remove trailing empty values to save space
-      while (chunks.length > 2 && chunks[chunks.length - 1] === '') {
-        chunks.pop();
+  // Collect confirmed (non-estimated) sell prices from the DOM
+  collectConfirmedPrices() {
+    const data = {};
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      if (input?.value && input.dataset.isEstimated !== 'true') {
+        data[id] = input.value;
       }
-
-      const compactString = chunks.join('|');
-      return btoa(compactString);
-    } catch (e) {
-      console.error('Error encoding data to base64:', e);
-      return null;
-    }
-  },
-
-  // Decode base64 from URL to data
-  // Compact format: buyPrice|pattern|price1|price2|...|price12
-  decodeFromBase64(base64String) {
-    try {
-      if (!base64String || typeof base64String !== 'string') {
-        return null;
-      }
-
-      const decoded = atob(base64String);
-      const chunks = decoded.split('|');
-
-      if (chunks.length < 2) {
-        return null;
-      }
-
-      const data = {
-        buyPrice: chunks[0] || '',
-        previousPattern: PATTERN_DECODE_MAP[chunks[1]] || ''
-      };
-
-      // Reconstruct prices from remaining chunks
-      PRICE_INPUT_IDS.forEach((id, index) => {
-        const value = chunks[index + 2];
-        if (value) {
-          data[id] = value;
-        }
-      });
-
-      return data;
-    } catch (e) {
-      console.error('Error decoding data from base64:', e);
-      return null;
-    }
-  },
-
-  // Get data from URL
-  getDataFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const encoded = urlParams.get('turnipData');
-    return encoded ? this.decodeFromBase64(encoded) : null;
+    });
+    return data;
   }
 };
 
@@ -198,13 +140,10 @@ document.addEventListener('DOMContentLoaded', function () {
     clearEstimatedValues();
 
     // Collect known prices (confirmed only)
+    const confirmedPrices = utils.collectConfirmedPrices();
     const knownPrices = {};
-    PRICE_INPUT_IDS.forEach(id => {
-      const input = document.getElementById(id);
-      // Only take values that are NOT estimated
-      if (input && input.value && input.dataset.isEstimated !== 'true') {
-        knownPrices[id] = parseInt(input.value);
-      }
+    Object.entries(confirmedPrices).forEach(([id, val]) => {
+      knownPrices[id] = parseInt(val);
     });
 
     // Get previous pattern if selected
@@ -220,16 +159,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Collect current data from the DOM
     const data = {
       buyPrice: buyPriceInput.value,
-      previousPattern: previousPatternSelect.value
+      previousPattern: previousPatternSelect.value,
+      ...utils.collectConfirmedPrices()
     };
-
-    PRICE_INPUT_IDS.forEach(id => {
-      const input = document.getElementById(id);
-      // Only include confirmed values, NOT estimated ones
-      if (input?.value && input.dataset.isEstimated !== 'true') {
-        data[id] = input.value;
-      }
-    });
 
     // Check if there is already a query param
     const urlParams = new URLSearchParams(window.location.search);
@@ -255,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
     resultsSection.classList.add('fade-in');
 
     // Show pattern probability distribution
-    displayProbabilityPanel(results.patternName, results.allProbabilities);
+    document.getElementById('confidencePanel').innerHTML = buildProbabilityPanelHTML(results.patternName, results.allProbabilities);
 
     // Fill inputs with predictions
     fillInputsWithPredictions(results.predictions);
@@ -264,58 +196,18 @@ document.addEventListener('DOMContentLoaded', function () {
     markBestSellingTime(results.bestSellDay);
 
     // Show debug info with integrated recommendations
-    displayRejectionReasons(results.rejectionReasons, results.scoreReasons, results.allProbabilities, results.pattern, results.recommendations);
-  }
+    const pricesArray = PRICE_INPUT_IDS.map(id => {
+      const val = document.getElementById(id)?.value;
+      return val ? parseInt(val) : null;
+    }).filter(p => p !== null);
 
-  function displayProbabilityPanel(patternName, allProbabilities) {
-    const panel = document.getElementById('confidencePanel');
-
-    // Show probability distribution - ALWAYS ALL 4 PATTERNS
-    let html = `<div class="probability-distribution">
-      <h4>Todos los Patrones Posibles</h4>
-      <div class="probability-list">`;
-
-    // Create list with all patterns and sort by probability (most likely first)
-    const allPatterns = Object.values(PATTERNS).map(key => ({
-      key: key,
-      name: PATTERN_NAMES[key]
-    }));
-
-    // Add probabilities and sort descending
-    const patternsWithProb = allPatterns.map(p => ({
-      ...p,
-      percentage: allProbabilities[p.key] || 0,
-      isPrimary: p.name === patternName
-    }));
-
-    // Sort by probability (highest to lowest)
-    patternsWithProb.sort((a, b) => b.percentage - a.percentage);
-
-    patternsWithProb.forEach(p => {
-      const itemClass = p.isPrimary ? 'probability-item primary-pattern' : 'probability-item';
-      const badge = p.isPrimary ? '<span class="primary-badge">MÁS PROBABLE</span>' : '';
-
-      html += `
-        <div class="${itemClass}">
-          <div class="probability-header-row">
-            <span class="probability-name">${p.name}</span>
-            ${badge}
-          </div>
-          <div class="probability-bar-container">
-            <div class="probability-bar-fill" style="width: ${p.percentage}%"></div>
-            <span class="probability-value">${p.percentage}%</span>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `</div>
-      <p class="probability-explanation">
-        <small>Todos los patrones se muestran con sus probabilidades. Los patrones en 0% son incompatibles con los precios ingresados.</small>
-      </p>
-    </div>`;
-
-    panel.innerHTML = html;
+    const debugDiv = document.getElementById('debugInfo');
+    if (debugDiv) {
+      debugDiv.innerHTML = buildRejectionReasonsHTML(
+        results.rejectionReasons, results.scoreReasons, results.allProbabilities,
+        results.pattern, results.recommendations, pricesArray, parseInt(buyPriceInput.value)
+      );
+    }
   }
 
   function fillInputsWithPredictions(predictions) {
@@ -375,175 +267,6 @@ document.addEventListener('DOMContentLoaded', function () {
     input.title = `⭐ Mejor momento para vender: hasta ${bestTime.price} bayas`;
   }
 
-  // Helper: Generate timing messages for spike patterns
-  function generateSpikeTimingMessages(patternKey, isPrimary) {
-    let messages = '';
-
-    if (patternKey !== PATTERNS.LARGE_SPIKE && patternKey !== PATTERNS.SMALL_SPIKE) {
-      return messages;
-    }
-
-    // Detect if the spike has started using shared utility
-    const pricesArray = PRICE_INPUT_IDS.map(id => {
-      const val = document.getElementById(id)?.value;
-      return val ? parseInt(val) : null;
-    }).filter(p => p !== null);
-
-    const buyPrice = parseInt(buyPriceInput.value);
-    const spikeDetection = detectSpikeStart(pricesArray, buyPrice);
-
-    let spikeStarted = spikeDetection.detected;
-    let spikeStartIndex = spikeDetection.startIndex;
-    let lastKnownIndex = -1;
-
-    // Find last period with a known price
-    for (let i = 0; i < PRICE_INPUT_IDS.length; i++) {
-      const val = document.getElementById(PRICE_INPUT_IDS[i])?.value;
-      if (val && parseInt(val)) {
-        lastKnownIndex = i;
-      }
-    }
-
-    if (spikeStarted && spikeStartIndex >= 0) {
-      const spikeStartDay = DAYS_CONFIG[spikeStartIndex]?.name || '';
-      // Large Spike: spike phase 3 (spikeStart + 2, relative to spike)
-      // Small Spike: spike phase 4 (spikeStart + 3, relative to spike)
-      const periodsToMax = patternKey === PATTERNS.LARGE_SPIKE ? 2 : 3;
-      const maxPeriodIndex = spikeStartIndex + periodsToMax;
-      const periodsUntilMax = maxPeriodIndex - lastKnownIndex;
-
-      // Detect if we are in phase 1 (start of spike) and haven't seen phase 2 yet
-      const spikePhase2Index = spikeStartIndex + 1;
-      const isInSpikePhase1 = lastKnownIndex === spikeStartIndex;
-      const hasSpikePhase2Data = lastKnownIndex >= spikePhase2Index;
-
-      const uncertaintyPrefix = isPrimary ? '' : 'Puede que ';
-      const conditionalPhrase = isPrimary ? '' : ' Si es correcto,';
-
-      if (periodsUntilMax > 0) {
-        const periodText = periodsUntilMax === 1 ? '1 período' : `${periodsUntilMax} períodos`;
-        const maxRange = patternKey === PATTERNS.LARGE_SPIKE ? '200-600%' : '140-200%';
-
-        // If in phase 1 and we haven't seen phase 2, mention that phase 2 is decisive
-        if (isInSpikePhase1 && !hasSpikePhase2Data) {
-          const spikePhase2Threshold = Math.round(buyPrice * RATES.SMALL_SPIKE.PEAK_RATE_MIN);
-          const nextDay = DAYS_CONFIG[spikePhase2Index]?.name || 'siguiente período';
-          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;
-
-          if (patternKey === PATTERNS.LARGE_SPIKE) {
-            messages += `<br/>&emsp;&emsp;• Si sube a <strong>≥${spikePhase2Threshold} bayas (≥140%)</strong> → Large Spike confirmado`;
-          } else { // small_spike
-            const minThreshold = Math.floor(buyPrice * RATES.SMALL_SPIKE.SPIKE_PHASES[0].min);
-            const maxThreshold = spikePhase2Threshold - 1; // < 140%
-            messages += `<br/>&emsp;&emsp;• Si se mantiene entre <strong>${minThreshold}-${maxThreshold} bayas (90-&lt;140%)</strong> → Small Spike confirmado`;
-          }
-          messages += `</li>`;
-        } else {
-          messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} El máximo (${maxRange}) será en <strong>${periodText} más</strong>.</li>`;
-        }
-      } else {
-        messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong>${conditionalPhrase} El máximo ya debería haber ocurrido o está ocurriendo ahora.</li>`;
-      }
-    } else {
-      const spikeWindowText = patternKey === PATTERNS.LARGE_SPIKE ? 'Martes AM y Jueves PM (períodos 2-7)' : 'Lunes PM y Jueves PM (períodos 1-7)';
-      messages += `<li style="color: #4a90e2;">💡 <strong>Aún hay esperanza:</strong> El pico puede empezar entre <strong>${spikeWindowText}</strong>. Sigue checando los precios.</li>`;
-    }
-
-    return messages;
-  }
-
-  function displayRejectionReasons(rejectionReasons, scoreReasons, allProbabilities, primaryPattern, recommendations) {
-    const debugDiv = document.getElementById('debugInfo');
-    if (!debugDiv) return;
-
-    let html = '';
-
-    // Section 0: Recommendations (at the top)
-    if (recommendations && recommendations.length > 0) {
-      const primaryPatternName = PATTERN_NAMES[primaryPattern] || 'Desconocido';
-      const primaryProbability = allProbabilities[primaryPattern] || 0;
-      html += `<h3>⭐ Patrón más probable</h3>`;
-      html += '<ul class="rejection-list">';
-      html += `<li class="primary-pattern"><strong>${primaryPatternName}</strong> (${primaryProbability}%):`;
-      html += '<ul>';
-      recommendations.forEach(rec => {
-        html += `<li>${rec}</li>`;
-      });
-      // Add timing messages for spike patterns
-      html += generateSpikeTimingMessages(primaryPattern, true);
-      html += '</ul>';
-      html += '</li>';
-      html += '</ul>';
-    }
-
-    // Separate rejected patterns (0%) vs unlikely ones (>0%)
-    const patternsToShow = Object.keys(PATTERN_NAMES).filter(key => key !== primaryPattern);
-    const rejected = patternsToShow.filter(key => allProbabilities[key] === 0);
-    const unlikely = patternsToShow.filter(key => allProbabilities[key] > 0);
-
-    // Sort unlikely patterns by probability descending
-    unlikely.sort((a, b) => allProbabilities[b] - allProbabilities[a]);
-
-    // Section 1: Unlikely patterns (>0%)
-    if (unlikely.length > 0) {
-      html += '<h3>📊 Patrones menos probables</h3>';
-      html += '<p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>';
-      html += '<ul class="rejection-list">';
-      unlikely.forEach(key => {
-        const name = PATTERN_NAMES[key];
-        const prob = allProbabilities[key];
-        const scores = scoreReasons[key] || [];
-
-        html += `<li class="unlikely-pattern"><strong>${name}</strong> (${prob}%):`;
-        html += '<ul>';
-        if (scores.length > 0) {
-          scores.forEach(reason => {
-            html += `<li>${reason}</li>`;
-          });
-        } else {
-          html += '<li>Sin señales fuertes a favor o en contra</li>';
-        }
-        // Add timing info for spike patterns
-        html += generateSpikeTimingMessages(key, false);
-        html += '</ul>';
-        html += '</li>';
-      });
-      html += '</ul>';
-    }
-
-    // Section 2: Rejected patterns (0%)
-    if (rejected.length > 0) {
-      html += '<h3>🚫 Patrones descartados (0%)</h3>';
-      html += '<p><small>Estos patrones rompen las reglas del algoritmo del juego con los datos ingresados:</small></p>';
-      html += '<ul class="rejection-list">';
-      rejected.forEach(key => {
-        const name = PATTERN_NAMES[key];
-        const rejections = rejectionReasons[key] || [];
-
-        html += `<li><strong>${name}</strong>:`;
-        html += '<ul>';
-        if (rejections.length > 0) {
-          rejections.forEach(reason => {
-            html += `<li>${reason}</li>`;
-          });
-        } else {
-          html += '<li>Incompatible con los datos actuales</li>';
-        }
-        html += '</ul>';
-        html += '</li>';
-      });
-      html += '</ul>';
-    }
-
-    // If there are none
-    if (rejected.length === 0 && unlikely.length === 0) {
-      html = '<h3>🔍 Análisis de patrones</h3>';
-      html += '<p><small>No hay suficientes datos para descartar patrones alternativos.</small></p>';
-    }
-
-    debugDiv.innerHTML = html;
-  }
-
   function saveData() {
     // Don't save to localStorage if URL has a query param
     // (we are viewing data shared by someone else)
@@ -554,23 +277,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const data = {
       buyPrice: buyPriceInput.value,
-      previousPattern: previousPatternSelect.value
+      previousPattern: previousPatternSelect.value,
+      ...utils.collectConfirmedPrices()
     };
-
-    PRICE_INPUT_IDS.forEach(id => {
-      const input = document.getElementById(id);
-      // Only save confirmed values, NOT estimated ones
-      if (input?.value && input.dataset.isEstimated !== 'true') {
-        data[id] = input.value;
-      }
-    });
 
     localStorage.setItem('turnipData', JSON.stringify(data));
   }
 
   function loadSavedData() {
     // Try loading from URL first, then from localStorage
-    let data = utils.getDataFromURL();
+    let data = getDataFromURL(window.location.search);
     let isFromURL = false;
 
     if (data) {
@@ -620,93 +336,83 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function clearAllData() {
-    // Check for query params
+  function clearSharedView() {
+    if (!confirm('¿Quieres volver a tus datos guardados?')) return;
+
+    // Remove query param from URL
     const urlParams = new URLSearchParams(window.location.search);
-    const hasQueryParam = urlParams.has('turnipData');
+    urlParams.delete('turnipData');
+    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.history.replaceState({}, '', newUrl);
 
-    if (hasQueryParam) {
-      // Rollback mode: remove query param and load data from localStorage
-      if (!confirm('¿Quieres volver a tus datos guardados?')) return;
-
-      // Remove query param from URL
-      urlParams.delete('turnipData');
-      const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-      window.history.replaceState({}, '', newUrl);
-
-      // Clear inputs first
-      buyPriceInput.value = '';
-      previousPatternSelect.value = '';
-      PRICE_INPUT_IDS.forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-          input.value = '';
-          utils.clearEstimatedValue(input);
-        }
-      });
-
-      // Enable all inputs
-      enableAllInputs();
-
-      // Update clear button
-      updateClearButton(false);
-
-      // Update share button (show again)
-      updateShareButton();
-
-      // Load data from localStorage
-      const savedData = localStorage.getItem('turnipData');
-      if (savedData) {
-        try {
-          const data = JSON.parse(savedData);
-          if (data.buyPrice) buyPriceInput.value = data.buyPrice;
-          if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
-
-          PRICE_INPUT_IDS.forEach(id => {
-            const input = document.getElementById(id);
-            if (data[id] && input) input.value = data[id];
-          });
-
-          // Auto-calculate if there is a buy price
-          if (buyPriceInput.value) {
-            setTimeout(() => {
-              calculatePrediction();
-              updateRateBadges();
-            }, 300);
-          }
-        } catch (e) {
-          console.error('Error al cargar datos de localStorage:', e);
-        }
-      } else {
-        // Hide results if there is no saved data
-        resultsSection.style.display = 'none';
+    // Clear inputs first
+    buyPriceInput.value = '';
+    previousPatternSelect.value = '';
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.value = '';
+        utils.clearEstimatedValue(input);
       }
+    });
 
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      // Normal mode: clear everything
-      if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
+    enableAllInputs();
+    updateClearButton(false);
+    updateShareButton();
 
-      // Clear inputs
-      buyPriceInput.value = '';
-      previousPatternSelect.value = '';
-      PRICE_INPUT_IDS.forEach(id => {
-        const input = document.getElementById(id);
-        if (input) {
-          input.value = '';
-          utils.clearEstimatedValue(input);
+    // Load data from localStorage
+    const savedData = localStorage.getItem('turnipData');
+    if (savedData) {
+      try {
+        const data = JSON.parse(savedData);
+        if (data.buyPrice) buyPriceInput.value = data.buyPrice;
+        if (data.previousPattern) previousPatternSelect.value = data.previousPattern;
+
+        PRICE_INPUT_IDS.forEach(id => {
+          const input = document.getElementById(id);
+          if (data[id] && input) input.value = data[id];
+        });
+
+        if (buyPriceInput.value) {
+          setTimeout(() => {
+            calculatePrediction();
+            updateRateBadges();
+          }, 300);
         }
-      });
-
-      // Clear localStorage
-      localStorage.removeItem('turnipData');
-
-      // Hide results
+      } catch (e) {
+        console.error('Error al cargar datos de localStorage:', e);
+      }
+    } else {
       resultsSection.style.display = 'none';
+    }
 
-      // Scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function clearLocalData() {
+    if (!confirm('¿Estás seguro de que quieres borrar todos los datos?')) return;
+
+    buyPriceInput.value = '';
+    previousPatternSelect.value = '';
+    PRICE_INPUT_IDS.forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.value = '';
+        utils.clearEstimatedValue(input);
+      }
+    });
+
+    localStorage.removeItem('turnipData');
+    resultsSection.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function clearAllData() {
+    const hasQueryParam = new URLSearchParams(window.location.search).has('turnipData');
+    if (hasQueryParam) {
+      clearSharedView();
+    } else {
+      clearLocalData();
     }
   }
 
@@ -722,18 +428,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // Collect current data from the DOM
     const data = {
       buyPrice: buyPriceInput.value,
-      previousPattern: previousPatternSelect.value
+      previousPattern: previousPatternSelect.value,
+      ...utils.collectConfirmedPrices()
     };
 
-    PRICE_INPUT_IDS.forEach(id => {
-      const input = document.getElementById(id);
-      // Only include confirmed values, NOT estimated ones
-      if (input?.value && input.dataset.isEstimated !== 'true') {
-        data[id] = input.value;
-      }
-    });
-
-    const encodedData = utils.encodeToBase64(data);
+    const encodedData = encodeToBase64(data);
     if (!encodedData) {
       alert('⚠️ Error al generar el enlace para compartir');
       return;
