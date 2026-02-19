@@ -140,15 +140,10 @@ function analyzeFluctuatingStructure(knownPrices, base) {
 }
 
 /**
- * Calculates the price range for the Fluctuating pattern
- * @param {number} periodIndex - Period index (0-11)
- * @param {number} base - Base buy price
- * @param {Array} knownPrices - Array of known prices with {index, price}
- * @returns {{min: number, max: number}} - Price range
- */
-/**
  * Checks whether the Fluctuating pattern is consistent with the known prices.
- * Returns { rejectReasons: string[] }
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @param {number} buyPrice - Base buy price
+ * @returns {string[]|null} - Array of rejection reasons, or null if pattern is still possible
  */
 export function reasonsToRejectFluctuating(knownPrices, buyPrice) {
   const rejectReasons = [];
@@ -166,6 +161,13 @@ export function reasonsToRejectFluctuating(knownPrices, buyPrice) {
   return null;
 }
 
+/**
+ * Calculates the price range for the Fluctuating pattern for a given period.
+ * @param {number} periodIndex - Period index (0-11)
+ * @param {number} base - Base buy price
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @returns {{min: number, max: number}} - Predicted price range for the period
+ */
 export function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Defensive validation: cannot predict without a base price
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {

@@ -10,15 +10,10 @@ import {
 // Uses constants from constants.js (RATES, DECAY, VARIANCE, PERIODS)
 
 /**
- * Calculates the price range for the Small Spike pattern
- * @param {number} periodIndex - Period index (0-11)
- * @param {number} base - Base buy price
- * @param {Array} knownPrices - Array of known prices with {index, price}
- * @returns {{min: number, max: number}} - Price range
- */
-/**
  * Checks whether the Small Spike pattern is consistent with the known prices.
- * Returns { rejectReasons: string[] }
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @param {number} buyPrice - Base buy price
+ * @returns {string[]|null} - Array of rejection reasons, or null if pattern is still possible
  */
 export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
   if (knownPrices.length === 0) return null;
@@ -130,6 +125,13 @@ export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
   return null;
 }
 
+/**
+ * Calculates the price range for the Small Spike pattern for a given period.
+ * @param {number} periodIndex - Period index (0-11)
+ * @param {number} base - Base buy price
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @returns {{min: number, max: number}} - Predicted price range for the period
+ */
 export function calculateSmallSpikePattern(periodIndex, base, knownPrices = []) {
   // spikeStart can be 1-7 per the game algorithm (Monday PM to Thursday PM)
   const spikeStart = detectSpikePhaseStart(knownPrices, PERIODS.SMALL_SPIKE_START_MIN, PERIODS.SPIKE_START_MAX, false, base);

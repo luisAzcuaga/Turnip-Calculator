@@ -10,15 +10,10 @@ import { decreasingMaxForPeriod, decreasingMin, priceCeil, priceFloor } from "./
 // - Each period: rate -= 3% + (0-2% random) = drops 3-5%
 
 /**
- * Calculates the price range for the Decreasing pattern
- * @param {number} periodIndex - Period index (0-11)
- * @param {number} base - Base buy price
- * @param {Array} knownPrices - Array of known prices with {index, price}
- * @returns {{min: number, max: number}} - Price range
- */
-/**
  * Checks whether the Decreasing pattern is consistent with the known prices.
- * Returns { rejectReasons: string[] }
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @param {number} buyPrice - Base buy price
+ * @returns {string[]|null} - Array of rejection reasons, or null if pattern is still possible
  */
 export function reasonsToRejectDecreasing(knownPrices, buyPrice) {
   const rejectReasons = [];
@@ -40,6 +35,13 @@ export function reasonsToRejectDecreasing(knownPrices, buyPrice) {
   return null;
 }
 
+/**
+ * Calculates the price range for the Decreasing pattern for a given period.
+ * @param {number} periodIndex - Period index (0-11)
+ * @param {number} base - Base buy price
+ * @param {Array<{index: number, price: number}>} knownPrices - Known prices sorted by index
+ * @returns {{min: number, max: number}} - Predicted price range for the period
+ */
 export function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // With any known price, project using game bounds: drops 3–5% per period
   if (knownPrices.length >= 1) {
