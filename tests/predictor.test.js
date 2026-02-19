@@ -430,43 +430,6 @@ describe('TurnipPredictor', () => {
       expect(p.isPossibleFluctuating(prices)).toBe(false);
     });
 
-    it('should reject when 2+ consecutive decreases from start', () => {
-      const p = new TurnipPredictor(100);
-      // 100 → 95 (< 100*0.98=98) → 90 (< 95*0.98=93.1): 2 decreases from start
-      const prices = [
-        { index: 0, price: 100, day: 'mon_am' },
-        { index: 1, price: 95, day: 'mon_pm' },
-        { index: 2, price: 90, day: 'tue_am' },
-      ];
-      expect(p.isPossibleFluctuating(prices)).toBe(false);
-    });
-
-    it('should reject when too many consecutive decreases (>3)', () => {
-      const p = new TurnipPredictor(100);
-      // Start with an increase to avoid decreasesFromStart rule,
-      // then 4+ consecutive decreases
-      const prices = [
-        { index: 0, price: 100, day: 'mon_am' },
-        { index: 1, price: 110, day: 'mon_pm' },  // increase
-        { index: 2, price: 105, day: 'tue_am' },   // decrease (< 110*0.98=107.8)
-        { index: 3, price: 100, day: 'tue_pm' },   // decrease (< 105*0.98=102.9)
-        { index: 4, price: 95, day: 'wed_am' },    // decrease (< 100*0.98=98)
-        { index: 5, price: 90, day: 'wed_pm' },    // decrease (< 95*0.98=93.1) → 4 consecutive
-      ];
-      expect(p.isPossibleFluctuating(prices)).toBe(false);
-    });
-
-    it('should reject when too many consecutive increases (>2)', () => {
-      const p = new TurnipPredictor(100);
-      // 3 consecutive increases (> previous * 1.02)
-      const prices = [
-        { index: 0, price: 80, day: 'mon_am' },
-        { index: 1, price: 85, day: 'mon_pm' },  // increase (> 80*1.02=81.6)
-        { index: 2, price: 90, day: 'tue_am' },  // increase (> 85*1.02=86.7)
-        { index: 3, price: 95, day: 'tue_pm' },  // increase (> 90*1.02=91.8) → 3 consecutive
-      ];
-      expect(p.isPossibleFluctuating(prices)).toBe(false);
-    });
   });
 
   // ==========================================================================
@@ -533,8 +496,8 @@ describe('TurnipPredictor', () => {
       const p = new TurnipPredictor(100);
       const prices = [{ index: 0, price: 105, day: 'mon_am' }];
       const score = p.calculatePatternScore('fluctuating', prices);
-      // Monday high: +80, moderate range: +50, base: +30 = 160
-      expect(score).toBeGreaterThanOrEqual(160);
+      // Monday high: +80, base: +30 = 110
+      expect(score).toBeGreaterThanOrEqual(110);
     });
 
     it('should give score to small_spike with max in 150-190% sweet spot', () => {

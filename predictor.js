@@ -514,63 +514,6 @@ export default class TurnipPredictor {
       return false;
     }
 
-    // The fluctuating pattern must ALTERNATE between high and low phases
-    // Check for sustained trends (rises or falls)
-    if (knownPrices.length >= 2) {
-      const { maxConsecutiveDecreases, decreasesFromStart, maxConsecutiveIncreases } = knownPrices
-        .slice(1)
-        .reduce(
-          (acc, current, i) => {
-            const previous = knownPrices[i];
-
-            // Check if decreasing (with 2% error margin)
-            if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
-              acc.consecutiveDecreases++;
-              acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
-              acc.consecutiveIncreases = 0; // Reset increases
-
-              // Count if decreasing from the start
-              if (i + 1 === acc.decreasesFromStart + 1) {
-                acc.decreasesFromStart++;
-              }
-            } else if (current.price > previous.price * THRESHOLDS.FLUCTUATING_RISE) {
-              // Check if increasing (2% margin to avoid false positives)
-              acc.consecutiveIncreases++;
-              acc.maxConsecutiveIncreases = Math.max(acc.maxConsecutiveIncreases, acc.consecutiveIncreases);
-              acc.consecutiveDecreases = 0; // Reset decreases
-            } else {
-              // Stable price (+/-2%)
-              acc.consecutiveDecreases = 0;
-              acc.consecutiveIncreases = 0;
-            }
-
-            return acc;
-          },
-          { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0, consecutiveIncreases: 0, maxConsecutiveIncreases: 0 }
-        );
-
-      // CRITICAL: If 2+ periods decrease from the START (3 prices declining), it's not Fluctuating
-      // Fluctuating must start with a HIGH phase or alternate, not decline from the start
-      if (decreasesFromStart >= 2) {
-        const numPrices = decreasesFromStart + 1;
-        this.rejectionReasons.fluctuating.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
-        return false;
-      }
-
-      // If too many consecutive periods decrease, it's not fluctuating
-      if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
-        this.rejectionReasons.fluctuating.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
-        return false;
-      }
-
-      // If too many consecutive periods increase, it's probably a spike (Small/Large Spike)
-      // Fluctuating must alternate, not rise continuously
-      if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
-        this.rejectionReasons.fluctuating.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
-        return false;
-      }
-    }
-
     return true;
   }
 
@@ -832,48 +775,6 @@ export default class TurnipPredictor {
         score += 80;
         const highMonday = mondayPrices.find(p => p.price > this.buyPrice);
         this.scoreReasons.fluctuating.push(`✅ Precio alto el Lunes (${highMonday.price} > ${this.buyPrice}). Solo Fluctuante sube temprano.`);
-      }
-
-      // Bonus if prices vary but without extremes
-      if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MAX && ratio > THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
-        score += 50;
-        this.scoreReasons.fluctuating.push(`✅ Precios en rango moderado (${Math.round(ratio * 100)}%), típico de Fluctuante (60-140%)`);
-      } else if (ratio < THRESHOLDS.FLUCTUATING_MODERATE_MIN) {
-        this.scoreReasons.fluctuating.push(`⚠️ Precio muy bajo (${Math.round(ratio * 100)}%), menos común en Fluctuante`);
-      } else if (ratio >= THRESHOLDS.FLUCTUATING_MODERATE_MAX) {
-        this.scoreReasons.fluctuating.push(`⚠️ Precio alto detectado (${Math.round(ratio * 100)}%), podría ser un pico en lugar de Fluctuante`);
-      }
-
-      // Heavily penalize sustained decreasing trends
-      // The fluctuating pattern must ALTERNATE between high and low phases, not just decline
-      let consecutiveDecreases = 0;
-      let maxConsecutiveDecreases = 0;
-      let decreasesFromStart = 0;
-
-      // Check if declining from the start (no prior high phase)
-      for (let i = 1; i < knownPrices.length; i++) {
-        if (knownPrices[i].price < knownPrices[i - 1].price * THRESHOLDS.FLUCTUATING_DROP) {
-          consecutiveDecreases++;
-          maxConsecutiveDecreases = Math.max(maxConsecutiveDecreases, consecutiveDecreases);
-          if (i === decreasesFromStart + 1) {
-            decreasesFromStart++;
-          }
-        } else {
-          consecutiveDecreases = 0;
-        }
-      }
-
-      // If we reach here, the pattern was NOT rejected
-      // Penalties are now only for edge cases
-      if (maxConsecutiveDecreases === 3) {
-        score -= 20;
-        this.scoreReasons.fluctuating.push(`⚠️ 3 períodos bajando consecutivos (límite máximo de una fase baja en Fluctuante)`);
-      } else if (maxConsecutiveDecreases === 2) {
-        score -= 10;
-        this.scoreReasons.fluctuating.push(`⚠️ 2 períodos bajando consecutivos (posible fase baja en Fluctuante)`);
-      } else if (maxConsecutiveDecreases === 1 || knownPrices.length === 1) {
-        // Only 1 decrease or insufficient data
-        this.scoreReasons.fluctuating.push(`ℹ️ Sin suficientes datos para confirmar alternancia de fases`);
       }
 
       score += 30; // Base score (most common pattern)
