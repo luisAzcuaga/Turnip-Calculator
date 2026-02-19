@@ -128,85 +128,44 @@ export default class TurnipPredictor {
   }
 
   // Detect the most likely pattern with confidence info
-  // TODO: This methods seems to be doing the same twice.
-  // it does sorting, getBaseProbabilities when there is no price
-  // and then the same when we know at least one price.
   detectPattern() {
     const possiblePatterns = this.detectPossiblePatterns();
     const knownPrices = this.getPriceArrayWithIndex();
     const baseProbabilities = this.getBaseProbabilities();
 
-    // If no price data, use base probabilities only
-    if (knownPrices.length === 0) {
-      // Calculate percentages based on probabilities
-      const percentages = {};
-      let totalProb = 0;
-
-      possiblePatterns.forEach(pattern => {
-        const prob = baseProbabilities[pattern] || 0;
-        percentages[pattern] = prob;
-        totalProb += prob;
-      });
-
-      // Normalize to 100%
-      if (totalProb > 0) {
-        Object.keys(percentages).forEach(pattern => {
-          percentages[pattern] = Math.round((percentages[pattern] / totalProb) * 100);
-        });
-      }
-
-      // Find the most likely pattern
-      const sortedByProb = possiblePatterns.sort((a, b) =>
-        (baseProbabilities[b] || 0) - (baseProbabilities[a] || 0)
-      );
-      const primaryPattern = sortedByProb[0];
-
-      return {
-        primary: primaryPattern,
-        alternatives: sortedByProb.slice(1, 3).map(p => ({
-          pattern: p,
-          percentage: percentages[p]
-        })),
-        percentages: percentages
-      };
-    }
-
-    // Calculate score combining base probabilities with data analysis
+    // Compute a score for each possible pattern.
+    // With no price data, scores are purely probability-based.
+    // With price data, blend pattern-fit score with prior probability:
+    //   0 prices → 100% probability, 4 prices → 50/50, 8+ prices → 70% data
     const scores = {};
     possiblePatterns.forEach(pattern => {
-      const dataScore = this.calculatePatternScore(pattern, knownPrices);
-      const probabilityScore = (baseProbabilities[pattern] || 0) * 100; // Convert to 0-100 scale
-
-      // IMPROVEMENT #3: Adjust data vs probability weight
-      // Combine scores: keep minimum 30% weight for probabilities
-      // With 0 prices: 100% probabilities
-      // With 4 prices: 50% probabilities, 50% data
-      // With 8+ prices: 70% data, 30% probabilities (minimum)
-      const dataWeight = Math.min(knownPrices.length / CONFIDENCE.DATA_PERIODS_FOR_MAX, CONFIDENCE.MAX_DATA_WEIGHT);
-      const probWeight = 1 - dataWeight; // Min 30% weight for probabilities
-
-      scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
+      const probabilityScore = (baseProbabilities[pattern] || 0) * 100;
+      if (knownPrices.length === 0) {
+        scores[pattern] = probabilityScore;
+      } else {
+        const dataScore = this.calculatePatternScore(pattern, knownPrices);
+        const dataWeight = Math.min(knownPrices.length / CONFIDENCE.DATA_PERIODS_FOR_MAX, CONFIDENCE.MAX_DATA_WEIGHT);
+        const probWeight = 1 - dataWeight;
+        scores[pattern] = (dataScore * dataWeight) + (probabilityScore * probWeight);
+      }
     });
 
-    // Sort patterns by score
+    // Sort by score and normalize to percentages
     const sortedPatterns = possiblePatterns.sort((a, b) => scores[b] - scores[a]);
-    const bestPattern = sortedPatterns[0];
-
-    // Convert scores to percentages
-    const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+    const totalScore = Object.values(scores).reduce((sum, s) => sum + s, 0);
     const percentages = {};
     Object.keys(scores).forEach(pattern => {
       percentages[pattern] = totalScore > 0 ? Math.round((scores[pattern] / totalScore) * 100) : 0;
     });
 
     return {
-      primary: bestPattern,
+      primary: sortedPatterns[0],
       alternatives: sortedPatterns.slice(1, 3).map(p => ({
         pattern: p,
         percentage: percentages[p]
       })),
-      scores: scores,
-      percentages: percentages
+      scores,
+      percentages
     };
   }
 
