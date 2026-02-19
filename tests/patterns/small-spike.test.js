@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { RATES } from "../../constants.js";
-import calculateSmallSpikePattern from "../../patterns/small-spike.js";
+import calculateSmallSpikePattern, { isPossibleSmallSpike } from "../../patterns/small-spike.js";
 
 describe("patterns/small-spike", () => {
   const base = 100;
@@ -112,5 +112,46 @@ describe("patterns/small-spike", () => {
         }
       }
     });
+  });
+});
+
+describe("isPossibleSmallSpike", () => {
+  const base = 100;
+
+  it("should return true for empty prices", () => {
+    expect(isPossibleSmallSpike([], base).possible).toBe(true);
+  });
+
+  it("should reject when max price exceeds 200%", () => {
+    const prices = [{ index: 4, price: 210 }];
+    expect(isPossibleSmallSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when too late (Thursday PM+) with no significant rise", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 7, price: 82 },
+    ];
+    expect(isPossibleSmallSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when confirmation P2 rate >= 140% (confirms Large Spike)", () => {
+    // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% >= 140% → impossible for Small Spike
+    const prices = [
+      { index: 3, price: 110 },
+      { index: 4, price: 160 },
+    ];
+    expect(isPossibleSmallSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should accept prices with moderate max in 140-200% range late in week", () => {
+    const prices = [
+      { index: 0, price: 85 },
+      { index: 1, price: 82 },
+      { index: 6, price: 160 },
+      { index: 8, price: 80 },
+    ];
+    expect(isPossibleSmallSpike(prices, base).possible).toBe(true);
   });
 });

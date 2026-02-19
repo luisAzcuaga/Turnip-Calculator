@@ -1,7 +1,7 @@
 import { DECAY, RATES } from "../../constants.js";
 import { describe, expect, it } from "vitest";
 
-import calculateDecreasingPattern from "../../patterns/decreasing.js";
+import calculateDecreasingPattern, { isPossibleDecreasing } from "../../patterns/decreasing.js";
 
 describe("patterns/decreasing", () => {
   const base = 100;
@@ -96,5 +96,45 @@ describe("patterns/decreasing", () => {
         }
       }
     });
+  });
+});
+
+describe("isPossibleDecreasing", () => {
+  const base = 100;
+
+  it("should accept a strictly decreasing series within valid range", () => {
+    // decreasingMaxForPeriod(100, 0) = ceil(100 * 0.90) = 90
+    // decreasingMin(100) = floor(100 * 0.40) = 40
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 2, price: 82 },
+    ];
+    expect(isPossibleDecreasing(prices, base).possible).toBe(true);
+  });
+
+  it("should reject when Monday price exceeds decreasingMax", () => {
+    const prices = [{ index: 0, price: 105 }];
+    expect(isPossibleDecreasing(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when any price rises compared to previous", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 90 }, // rises
+    ];
+    expect(isPossibleDecreasing(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when price exceeds decreasingMaxForPeriod", () => {
+    // At period 0, max = ceil(100 * 0.90) = 90. Price 95 > 90 → rejected
+    const prices = [{ index: 0, price: 95 }];
+    expect(isPossibleDecreasing(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when price falls below decreasingMin", () => {
+    // decreasingMin(100) = floor(100 * 0.40) = 40. Price 35 < 40 → rejected
+    const prices = [{ index: 0, price: 35 }];
+    expect(isPossibleDecreasing(prices, base).possible).toBe(false);
   });
 });

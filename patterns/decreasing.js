@@ -1,5 +1,5 @@
 import { DECAY, RATES } from "../constants.js";
-import { priceCeil, priceFloor } from "./utils.js";
+import { decreasingMaxForPeriod, decreasingMin, priceCeil, priceFloor } from "./utils.js";
 
 // DECREASING pattern: steady decline
 // Based on the actual datamined game algorithm (Pattern 2)
@@ -16,6 +16,21 @@ import { priceCeil, priceFloor } from "./utils.js";
  * @param {Array} knownPrices - Array of known prices with {index, price}
  * @returns {{min: number, max: number}} - Price range
  */
+/**
+ * Checks whether the Decreasing pattern is consistent with the known prices.
+ * Returns { possible: boolean, reasons: string[] }
+ */
+export function isPossibleDecreasing(knownPrices, buyPrice) {
+  const possible = knownPrices.every((current, i) => {
+    const { price, index } = current;
+    if (price > decreasingMaxForPeriod(buyPrice, index)) return false;
+    if (price < decreasingMin(buyPrice)) return false;
+    if (i > 0 && price > knownPrices[i - 1].price) return false;
+    return true;
+  });
+  return { possible, reasons: [] };
+}
+
 export default function calculateDecreasingPattern(periodIndex, base, knownPrices = []) {
   // With any known price, project using game bounds: drops 3–5% per period
   if (knownPrices.length >= 1) {

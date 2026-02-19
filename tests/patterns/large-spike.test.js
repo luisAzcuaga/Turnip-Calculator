@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { RATES } from "../../constants.js";
-import calculateLargeSpikePattern from "../../patterns/large-spike.js";
+import calculateLargeSpikePattern, { isPossibleLargeSpike } from "../../patterns/large-spike.js";
 
 describe("patterns/large-spike", () => {
   const base = 100;
@@ -111,5 +111,53 @@ describe("patterns/large-spike", () => {
         }
       }
     });
+  });
+});
+
+describe("isPossibleLargeSpike", () => {
+  const base = 100;
+
+  it("should return true for empty prices", () => {
+    expect(isPossibleLargeSpike([], base).possible).toBe(true);
+  });
+
+  it("should confirm immediately with price >= 200%", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 4, price: 250 },
+    ];
+    expect(isPossibleLargeSpike(prices, base).possible).toBe(true);
+  });
+
+  it("should reject when Monday AM is below 85% of buyPrice", () => {
+    // largeSpikeStartRange(100) = {min: 85, max: 90}. Price 80 < 85 → rejected
+    const prices = [{ index: 0, price: 80 }];
+    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when Monday AM exceeds 90% of buyPrice", () => {
+    // largeSpikeStartRange(100) = {min: 85, max: 90}. Price 95 > 90 → rejected
+    const prices = [{ index: 0, price: 95 }];
+    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when too late (Thursday PM+) with no significant rise", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 7, price: 82 },
+    ];
+    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when max price is low and sharp drop follows", () => {
+    // Max 120 (ratio 1.20 < 1.40), then drops to 60 (< 120 * 0.60 = 72)
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 4, price: 120 },
+      { index: 5, price: 60 },
+    ];
+    expect(isPossibleLargeSpike(prices, base).possible).toBe(false);
   });
 });

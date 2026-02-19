@@ -1,5 +1,5 @@
 import { BUY_PRICE_MAX, BUY_PRICE_MIN, PERIODS, RATES, THRESHOLDS } from "../constants.js";
-import { priceCeil, priceFloor } from "./utils.js";
+import { priceCeil, priceFloor, priceRatio } from "./utils.js";
 
 // FLUCTUATING pattern: alternates between high and low phases
 // Based on the actual datamined game algorithm (Pattern 0)
@@ -146,6 +146,67 @@ function analyzeFluctuatingStructure(knownPrices, base) {
  * @param {Array} knownPrices - Array of known prices with {index, price}
  * @returns {{min: number, max: number}} - Price range
  */
+/**
+ * Checks whether the Fluctuating pattern is consistent with the known prices.
+ * Returns { possible: boolean, reasons: string[] }
+ */
+export function isPossibleFluctuating(knownPrices, buyPrice) {
+  const reasons = [];
+
+  const inRange = knownPrices.every(({ price }) => {
+    const ratio = priceRatio(price, buyPrice);
+    return ratio >= RATES.FLUCTUATING.MIN && ratio <= RATES.FLUCTUATING.MAX;
+  });
+
+  if (!inRange) {
+    reasons.push(`Precio fuera del rango de Fluctuante (60-140%)`);
+    return { possible: false, reasons };
+  }
+
+  if (knownPrices.length >= 2) {
+    const { maxConsecutiveDecreases, decreasesFromStart, maxConsecutiveIncreases } = knownPrices
+      .slice(1)
+      .reduce(
+        (acc, current, i) => {
+          const previous = knownPrices[i];
+          if (current.price < previous.price * THRESHOLDS.FLUCTUATING_DROP) {
+            acc.consecutiveDecreases++;
+            acc.maxConsecutiveDecreases = Math.max(acc.maxConsecutiveDecreases, acc.consecutiveDecreases);
+            acc.consecutiveIncreases = 0;
+            if (i + 1 === acc.decreasesFromStart + 1) acc.decreasesFromStart++;
+          } else if (current.price > previous.price * THRESHOLDS.FLUCTUATING_RISE) {
+            acc.consecutiveIncreases++;
+            acc.maxConsecutiveIncreases = Math.max(acc.maxConsecutiveIncreases, acc.consecutiveIncreases);
+            acc.consecutiveDecreases = 0;
+          } else {
+            acc.consecutiveDecreases = 0;
+            acc.consecutiveIncreases = 0;
+          }
+          return acc;
+        },
+        { consecutiveDecreases: 0, maxConsecutiveDecreases: 0, decreasesFromStart: 0, consecutiveIncreases: 0, maxConsecutiveIncreases: 0 }
+      );
+
+    if (decreasesFromStart >= 2) {
+      const numPrices = decreasesFromStart + 1;
+      reasons.push(`${numPrices} precios bajando consecutivamente desde el inicio (${knownPrices.slice(0, numPrices).map(p => p.price).join(' → ')}). Fluctuante debe alternar entre fases altas y bajas, no bajar constantemente.`);
+      return { possible: false, reasons };
+    }
+
+    if (maxConsecutiveDecreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES) {
+      reasons.push(`${maxConsecutiveDecreases + 1} precios bajando consecutivamente. Fluctuante permite máx ${THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_DECREASES + 1} en una fase baja.`);
+      return { possible: false, reasons };
+    }
+
+    if (maxConsecutiveIncreases > THRESHOLDS.FLUCTUATING_MAX_CONSECUTIVE_INCREASES) {
+      reasons.push(`${maxConsecutiveIncreases} precios subiendo consecutivamente. Esto indica un pico (Small o Large Spike), no Fluctuante.`);
+      return { possible: false, reasons };
+    }
+  }
+
+  return { possible: true, reasons: [] };
+}
+
 export default function calculateFluctuatingPattern(periodIndex, base, knownPrices = []) {
   // Defensive validation: cannot predict without a base price
   if (!base || base < BUY_PRICE_MIN || base > BUY_PRICE_MAX) {

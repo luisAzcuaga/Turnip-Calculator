@@ -448,3 +448,119 @@ describe("patterns/utils", () => {
     });
   });
 });
+
+import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeSlope } from "../../patterns/utils.js";
+
+describe("patterns/utils — spike validation helpers", () => {
+  const base = 100;
+
+  describe("validatePreSpikeSlope", () => {
+    it("should accept valid rate drops (<=5% per period)", () => {
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 }, // 3% drop
+      ];
+      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+    });
+
+    it("should reject rate drops >5% per period in pre-spike phase", () => {
+      // 85 → 75: prevRate=0.85, currRate=0.75, drop=0.10 > 0.05
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 75 },
+      ];
+      const result = validatePreSpikeSlope(prices, true, base);
+      expect(result.invalid).toBe(true);
+      expect(result.reason).toContain("5%");
+    });
+
+    it("should reject early rises before minimum spike start", () => {
+      // For large spike, minSpikeStart = 2. Rise >10% at period 1 is too early.
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10
+      ];
+      const result = validatePreSpikeSlope(prices, true, base);
+      expect(result.invalid).toBe(true);
+      expect(result.reason).toContain("antes del período");
+    });
+
+    it("should skip non-consecutive period indices", () => {
+      const prices = [
+        { index: 0, price: 90 },
+        { index: 3, price: 75 }, // gap — non-consecutive, skip validation
+      ];
+      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+    });
+  });
+
+  describe("isTooLateForSpike", () => {
+    it("should return not too late before Thursday PM", () => {
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 },
+      ];
+      expect(isTooLateForSpike(prices, "Large Spike")).toEqual({ tooLate: false });
+    });
+
+    it("should return too late at Thursday PM+ with no significant rise", () => {
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 },
+        { index: 7, price: 82 },
+      ];
+      const result = isTooLateForSpike(prices, "Large Spike");
+      expect(result.tooLate).toBe(true);
+      expect(result.reason).toContain("Large Spike");
+    });
+
+    it("should return not too late at Thursday PM+ when a significant rise exists", () => {
+      // 88 → 100: ratio = 1.136 > 1.10 → significant rise
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 100 },
+        { index: 7, price: 120 },
+      ];
+      expect(isTooLateForSpike(prices, "Large Spike")).toEqual({ tooLate: false });
+    });
+  });
+
+  describe("detectSpikeConfirmation", () => {
+    it("should return not detected with fewer than 2 prices", () => {
+      expect(detectSpikeConfirmation([{ index: 0, price: 90 }], base)).toEqual({ detected: false });
+    });
+
+    it("should detect Large Spike P1→P2 sequence", () => {
+      // P1 at 110 (1.10, in 0.90-1.40) → P2 at 160 (1.60, in 1.40-2.00)
+      const prices = [
+        { index: 3, price: 110 },
+        { index: 4, price: 160 },
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.price).toBe(160);
+    });
+
+    it("should return not detected when spike start next price falls", () => {
+      // Trend reversal at index 2 (85→95), but next price at index 3 drops (90 < 95)
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 },
+        { index: 2, price: 95 },
+        { index: 3, price: 90 },
+      ];
+      expect(detectSpikeConfirmation(prices, base).detected).toBe(false);
+    });
+
+    it("should set isLargeSpike=true when maxPrice confirms large spike (>200%)", () => {
+      const prices = [
+        { index: 3, price: 110 },
+        { index: 4, price: 160 },
+        { index: 5, price: 300 },
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.isLargeSpike).toBe(true);
+    });
+  });
+});

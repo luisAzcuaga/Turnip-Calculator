@@ -1,7 +1,7 @@
 import { BUY_PRICE_MIN, RATES } from "../../constants.js";
 import { describe, expect, it } from "vitest";
 
-import calculateFluctuatingPattern from "../../patterns/fluctuating.js";
+import calculateFluctuatingPattern, { isPossibleFluctuating } from "../../patterns/fluctuating.js";
 
 describe("patterns/fluctuating", () => {
   const base = 100;
@@ -160,5 +160,58 @@ describe("patterns/fluctuating", () => {
       expect(result8.min).toBe(Math.floor(base * RATES.FLUCTUATING.HIGH_PHASE_MIN));
       expect(result8.max).toBe(Math.ceil(base * RATES.FLUCTUATING.HIGH_PHASE_MAX));
     });
+  });
+});
+
+describe("isPossibleFluctuating", () => {
+  const base = 100;
+
+  it("should accept prices within 60-140% range", () => {
+    const prices = [
+      { index: 0, price: 105 },
+      { index: 1, price: 95 },
+      { index: 2, price: 110 },
+    ];
+    expect(isPossibleFluctuating(prices, base).possible).toBe(true);
+  });
+
+  it("should reject when price is outside 60-140% range", () => {
+    // 160/100 = 1.60 > 1.40 → out of range
+    const prices = [{ index: 0, price: 160 }];
+    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when 2+ consecutive decreases from start", () => {
+    // 100 → 95 (< 100*0.98=98) → 90 (< 95*0.98=93.1): 2 decreases from start
+    const prices = [
+      { index: 0, price: 100 },
+      { index: 1, price: 95 },
+      { index: 2, price: 90 },
+    ];
+    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when too many consecutive decreases (>3)", () => {
+    // Start with an increase to avoid decreasesFromStart rule, then 4+ decreases
+    const prices = [
+      { index: 0, price: 100 },
+      { index: 1, price: 110 }, // increase
+      { index: 2, price: 105 }, // decrease
+      { index: 3, price: 100 }, // decrease
+      { index: 4, price: 95 },  // decrease
+      { index: 5, price: 90 },  // decrease → 4 consecutive
+    ];
+    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
+  });
+
+  it("should reject when too many consecutive increases (>2)", () => {
+    // 3 consecutive increases (> previous * 1.02)
+    const prices = [
+      { index: 0, price: 80 },
+      { index: 1, price: 85 }, // increase
+      { index: 2, price: 90 }, // increase
+      { index: 3, price: 95 }, // increase → 3 consecutive
+    ];
+    expect(isPossibleFluctuating(prices, base).possible).toBe(false);
   });
 });
