@@ -35,7 +35,7 @@ export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
   const maxRatio = priceRatio(maxPrice, buyPrice);
   const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-  if (maxRatio > THRESHOLDS.SMALL_SPIKE_MAX) {
+  if (maxRatio > RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
     rejectReasons.push(`Precio máximo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%) excede 200%. Esto es Large Spike, no Small Spike.`);
     return rejectReasons;
   }
@@ -53,7 +53,7 @@ export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
+  if (maxRatio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && maxRatio < RATES.SMALL_SPIKE.PEAK_RATE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
     return null;
   }
 
@@ -64,7 +64,7 @@ export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN && knownPrices.length >= 3) {
+  if (maxRatio < RATES.SMALL_SPIKE.PEAK_RATE_MIN && knownPrices.length >= 3) {
     const maxPriceData = knownPrices.find(p => p.price === maxPrice);
     if (maxPriceData) {
       const hasSharpDrop = knownPrices.filter(p => p.index > maxPriceData.index).some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
@@ -79,7 +79,7 @@ export function reasonsToRejectSmallSpike(knownPrices, buyPrice) {
   const confirmation = detectSpikeConfirmation(knownPrices, buyPrice);
   if (confirmation.detected) {
     const confirmationRate = parseFloat(confirmation.percent) / 100;
-    if (confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN) {
+    if (confirmationRate >= RATES.SMALL_SPIKE.PEAK_RATE_MIN) {
       const spikeStatus = confirmation.isLargeSpike === true
         ? 'ya confirmado con pico >200%'
         : 'esperando el pico real de 200-600% en el siguiente período';

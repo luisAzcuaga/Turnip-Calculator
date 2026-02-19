@@ -120,6 +120,10 @@ export const RATES = {
       { min: 0.90, max: 1.40 },  // Spike phase 5 [4]: final decline
     ],
 
+    // Peak phase aliases (SPIKE_PHASES[2]) — mirrors SMALL_SPIKE naming
+    PEAK_RATE_MIN: 2.00,  // 200% — floor of peak phase
+    PEAK_RATE_MAX: 6.00,  // 600% — ceiling of peak phase
+
     // Post-spike phase
     POST_PEAK_MIN: 0.40,
     POST_PEAK_MAX: 0.90,
@@ -181,11 +185,6 @@ export const DECAY = {
 // ============================================================================
 
 export const THRESHOLDS = {
-  // === Pattern confirmation ===
-  LARGE_SPIKE_CONFIRMED: 2.0,      // >=200% confirms Large Spike
-  SMALL_SPIKE_MIN: 1.40,           // >=140% may be Small Spike
-  SMALL_SPIKE_MAX: 2.00,           // <200% to be Small Spike
-
   // === Detection ranges ===
   SMALL_SPIKE_PERFECT_MIN: 1.50,   // 150% - "perfect" range
   SMALL_SPIKE_PERFECT_MAX: 1.90,   // 190%

@@ -1,6 +1,6 @@
 import {
-  BUY_PRICE_MAX,  BUY_PRICE_MIN, CONFIDENCE, DAYS_CONFIG, DEFAULT_PROBABILITIES, PATTERNS, 
-  PATTERN_NAMES, PERIODS, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX,
+  BUY_PRICE_MAX,  BUY_PRICE_MIN, CONFIDENCE, DAYS_CONFIG, DEFAULT_PROBABILITIES, PATTERNS,
+  PATTERN_NAMES, PERIODS, RATES, THRESHOLDS, TRANSITION_PROBABILITIES, TURNIP_PRICE_MAX,
   TURNIP_PRICE_MIN
 } from "./constants.js";
 import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "./patterns/decreasing.js";
@@ -240,10 +240,10 @@ export default class TurnipPredictor {
 
     case PATTERNS.LARGE_SPIKE:
       // Bonus if there's a very high max (200%+)
-      if (ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
+      if (ratio >= RATES.LARGE_SPIKE.PEAK_RATE_MIN) {
         score += 100;
         this.scoreReasons.large_spike.push(`✅ ¡Pico enorme detectado! ${maxPrice} bayas (${Math.round(ratio * 100)}%) confirma Large Spike`);
-      } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio < THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
+      } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio < RATES.LARGE_SPIKE.PEAK_RATE_MIN) {
         // Ambiguous range: could be Small Spike or Large Spike
         if (ratio < THRESHOLDS.LARGE_SPIKE_NEAR_LIMIT) {
           score += 10;
@@ -272,7 +272,7 @@ export default class TurnipPredictor {
         const { spikePhase1, spikePhase2 } = lsSequence;
         // If P2 is in Small Spike range (140-200%), bonus is smaller because it's ambiguous
         // The max could be Small Spike; the 200-600% may not come
-        if (spikePhase2.rate >= THRESHOLDS.SMALL_SPIKE_MIN && spikePhase2.rate < THRESHOLDS.SMALL_SPIKE_MAX) {
+        if (spikePhase2.rate >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && spikePhase2.rate < RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
           score += 30; // Bonus reducido - ambiguo
           this.scoreReasons.large_spike.push(`⚠️ Secuencia ${Math.round(spikePhase1.rate * 100)}% → ${Math.round(spikePhase2.rate * 100)}% es ambigua. Podría ser Large Spike (esperando 200-600%) o el pico de Small Spike.`);
         } else {
@@ -289,7 +289,7 @@ export default class TurnipPredictor {
       let smallSpikeRejected = false;
 
       // Bonus if there's a moderate max in the exact Small Spike range
-      if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
+      if (ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && ratio < RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
         // Within the perfect Small Spike range
         if (ratio >= THRESHOLDS.SMALL_SPIKE_PERFECT_MIN && ratio <= THRESHOLDS.SMALL_SPIKE_PERFECT_MAX) {
           score += 90;
@@ -298,7 +298,7 @@ export default class TurnipPredictor {
           score += 70;
           this.scoreReasons.small_spike.push(`✅ Pico detectado ${maxPrice} bayas (${Math.round(ratio * 100)}%) en rango de Small Spike (140-200%)`);
         }
-      } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PRE_PEAK && ratio < THRESHOLDS.SMALL_SPIKE_MIN) {
+      } else if (ratio >= THRESHOLDS.SMALL_SPIKE_PRE_PEAK && ratio < RATES.SMALL_SPIKE.PEAK_RATE_MIN) {
         score += 40;
         this.scoreReasons.small_spike.push(`⚠️ Precio ${maxPrice} bayas (${Math.round(ratio * 100)}%) podría ser pre-pico de Small Spike`);
 
@@ -314,7 +314,7 @@ export default class TurnipPredictor {
             this.scoreReasons.small_spike.push(`❌ El precio máximo ${maxPrice} bayas no alcanzó 140%. Los precios subieron y bajaron sin formar un pico válido.`);
           }
         }
-      } else if (ratio >= THRESHOLDS.SMALL_SPIKE_MAX) {
+      } else if (ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
         smallSpikeRejected = true;
         score = 0;
         this.scoreReasons.small_spike.push(`❌ Precio ${maxPrice} bayas (${Math.round(ratio * 100)}%) excede 200% (esto es Large Spike)`);
@@ -355,7 +355,7 @@ export default class TurnipPredictor {
         if (lsSequence.detected && !lsSequence.hasDataAfterSequence) {
           const { spikePhase1, spikePhase2 } = lsSequence;
           // If the max is in ideal Small Spike range, it's more likely Small Spike
-          if (ratio >= THRESHOLDS.SMALL_SPIKE_MIN && ratio < THRESHOLDS.SMALL_SPIKE_MAX) {
+          if (ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && ratio < RATES.SMALL_SPIKE.PEAK_RATE_MAX) {
             score -= 15; // Smaller penalty - max is already in Small Spike range
             this.scoreReasons.small_spike.push(`ℹ️ La secuencia ${Math.round(spikePhase1.rate * 100)}% → ${Math.round(spikePhase2.rate * 100)}% también podría ser Large Spike, pero el pico de ${Math.round(ratio * 100)}% es consistente con Small Spike.`);
           } else {

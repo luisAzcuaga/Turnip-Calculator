@@ -1,4 +1,4 @@
-import { BUY_PRICE_MAX, BUY_PRICE_MIN, DAYS_CONFIG, DEBOUNCE_DELAY, LOADING_DELAY, PATTERNS, PATTERN_DECODE_MAP, PATTERN_ENCODE_MAP, PATTERN_NAMES, PRICE_INPUT_IDS, RATES, THRESHOLDS, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
+import { BUY_PRICE_MAX, BUY_PRICE_MIN, DAYS_CONFIG, DEBOUNCE_DELAY, LOADING_DELAY, PATTERNS, PATTERN_DECODE_MAP, PATTERN_ENCODE_MAP, PATTERN_NAMES, PRICE_INPUT_IDS, RATES, TURNIP_PRICE_MAX, TURNIP_PRICE_MIN } from "./constants.js";
 
 import TurnipPredictor from "./predictor.js";
 import { detectSpikeStart } from "./patterns/utils.js";
@@ -426,7 +426,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // If in phase 1 and we haven't seen phase 2, mention that phase 2 is decisive
         if (isInSpikePhase1 && !hasSpikePhase2Data) {
-          const spikePhase2Threshold = Math.round(buyPrice * THRESHOLDS.SMALL_SPIKE_MIN);
+          const spikePhase2Threshold = Math.round(buyPrice * RATES.SMALL_SPIKE.PEAK_RATE_MIN);
           const nextDay = DAYS_CONFIG[spikePhase2Index]?.name || 'siguiente período';
           messages += `<li style="color: #4a90e2;">💡 <strong>${uncertaintyPrefix}El pico comenzó en ${spikeStartDay}.</strong> El siguiente precio (${nextDay}) será decisivo:`;
 

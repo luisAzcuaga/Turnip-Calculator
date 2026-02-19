@@ -40,7 +40,7 @@ export function reasonsToRejectLargeSpike(knownPrices, buyPrice) {
   const maxRatio = priceRatio(maxPrice, buyPrice);
   const maxKnownIndex = Math.max(...knownPrices.map(p => p.index));
 
-  if (maxRatio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) return null;
+  if (maxRatio >= RATES.LARGE_SPIKE.PEAK_RATE_MIN) return null;
 
   // 3. TIMING
   const lateCheck = isTooLateForSpike(knownPrices, 'Large Spike');
@@ -49,7 +49,7 @@ export function reasonsToRejectLargeSpike(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
+  if (maxKnownIndex >= PERIODS.LAST_PERIOD && maxRatio < RATES.SMALL_SPIKE.PEAK_RATE_MIN) {
     const spikeRange = getSpikeStartRange(true);
     rejectReasons.push(`Es Sábado PM y el precio máximo fue solo ${maxPrice} bayas (${Math.round(maxRatio * 100)}%). Large Spike necesita un pico de 200-600%. El pico puede empezar entre ${spikeRange.minName} y ${spikeRange.maxName} (períodos ${spikeRange.min}-${spikeRange.max}).`);
     return rejectReasons;
@@ -62,7 +62,7 @@ export function reasonsToRejectLargeSpike(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (maxRatio < THRESHOLDS.SMALL_SPIKE_MIN) {
+  if (maxRatio < RATES.SMALL_SPIKE.PEAK_RATE_MIN) {
     const maxPriceIndex = knownPrices.findIndex(p => p.price === maxPrice);
     if (maxPriceIndex !== -1 && maxPriceIndex < knownPrices.length - 1) {
       const hasSharpDrop = knownPrices.slice(maxPriceIndex + 1).some(p => p.price < maxPrice * THRESHOLDS.SHARP_DROP);
@@ -80,7 +80,7 @@ export function reasonsToRejectLargeSpike(knownPrices, buyPrice) {
     return rejectReasons;
   }
 
-  if (maxRatio >= THRESHOLDS.SMALL_SPIKE_MIN && maxRatio < THRESHOLDS.SMALL_SPIKE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
+  if (maxRatio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN && maxRatio < RATES.SMALL_SPIKE.PEAK_RATE_MAX && maxKnownIndex >= PERIODS.LATE_WEEK_START) {
     if (!confirmation.detected || !confirmation.isLargeSpike) {
       const hasRapidIncrease = knownPrices.some((current, i) => {
         if (i === 0) return false;

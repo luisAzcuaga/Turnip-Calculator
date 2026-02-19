@@ -214,13 +214,13 @@ export function detectSpikePhaseStart(knownPrices, minSpikeStart, maxSpikeStart,
     const ratio = maxPrice / buyPrice;
 
     // Large Spike: max price at spike phase 3 (200-600%)
-    if (isLargeSpike && ratio >= THRESHOLDS.LARGE_SPIKE_CONFIRMED) {
+    if (isLargeSpike && ratio >= RATES.LARGE_SPIKE.PEAK_RATE_MIN) {
       const estimatedSpikeStart = Math.max(minSpikeStart, maxPriceData.index - 2);
       return Math.min(maxSpikeStart, estimatedSpikeStart);
     }
 
     // Small Spike: max price at spike phase 4 (140-200%)
-    if (!isLargeSpike && ratio >= THRESHOLDS.SMALL_SPIKE_MIN) {
+    if (!isLargeSpike && ratio >= RATES.SMALL_SPIKE.PEAK_RATE_MIN) {
       const estimatedSpikeStart = Math.max(minSpikeStart, maxPriceData.index - 3);
       return Math.min(maxSpikeStart, estimatedSpikeStart);
     }
@@ -396,7 +396,7 @@ export function detectSpikeConfirmation(knownPrices, buyPrice) {
   if (knownPrices.length < 2) return { detected: false };
 
   const maxPrice = Math.max(...knownPrices.map(p => p.price));
-  const hasLargeSpikeConfirmed = (maxPrice / buyPrice) >= THRESHOLDS.LARGE_SPIKE_CONFIRMED;
+  const hasLargeSpikeConfirmed = (maxPrice / buyPrice) >= RATES.LARGE_SPIKE.PEAK_RATE_MIN;
   const sequence = detectLargeSpikeSequence(knownPrices, buyPrice);
 
   if (sequence.detected) {
@@ -428,7 +428,7 @@ export function detectSpikeConfirmation(knownPrices, buyPrice) {
   const confirmationRate = confirmationData.price / buyPrice;
   return {
     detected: true,
-    isLargeSpike: confirmationRate >= THRESHOLDS.SMALL_SPIKE_MIN,
+    isLargeSpike: confirmationRate >= RATES.SMALL_SPIKE.PEAK_RATE_MIN,
     price: confirmationData.price,
     percent: (confirmationRate * 100).toFixed(1),
     day: getPeriodName(spikeStartIndex + 1)
