@@ -111,7 +111,7 @@ describe('TurnipPatternPredictor', () => {
   describe('#detectPossiblePatterns', () => {
     it('should return all 4 patterns with no known prices', () => {
       const p = new TurnipPatternPredictor(100);
-      const result = p.detectPossiblePatterns();
+      const result = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
       expect(result).toContain('fluctuating');
       expect(result).toContain('large_spike');
       expect(result).toContain('small_spike');
@@ -120,7 +120,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should exclude decreasing when Monday price > buyPrice', () => {
       const p = new TurnipPatternPredictor(100, { mon_am: 105 });
-      const result = p.detectPossiblePatterns();
+      const result = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
       expect(result).not.toContain('decreasing');
       expect(result).not.toContain('large_spike'); // large spike also requires mon_am ≤ buyPrice*0.90
       expect(result).not.toContain('small_spike'); // small spike also requires mon_am ≤ buyPrice*0.90
@@ -132,7 +132,7 @@ describe('TurnipPatternPredictor', () => {
       // but we need to find something that rules out all patterns
       // Actually it's hard to rule out ALL patterns - the method always returns at least fluctuating
       const p = new TurnipPatternPredictor(100);
-      const result = p.detectPossiblePatterns();
+      const result = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
       // At minimum, fluctuating should be present as fallback
       expect(result.length).toBeGreaterThanOrEqual(1);
     });
@@ -181,7 +181,7 @@ describe('TurnipPatternPredictor', () => {
       // calculatePatternScore for 'decreasing' is only reached after reasonsToRejectDecreasing
       // has confirmed no prices rise. Test the rejection path directly instead.
       const p = new TurnipPatternPredictor(100, { mon_am: 88, mon_pm: 90 }); // rises
-      const possible = p.detectPossiblePatterns();
+      const possible = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
       expect(possible).not.toContain('decreasing');
       expect(p.rejectionReasons.decreasing.length).toBeGreaterThan(0);
     });
@@ -217,10 +217,10 @@ describe('TurnipPatternPredictor', () => {
     });
   });
 
-  describe('#detectPattern', () => {
+  describe('#scorePossiblePatterns', () => {
     it('should return structure with primary, alternatives, and percentages', () => {
       const p = new TurnipPatternPredictor(100);
-      const result = p.detectPattern();
+      const result = p.scorePossiblePatterns(p.getPriceArrayWithIndex());
       expect(result).toHaveProperty('primary');
       expect(result).toHaveProperty('alternatives');
       expect(result).toHaveProperty('percentages');
@@ -230,7 +230,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should use only base probabilities with no known prices', () => {
       const p = new TurnipPatternPredictor(100);
-      const result = p.detectPattern();
+      const result = p.scorePossiblePatterns(p.getPriceArrayWithIndex());
       // Without data, fluctuating has highest default probability (0.35)
       expect(result.primary).toBe('fluctuating');
     });
@@ -240,7 +240,7 @@ describe('TurnipPatternPredictor', () => {
         mon_am: 88, mon_pm: 85, tue_am: 82, tue_pm: 79,
         wed_am: 76, wed_pm: 73,
       });
-      const result = p.detectPattern();
+      const result = p.scorePossiblePatterns(p.getPriceArrayWithIndex());
       expect(result.primary).toBe('decreasing');
     });
 
@@ -249,7 +249,7 @@ describe('TurnipPatternPredictor', () => {
         mon_am: 88, mon_pm: 85,
         wed_am: 300,
       });
-      const result = p.detectPattern();
+      const result = p.scorePossiblePatterns(p.getPriceArrayWithIndex());
       expect(result.primary).toBe('large_spike');
     });
   });
@@ -263,7 +263,7 @@ describe('TurnipPatternPredictor', () => {
       const p = new TurnipPatternPredictor(100);
       const patterns = ['decreasing', 'large_spike', 'small_spike', 'fluctuating'];
       patterns.forEach(pattern => {
-        const result = p.predictPrice(pattern, 0);
+        const result = p.predictPrice(pattern, 0, p.getPriceArrayWithIndex());
         expect(result).toHaveProperty('min');
         expect(result).toHaveProperty('max');
         expect(result.min).toBeLessThanOrEqual(result.max);
@@ -272,8 +272,8 @@ describe('TurnipPatternPredictor', () => {
 
     it('should use fluctuating as default for unrecognized pattern', () => {
       const p = new TurnipPatternPredictor(100);
-      const result = p.predictPrice('unknown_pattern', 0);
-      const fluctResult = p.predictPrice('fluctuating', 0);
+      const result = p.predictPrice('unknown_pattern', 0, p.getPriceArrayWithIndex());
+      const fluctResult = p.predictPrice('fluctuating', 0, p.getPriceArrayWithIndex());
       expect(result).toEqual(fluctResult);
     });
   });
