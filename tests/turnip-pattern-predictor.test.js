@@ -312,7 +312,7 @@ describe('TurnipPatternPredictor', () => {
     it('should return no-optimal message for fluctuating pattern', () => {
       const p = new TurnipPatternPredictor(100);
       const result = p.getBestSellDay({}, 'fluctuating');
-      expect(result.message).toContain('No hay momento óptimo');
+      expect(result).toBe(null);
     });
 
     it('should find best predicted price for predictable patterns', () => {

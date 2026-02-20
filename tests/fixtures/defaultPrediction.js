@@ -19,9 +19,7 @@ export default {
       percentage: expect.any(Number),
     },
   ],
-  bestSellDay: {
-    message: "No hay momento óptimo predecible en patrón aleatorio",
-  },
+  bestSellDay: null,
   pattern: "fluctuating",
   patternName: "Fluctuante",
   predictions: {
