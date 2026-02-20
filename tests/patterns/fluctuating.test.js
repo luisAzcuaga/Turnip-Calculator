@@ -1,6 +1,6 @@
-import { RATES } from "../../lib/constants.js";
 import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../lib/patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
+import { RATES } from "../../lib/constants.js";
 
 describe("patterns/fluctuating", () => {
   const base = 100;
