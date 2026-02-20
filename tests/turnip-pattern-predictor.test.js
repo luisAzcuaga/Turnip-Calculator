@@ -56,13 +56,13 @@ describe('TurnipPatternPredictor', () => {
     });
   })
 
-  describe('#predict', () => {
+  describe('#execute', () => {
     it('should return base predition structure with a valid buy price', () => {
       // Math random between 90 and 110
       const valueValue = Math.floor(Math.random() * (110 - 90 + 1)) + 90;
       const turnipPredictor = new TurnipPatternPredictor(valueValue);
 
-      const prediction = turnipPredictor.predict();
+      const prediction = turnipPredictor.execute();
 
       Object.values(prediction.predictions).forEach(p => {
         expect(p.min).toBeLessThanOrEqual(p.max);
@@ -351,7 +351,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should detect large_spike as primary pattern', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
       // 180/107 = 168.2% with P1→P2 sequence (102→180) confirms Large Spike structure.
       // Small Spike is rejected because P2 rate (168.2%) >= 140%.
       expect(result.pattern).toBe('large_spike');
@@ -359,7 +359,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should have sensible Thu AM predictions with min <= max', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
       const thuAm = result.predictions.thu_am;
       expect(thuAm.min).toBeLessThanOrEqual(thuAm.max);
       expect(thuAm.isUserInput).toBe(false);
@@ -367,7 +367,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should confirm known prices in predictions', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
       expect(result.predictions.mon_am.isUserInput).toBe(true);
       expect(result.predictions.mon_am.min).toBe(94);
       expect(result.predictions.wed_pm.isUserInput).toBe(true);
@@ -376,7 +376,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should include all 4 pattern probabilities summing close to 100%', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
       const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
       // Rounding may cause slight deviation from exactly 100
       expect(total).toBeGreaterThanOrEqual(98);
@@ -385,7 +385,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should have all unconfirmed predictions with min <= max', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
       Object.values(result.predictions).forEach(pred => {
         expect(pred.min).toBeLessThanOrEqual(pred.max);
       });
@@ -402,7 +402,7 @@ describe('TurnipPatternPredictor', () => {
 
     it('should detect large_spike as primary pattern', () => {
       const p = new TurnipPatternPredictor(110, knownPrices, 'small_spike');
-      const result = p.predict();
+      const result = p.execute();
 
       expect(result.pattern).toBe('small_spike');
     });
@@ -410,7 +410,7 @@ describe('TurnipPatternPredictor', () => {
     it('should have sensible Thu AM predictions with min <= max', () => {
       const p = new TurnipPatternPredictor(110, knownPrices, 'small_spike');
 
-      const result = p.predict();
+      const result = p.execute();
       const thuAm = result.predictions.thu_am;
 
       expect(thuAm.min).toBeLessThanOrEqual(thuAm.max);
@@ -420,7 +420,7 @@ describe('TurnipPatternPredictor', () => {
     it('should confirm known prices in predictions', () => {
       const p = new TurnipPatternPredictor(110, knownPrices, 'small_spike');
 
-      const result = p.predict();
+      const result = p.execute();
 
       expect(result.predictions.mon_am.isUserInput).toBe(true);
       expect(result.predictions.mon_am.min).toBe(56);
@@ -431,7 +431,7 @@ describe('TurnipPatternPredictor', () => {
     it('should include all 4 pattern probabilities summing close to 100%', () => {
       const p = new TurnipPatternPredictor(110, knownPrices, 'small_spike');
 
-      const result = p.predict();
+      const result = p.execute();
       const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
 
       // Rounding may cause slight deviation from exactly 100
@@ -442,7 +442,7 @@ describe('TurnipPatternPredictor', () => {
     it('should have all unconfirmed predictions with min <= max', () => {
       const p = new TurnipPatternPredictor(110, knownPrices, 'small_spike');
 
-      const result = p.predict();
+      const result = p.execute();
 
       Object.values(result.predictions).forEach(pred => {
         expect(pred.min).toBeLessThanOrEqual(pred.max);
