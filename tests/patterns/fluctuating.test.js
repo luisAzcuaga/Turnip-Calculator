@@ -1,4 +1,4 @@
-import { calculateFluctuatingPattern, reasonsToRejectFluctuating } from "../../lib/patterns/fluctuating.js";
+import { calculateFluctuatingPattern, reasonsToRejectFluctuating, scoreFluctuating } from "../../lib/patterns/fluctuating.js";
 import { describe, expect, it } from "vitest";
 import { RATES } from "../../lib/constants.js";
 
@@ -17,6 +17,31 @@ describe("patterns/fluctuating", () => {
       expect(result.min).toBeLessThanOrEqual(result.max);
       expect(result.min).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("scoreFluctuating", () => {
+  const base = 100;
+
+  it("should give high score with Monday price above buy", () => {
+    const prices = [{ index: 0, price: 105 }];
+    const { score } = scoreFluctuating(prices, base);
+    // Monday high: +80, base: +30 = 110
+    expect(score).toBeGreaterThanOrEqual(110);
+  });
+
+  it("should give moderate score with prices in normal range", () => {
+    const prices = [{ index: 4, price: 95 }];
+    const { score } = scoreFluctuating(prices, base);
+    // In range (60-140%): +50, base: +30 = 80
+    expect(score).toBe(80);
+  });
+
+  it("should return reasons array", () => {
+    const prices = [{ index: 0, price: 95 }];
+    const { reasons } = scoreFluctuating(prices, base);
+    expect(Array.isArray(reasons)).toBe(true);
+    expect(reasons.length).toBeGreaterThan(0);
   });
 });
 

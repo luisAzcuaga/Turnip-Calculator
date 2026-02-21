@@ -158,59 +158,6 @@ describe('TurnipPatternPredictor', () => {
   // SCORING & DETECTION
   // ==========================================================================
 
-  describe('#calculatePatternScore', () => {
-    it('should give high score to decreasing with all prices declining', () => {
-      const p = new TurnipPatternPredictor(100);
-      const prices = [
-        { index: 0, price: 88, day: 'mon_am' },
-        { index: 1, price: 85, day: 'mon_pm' },
-        { index: 2, price: 82, day: 'tue_am' },
-      ];
-      const score = p.calculatePatternScore('decreasing', prices);
-      // All decreasing → base 100 (perfect). Avg 85 not < 80 → no bonus.
-      expect(score).toBe(100);
-    });
-
-    it('should reject decreasing when prices rise (via detectPossiblePatterns)', () => {
-      // calculatePatternScore for 'decreasing' is only reached after reasonsToRejectDecreasing
-      // has confirmed no prices rise. Test the rejection path directly instead.
-      const p = new TurnipPatternPredictor(100, { mon_am: 88, mon_pm: 90 }); // rises
-      const possible = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
-      expect(possible).not.toContain('decreasing');
-      expect(p.rejectionReasons.decreasing.length).toBeGreaterThan(0);
-    });
-
-    it('should give high score to large_spike with confirmed 200%+ price', () => {
-      const p = new TurnipPatternPredictor(100);
-      const prices = [
-        { index: 0, price: 88, day: 'mon_am' },
-        { index: 4, price: 300, day: 'wed_am' },
-      ];
-      const score = p.calculatePatternScore('large_spike', prices);
-      // 300% confirmed: +100, low-to-high (300 > 88*2 and 88 < 100): +40, base: +10
-      expect(score).toBeGreaterThanOrEqual(150);
-    });
-
-    it('should give high score to fluctuating with Monday price above buy', () => {
-      const p = new TurnipPatternPredictor(100);
-      const prices = [{ index: 0, price: 105, day: 'mon_am' }];
-      const score = p.calculatePatternScore('fluctuating', prices);
-      // Monday high: +80, base: +30 = 110
-      expect(score).toBeGreaterThanOrEqual(110);
-    });
-
-    it('should give score to small_spike with max in 150-190% sweet spot', () => {
-      const p = new TurnipPatternPredictor(100);
-      const prices = [
-        { index: 0, price: 85, day: 'mon_am' },
-        { index: 4, price: 170, day: 'wed_am' },
-      ];
-      const score = p.calculatePatternScore('small_spike', prices);
-      // 170% in perfect range (150-190%): +90, base: +20
-      expect(score).toBeGreaterThanOrEqual(90);
-    });
-  });
-
   describe('#scorePossiblePatterns', () => {
     it('should return structure with primary, alternatives, and percentages', () => {
       const p = new TurnipPatternPredictor(100);

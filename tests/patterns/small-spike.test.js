@@ -1,4 +1,4 @@
-import { calculateSmallSpikePattern, reasonsToRejectSmallSpike } from "../../lib/patterns/small-spike.js";
+import { calculateSmallSpikePattern, reasonsToRejectSmallSpike, scoreSmallSpike } from "../../lib/patterns/small-spike.js";
 import { describe, expect, it } from "vitest";
 import { RATES } from "../../lib/constants.js";
 
@@ -111,6 +111,33 @@ describe("patterns/small-spike", () => {
         }
       }
     });
+  });
+});
+
+describe("scoreSmallSpike", () => {
+  const base = 100;
+
+  it("should give high score with max in 150-190% sweet spot", () => {
+    const prices = [
+      { index: 0, price: 85 },
+      { index: 4, price: 170 },
+    ];
+    const { score } = scoreSmallSpike(prices, base);
+    // 170% in perfect range (150-190%): +90, base: +20
+    expect(score).toBeGreaterThanOrEqual(90);
+  });
+
+  it("should reject when max exceeds 200%", () => {
+    const prices = [{ index: 4, price: 210 }];
+    const { score } = scoreSmallSpike(prices, base);
+    expect(score).toBe(0);
+  });
+
+  it("should return reasons array", () => {
+    const prices = [{ index: 0, price: 85 }];
+    const { reasons } = scoreSmallSpike(prices, base);
+    expect(Array.isArray(reasons)).toBe(true);
+    expect(reasons.length).toBeGreaterThan(0);
   });
 });
 
