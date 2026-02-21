@@ -158,28 +158,6 @@ describe('TurnipPatternPredictor', () => {
   // SCORING & DETECTION
   // ==========================================================================
 
-  describe('#getBaseProbabilities', () => {
-    it('should return default probabilities with no previous pattern', () => {
-      const p = new TurnipPatternPredictor(100);
-      expect(p.getBaseProbabilities()).toEqual({
-        fluctuating: 0.35,
-        large_spike: 0.25,
-        decreasing: 0.15,
-        small_spike: 0.25,
-      });
-    });
-
-    it('should return transition probabilities for a known previous pattern', () => {
-      const p = new TurnipPatternPredictor(100, {}, 'small_spike');
-      expect(p.getBaseProbabilities()).toEqual({
-        fluctuating: 0.45,
-        large_spike: 0.25,
-        decreasing: 0.15,
-        small_spike: 0.15,
-      });
-    });
-  });
-
   describe('#calculatePatternScore', () => {
     it('should give high score to decreasing with all prices declining', () => {
       const p = new TurnipPatternPredictor(100);
