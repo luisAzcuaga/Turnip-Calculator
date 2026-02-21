@@ -1,5 +1,5 @@
 import { DECAY, RATES } from "../../lib/constants.js";
-import { calculateDecreasingPattern, reasonsToRejectDecreasing } from "../../lib/patterns/decreasing.js";
+import { calculateDecreasingPattern, reasonsToRejectDecreasing, scoreDecreasing } from "../../lib/patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
 
 
@@ -96,6 +96,39 @@ describe("patterns/decreasing", () => {
         }
       }
     });
+  });
+});
+
+describe("scoreDecreasing", () => {
+  const base = 100;
+
+  it("should give base score of 100 for all-declining prices", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 2, price: 82 },
+    ];
+    const { score } = scoreDecreasing(prices, base);
+    // All decreasing → base 100 (perfect). Avg 85 not < 80 → no bonus.
+    expect(score).toBe(100);
+  });
+
+  it("should give bonus when average is below 80% of buy price", () => {
+    const prices = [
+      { index: 0, price: 78 },
+      { index: 1, price: 75 },
+      { index: 2, price: 72 },
+    ];
+    const { score } = scoreDecreasing(prices, base);
+    // Avg 75 < 80 → +30 bonus
+    expect(score).toBe(130);
+  });
+
+  it("should return reasons array", () => {
+    const prices = [{ index: 0, price: 88 }];
+    const { reasons } = scoreDecreasing(prices, base);
+    expect(Array.isArray(reasons)).toBe(true);
+    expect(reasons.length).toBeGreaterThan(0);
   });
 });
 

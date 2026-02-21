@@ -1,4 +1,4 @@
-import { calculateLargeSpikePattern, reasonsToRejectLargeSpike } from "../../lib/patterns/large-spike.js";
+import { calculateLargeSpikePattern, reasonsToRejectLargeSpike, scoreLargeSpike } from "../../lib/patterns/large-spike.js";
 import { describe, expect, it } from "vitest";
 import { RATES } from "../../lib/constants.js";
 
@@ -110,6 +110,37 @@ describe("patterns/large-spike", () => {
         }
       }
     });
+  });
+});
+
+describe("scoreLargeSpike", () => {
+  const base = 100;
+
+  it("should give high score with confirmed 200%+ price", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 4, price: 300 },
+    ];
+    const { score } = scoreLargeSpike(prices, base);
+    // 300% confirmed: +100, low-to-high (300 > 88*2 and 88 < 100): +40, base: +10
+    expect(score).toBeGreaterThanOrEqual(150);
+  });
+
+  it("should give low score when max is in ambiguous range", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 4, price: 160 },
+    ];
+    const { score } = scoreLargeSpike(prices, base);
+    // 160% is in ambiguous range (150-190%), closer to Small Spike
+    expect(score).toBeLessThan(50);
+  });
+
+  it("should return reasons array", () => {
+    const prices = [{ index: 0, price: 88 }];
+    const { reasons } = scoreLargeSpike(prices, base);
+    expect(Array.isArray(reasons)).toBe(true);
+    expect(reasons.length).toBeGreaterThan(0);
   });
 });
 
