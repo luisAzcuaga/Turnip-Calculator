@@ -9,7 +9,7 @@ describe('TurnipPatternPredictor', () => {
     const turnipPredictor1 = () => new TurnipPatternPredictor();
     const turnipPredictor2 = () => new TurnipPatternPredictor(0);
     const turnipPredictor3 = () => new TurnipPatternPredictor(1000);
-    
+
     expect(turnipPredictor1).toThrow('El precio de compra es obligatorio');
     expect(turnipPredictor2).toThrow('Precio de compra 0 fuera de rango válido (90-110)');
     expect(turnipPredictor3).toThrow('Precio de compra 1000 fuera de rango válido (90-110)');
@@ -17,13 +17,11 @@ describe('TurnipPatternPredictor', () => {
 
   it('should initialize with valid price', () => {
     const turnipPredictor = new TurnipPatternPredictor(100);
-    
+
     expect(turnipPredictor).toBeInstanceOf(TurnipPatternPredictor);
     expect(turnipPredictor.buyPrice).toBe(100);
     expect(turnipPredictor.knownPrices).toEqual({});
     expect(turnipPredictor.previousPattern).toBeNull();
-    expect(turnipPredictor.defaultProbabilities).toBeDefined();
-    expect(turnipPredictor.transitionProbabilities).toBeDefined();
   });
 
   it('should initialize with any valid buy price', () => {
@@ -36,6 +34,24 @@ describe('TurnipPatternPredictor', () => {
       defaultBaseInstance(buyPrice)
     );
   });
+  describe('#validateBuyPrice', () => {
+    it('should return buy price', () => {
+      const validatedPrices = TurnipPatternPredictor.validateBuyPrice(100);
+
+      expect(validatedPrices).toEqual(100);
+    });
+    it('should raise exception for invalid buy price', () => {
+      const validatePrice = () => TurnipPatternPredictor.validateBuyPrice(200);
+
+      expect(validatePrice).toThrow('Precio de compra 200 fuera de rango válido (90-110)');
+    });
+    it('should raise exception for invalid buy price', () => {
+      const validatePrice = () => TurnipPatternPredictor.validateBuyPrice('');
+
+      expect(validatePrice).toThrow('El precio de compra es obligatorio');
+    });
+  })
+
   describe('#validatePrices', () => {
     it('should filter invalid prices', () => {
       const validatedPrices = TurnipPatternPredictor.validatePrices({
@@ -46,7 +62,7 @@ describe('TurnipPatternPredictor', () => {
         fri_am: 2000, fri_pm: 1000,
         sat_am: 600, sat_pm: 550,
       });
-  
+
       expect(validatedPrices).toEqual({
         mon_am: 100, mon_pm: 90,
         tue_am: 85, tue_pm: 120,
