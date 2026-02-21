@@ -84,7 +84,6 @@ export default {
       min: expect.any(Number),
     },
   },
-  primaryPercentage: 35,
   recommendations: [
     "🎲 Precios variables durante la semana",
     "✅ Vende cuando supere tu precio de compra",

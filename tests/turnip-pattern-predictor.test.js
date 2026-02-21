@@ -272,6 +272,39 @@ describe('TurnipPatternPredictor', () => {
     });
   });
 
+  describe('#predictWeekPrices', () => {
+    it('should return all 12 days', () => {
+      const p = new TurnipPatternPredictor(100);
+      const result = p.predictWeekPrices('decreasing', p.getPriceArrayWithIndex());
+      expect(Object.keys(result)).toHaveLength(12);
+    });
+
+    it('should mark all days as estimated when no prices are known', () => {
+      const p = new TurnipPatternPredictor(100);
+      const result = p.predictWeekPrices('decreasing', p.getPriceArrayWithIndex());
+      Object.values(result).forEach(day => {
+        expect(day.isUserInput).toBe(false);
+        expect(day).toHaveProperty('min');
+        expect(day).toHaveProperty('max');
+      });
+    });
+
+    it('should use known prices directly with min === max', () => {
+      const p = new TurnipPatternPredictor(100, { mon_am: 90, wed_pm: 150 });
+      const result = p.predictWeekPrices('large_spike', p.getPriceArrayWithIndex());
+      expect(result.mon_am).toEqual({ min: 90, max: 90, isUserInput: true });
+      expect(result.wed_pm).toEqual({ min: 150, max: 150, isUserInput: true });
+    });
+
+    it('should estimate unknown days and keep known days intact', () => {
+      const p = new TurnipPatternPredictor(100, { mon_am: 90 });
+      const result = p.predictWeekPrices('decreasing', p.getPriceArrayWithIndex());
+      expect(result.mon_am.isUserInput).toBe(true);
+      expect(result.mon_pm.isUserInput).toBe(false);
+      expect(result.mon_pm.min).toBeLessThanOrEqual(result.mon_pm.max);
+    });
+  });
+
   describe('#getRecommendations', () => {
     it('should return decreasing recommendations', () => {
       const p = new TurnipPatternPredictor(100);
