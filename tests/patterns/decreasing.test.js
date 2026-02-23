@@ -1,4 +1,4 @@
-import { DECAY, RATES } from "../../lib/constants.js";
+import { RATES } from "../../lib/constants.js";
 import { calculateDecreasingPattern, reasonsToRejectDecreasing, scoreDecreasing } from "../../lib/patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
 
@@ -68,8 +68,8 @@ describe("patterns/decreasing", () => {
       // worst case: 0.84 - (5% * 2) = 0.74 → floor(100 * 0.74) = 74
       // best case:  0.84 - (3% * 2) = 0.78 → ceil(100 * 0.78)  = 78
       const result = calculateDecreasingPattern(3, base, knownPrices);
-      expect(result.min).toBe(Math.floor(base * (0.84 - DECAY.MAX_PER_PERIOD * 2)));
-      expect(result.max).toBe(Math.ceil(base * (0.84 - DECAY.MIN_PER_PERIOD * 2)));
+      expect(result.min).toBe(Math.floor(base * (0.84 - RATES.DECREASING.MAX_DROP_RATE * 2)));
+      expect(result.max).toBe(Math.ceil(base * (0.84 - RATES.DECREASING.MIN_DROP_RATE * 2)));
     });
 
     it("should use algorithm defaults when predicting before known prices", () => {

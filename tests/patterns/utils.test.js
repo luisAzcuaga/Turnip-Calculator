@@ -127,12 +127,12 @@ describe("patterns/utils", () => {
   describe("decreasingMaxForPeriod", () => {
     const base = 100;
 
-    it("should return max at period 0 using START_MAX - 0*MIN_DECAY", () => {
+    it("should return max at period 0 using START_MAX - 0*MIN_DROP_RATE", () => {
       // rate = 0.90 - (0 * 0.03) = 0.90 → ceil(100 * 0.90) = 90
       expect(decreasingMaxForPeriod(base, 0)).toBe(90);
     });
 
-    it("should decrease by MIN_DECAY per period", () => {
+    it("should decrease by MIN_DROP_RATE per period", () => {
       const period1 = decreasingMaxForPeriod(base, 1);
       const period2 = decreasingMaxForPeriod(base, 2);
       // Monotonically decreasing
