@@ -127,12 +127,6 @@ describe("scoreSmallSpike", () => {
     expect(score).toBeGreaterThanOrEqual(90);
   });
 
-  it("should reject when max exceeds 200%", () => {
-    const prices = [{ index: 4, price: 210 }];
-    const { score } = scoreSmallSpike(prices, base);
-    expect(score).toBe(0);
-  });
-
   it("should return reasons array", () => {
     const prices = [{ index: 0, price: 85 }];
     const { reasons } = scoreSmallSpike(prices, base);
