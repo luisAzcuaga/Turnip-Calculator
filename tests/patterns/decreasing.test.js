@@ -1,6 +1,6 @@
-import { RATES } from "../../lib/constants.js";
 import { calculateDecreasingPattern, reasonsToRejectDecreasing, scoreDecreasing } from "../../lib/patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
+import { RATES } from "../../lib/constants.js";
 
 
 describe("patterns/decreasing", () => {
