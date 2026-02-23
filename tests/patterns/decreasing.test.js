@@ -1,7 +1,7 @@
-import { RATES, VARIANCE } from "../../constants.js";
+import { DECAY, RATES } from "../../lib/constants.js";
+import { calculateDecreasingPattern, reasonsToRejectDecreasing, scoreDecreasing } from "../../lib/patterns/decreasing.js";
 import { describe, expect, it } from "vitest";
 
-import calculateDecreasingPattern from "../../patterns/decreasing.js";
 
 describe("patterns/decreasing", () => {
   const base = 100;
@@ -59,20 +59,17 @@ describe("patterns/decreasing", () => {
       expect(result.max).toBe(84);
     });
 
-    it("should project future prices with variance from 2+ known prices", () => {
+    it("should project future prices using game bounds from last known price", () => {
       const knownPrices = [
         { index: 0, price: 88 }, // rate 0.88
-        { index: 1, price: 84 }, // rate 0.84, drop = 0.04
+        { index: 1, price: 84 }, // rate 0.84
       ];
-      // avgRateDrop = 0.04
-      // For period 3 (2 periods ahead of index 1):
-      // projected rate = 0.84 - (0.04 * 2) = 0.76
-      // projected price = 100 * 0.76 = 76
-      // min = floor(76 * 0.95) = floor(72.2) = 72
-      // max = ceil(76 * 1.05) = ceil(79.8) = 80
+      // For period 3 (2 periods ahead of index 1), rate 0.84:
+      // worst case: 0.84 - (5% * 2) = 0.74 → floor(100 * 0.74) = 74
+      // best case:  0.84 - (3% * 2) = 0.78 → ceil(100 * 0.78)  = 78
       const result = calculateDecreasingPattern(3, base, knownPrices);
-      expect(result.min).toBe(Math.floor(76 * VARIANCE.INFERRED_MIN));
-      expect(result.max).toBe(Math.ceil(76 * VARIANCE.INFERRED_MAX));
+      expect(result.min).toBe(Math.floor(base * (0.84 - DECAY.MAX_PER_PERIOD * 2)));
+      expect(result.max).toBe(Math.ceil(base * (0.84 - DECAY.MIN_PER_PERIOD * 2)));
     });
 
     it("should use algorithm defaults when predicting before known prices", () => {
@@ -99,5 +96,78 @@ describe("patterns/decreasing", () => {
         }
       }
     });
+  });
+});
+
+describe("scoreDecreasing", () => {
+  const base = 100;
+
+  it("should give base score of 100 for all-declining prices", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 2, price: 82 },
+    ];
+    const { score } = scoreDecreasing(prices, base);
+    // All decreasing → base 100 (perfect). Avg 85 not < 80 → no bonus.
+    expect(score).toBe(100);
+  });
+
+  it("should give bonus when average is below 80% of buy price", () => {
+    const prices = [
+      { index: 0, price: 78 },
+      { index: 1, price: 75 },
+      { index: 2, price: 72 },
+    ];
+    const { score } = scoreDecreasing(prices, base);
+    // Avg 75 < 80 → +30 bonus
+    expect(score).toBe(130);
+  });
+
+  it("should return reasons array", () => {
+    const prices = [{ index: 0, price: 88 }];
+    const { reasons } = scoreDecreasing(prices, base);
+    expect(Array.isArray(reasons)).toBe(true);
+    expect(reasons.length).toBeGreaterThan(0);
+  });
+});
+
+describe("isPossibleDecreasing", () => {
+  const base = 100;
+
+  it("should accept a strictly decreasing series within valid range", () => {
+    // decreasingMaxForPeriod(100, 0) = ceil(100 * 0.90) = 90
+    // decreasingMin(100) = floor(100 * 0.40) = 40
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 85 },
+      { index: 2, price: 82 },
+    ];
+    expect(reasonsToRejectDecreasing(prices, base)).toBeNull();
+  });
+
+  it("should reject when Monday price exceeds decreasingMax", () => {
+    const prices = [{ index: 0, price: 105 }];
+    expect(reasonsToRejectDecreasing(prices, base)).not.toBeNull();
+  });
+
+  it("should reject when any price rises compared to previous", () => {
+    const prices = [
+      { index: 0, price: 88 },
+      { index: 1, price: 90 }, // rises
+    ];
+    expect(reasonsToRejectDecreasing(prices, base)).not.toBeNull();
+  });
+
+  it("should reject when price exceeds decreasingMaxForPeriod", () => {
+    // At period 0, max = ceil(100 * 0.90) = 90. Price 95 > 90 → rejected
+    const prices = [{ index: 0, price: 95 }];
+    expect(reasonsToRejectDecreasing(prices, base)).not.toBeNull();
+  });
+
+  it("should reject when price falls below decreasingMin", () => {
+    // decreasingMin(100) = floor(100 * 0.40) = 40. Price 35 < 40 → rejected
+    const prices = [{ index: 0, price: 35 }];
+    expect(reasonsToRejectDecreasing(prices, base)).not.toBeNull();
   });
 });

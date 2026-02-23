@@ -1,278 +1,239 @@
-# Algoritmo de Predicción de Precios de Nabos
+# Turnip Price Prediction Algorithm
 
-Documentación técnica de los patrones de precios implementados en este calculador.
-
----
-
-## Los 4 Patrones
-
-Animal Crossing tiene 4 patrones de precios que se alternan semanalmente según probabilidades de transición.
-
-### 1. Decreciente (Pattern 2)
-
-**Estructura:**
-- Empieza: 85-90% del precio base
-- Decrecimiento: 3-5% por período
-- Piso mínimo: 40%
-
-**Implementación:**
-```
-Rate inicial = 0.85-0.90
-Por cada período: rate -= 0.03-0.05
-Precio = base × max(0.40, rate)
-```
-
-**Detección inteligente:**
-- Con 2+ precios conocidos: calcula tasa de decrecimiento real del rate observado
-- Proyecta períodos futuros usando tasa calculada con ±5% varianza
+Technical documentation of the price patterns implemented in this predictor.
 
 ---
 
-### 2. Fluctuante (Pattern 0)
+## The 4 Patterns
 
-**Estructura:**
-- Alterna entre fases ALTAS (90-140%) y fases BAJAS (60-80%)
-- 2 fases bajas que suman exactamente 5 períodos (2+3 o 3+2)
-- 3 fases altas (variable duración)
+Animal Crossing has 4 price patterns that alternate weekly according to transition probabilities.
 
-**Fases:**
-```
-ALTA 1 (0-6 períodos)    → 90-140%
-BAJA 1 (2-3 períodos)    → 60-80%, baja 4-10%
-ALTA 2 (variable)        → 90-140%
-BAJA 2 (3-2 períodos)    → 60-80%, baja 4-10%
-ALTA 3 (resto)           → 90-140%
-```
+### 1. Decreasing (Pattern 2)
 
-**Regla del juego:**
+**Structure:**
+- Starts at 85–90% of the buy price
+- Drops 3–5% per period
+- Floor: 40%
+
+**Projection:**
 ```
-decPhaseLen1 + decPhaseLen2 = 5 períodos SIEMPRE
+Initial rate = 0.85–0.90
+Each period:  rate -= 0.03–0.05
+Price = base × max(0.40, rate)
 ```
 
-**Detección inteligente:**
-1. Detecta fases bajas completadas (2 o 3 períodos consecutivos <85% bajando)
-2. Deduce longitud de la segunda fase baja (5 - primera fase)
-3. Una vez detectadas ambas fases bajas, predice solo fase ALTA (90-140%) para el resto
-
-**Restricciones de validación:**
-- Rechaza si >2 incrementos consecutivos (indica Spike)
-- Rechaza si >3 decrementos consecutivos (excede fase baja)
-- Rechaza si baja desde el inicio sin fase alta
+**Detection:**
+- With 2+ known prices: calculates the observed rate drop and projects future periods with ±10% variance
+- With 1 known price: projects using 3–5% drop range per period
 
 ---
 
-### 3. Pico Grande (Large Spike - Pattern 1)
+### 2. Fluctuating (Pattern 0)
 
-**Estructura:**
-- Fase decreciente pre-pico: 85-90% bajando 3-5% por período
-- Pico de 5 períodos (empieza entre período 3-7)
-- Fase post-pico: 40-90%
+**Structure:**
+- Alternates between HIGH phases (90–140%) and LOW phases (60–80%)
+- 2 low phases that always sum to exactly 5 periods (2+3 or 3+2)
+- 3 high phases (variable duration)
 
-**Fases del pico:**
+**Phases:**
 ```
-Período 1: 90-140%   (subida inicial)
-Período 2: 140-200%  ⭐ (sube dramáticamente)
-Período 3: 200-600%  (PICO MÁXIMO)
-Período 4: 140-200%
-Período 5: 90-140%
+HIGH 1 (0–6 periods)   → 90–140%
+LOW  1 (2–3 periods)   → 60–80%, drops 4–10%
+HIGH 2 (variable)      → 90–140%
+LOW  2 (3–2 periods)   → 60–80%, drops 4–10%
+HIGH 3 (remainder)     → 90–140%
 ```
 
-**Diferenciador clave:**
-- Período 2 ≥ 140% confirma Large Spike
-- Período 2 < 140% descarta Large Spike (es Small Spike)
+**Game rule:**
+```
+lowPhaseLen1 + lowPhaseLen2 = 5 periods ALWAYS
+```
 
-**Validaciones:**
-- Lunes AM debe estar entre 85-90%
-- Rate no puede bajar >5% por período en fase pre-pico
-- No puede subir significativamente antes del período 3
-- Rechaza si llegamos tarde (≥Jueves PM) sin subida significativa
+**Detection:**
+1. Detects completed low phases (2 or 3 consecutive periods <85% and falling)
+2. Infers the length of the second low phase (5 − first phase)
+3. Once both low phases are identified, predicts only HIGH phase (90–140%) for the remainder
+
+**Validation:**
+- Rejected if >2 consecutive increases (indicates a spike)
+- Rejected if >3 consecutive decreases (exceeds a low phase)
+- Rejected if declining from the very start with no prior high phase
 
 ---
 
-### 4. Pico Pequeño (Small Spike - Pattern 3)
+### 3. Large Spike (Pattern 1)
 
-**Estructura:**
-- Fase decreciente pre-pico: 40-90% bajando 3-5% por período
-- Pico de 5 períodos (empieza entre período 2-7)
-- Fase post-pico: 40-90%
+**Structure:**
+- Pre-spike decreasing phase: 85–90%, dropping 3–5% per period
+- 5-period spike (starts between periods 2–7)
+- Post-spike phase: 40–90%
 
-**Fases del pico:**
+**Spike phases:**
 ```
-Período 1: 90-140%
-Período 2: 90-140%   ⭐ (se mantiene, NO sube a 140%+)
-Período 3: 140-200% menos 1 baya
-Período 4: 140-200%  (PICO MÁXIMO, rate exacto)
-Período 5: 140-200% menos 1 baya
+Phase 1: 90–140%   (initial rise)
+Phase 2: 140–200%  ⭐ (sharp rise — key differentiator)
+Phase 3: 200–600%  (PEAK)
+Phase 4: 140–200%
+Phase 5: 90–140%
 ```
 
-**Implementación del rate:**
-- El juego elige un rate aleatorio entre 1.4-2.0
-- Período 4 = base × rate (pico real)
-- Períodos 3 y 5 = base × rate - 1 baya
+**Key differentiator:**
+- Phase 2 ≥ 140% confirms Large Spike
+- Phase 2 < 140% rules out Large Spike (Small Spike instead)
 
-**Diferenciador clave:**
-- Período 2 < 140% confirma Small Spike
-- Período 2 ≥ 140% descarta Small Spike (es Large Spike)
-
-**Inferencia del rate:**
-- Si tenemos período 4: rate conocido exacto
-- Si tenemos período 3 o 5: rate ≥ (precio + 1) / base
-- Permite predicciones precisas del resto del pico
-
-**Validaciones:**
-- Rate no puede bajar >5% por período en fase pre-pico
-- No puede subir significativamente antes del período 2
-- Rechaza si llegamos tarde (≥Jueves PM) sin subida significativa
-- Rechaza si el pico máximo excede 200%
+**Validation:**
+- Monday AM must be between 85–90%
+- Rate cannot drop >5% per period in the pre-spike phase
+- Cannot rise significantly before period 2
+- Rejected if we reach Thursday PM or later without any significant rise
 
 ---
 
-## Sistema de Detección de Patrones
+### 4. Small Spike (Pattern 3)
 
-### Rechazo automático
+**Structure:**
+- Pre-spike decreasing phase: 40–90%, dropping 3–5% per period
+- 5-period spike (starts between periods 1–7)
+- Post-spike phase: 40–90%
 
-Cada patrón se rechaza si no cumple sus reglas:
+**Spike phases:**
+```
+Phase 1: 90–140%
+Phase 2: 90–140%   ⭐ (stays below 140% — key differentiator)
+Phase 3: 140–200% − 1 Bell
+Phase 4: 140–200%  (PEAK — the actual random rate)
+Phase 5: 140–200% − 1 Bell
+```
 
-**Decreciente:**
-- ❌ Lunes con precio >100%
-- ❌ Cualquier subida significativa
+**Rate inference:**
+- The game picks a random rate between 1.40–2.00
+- Phase 4 = base × rate (the real peak)
+- Phases 3 and 5 = base × rate − 1 Bell
+- If phase 4 is known: exact rate determined
+- If phase 3 or 5 is known: rate ≥ (price + 1) / base
 
-**Fluctuante:**
-- ❌ Precios fuera de 60-140%
-- ❌ >2 incrementos consecutivos
-- ❌ >3 decrementos consecutivos
-- ❌ Baja desde el inicio (≥2 períodos)
+**Key differentiator:**
+- Phase 2 < 140% confirms Small Spike
+- Phase 2 ≥ 140% rules out Small Spike (Large Spike instead)
+
+**Validation:**
+- Rate cannot drop >5% per period in the pre-spike phase
+- Cannot rise significantly before period 1
+- Rejected if we reach Thursday PM or later without any significant rise
+- Rejected if the peak exceeds 200%
+
+---
+
+## Pattern Detection System
+
+### Rejection
+
+Each pattern is rejected if it violates its rules:
+
+**Decreasing:**
+- ❌ Monday with price >100%
+- ❌ Any significant increase
+
+**Fluctuating:**
+- ❌ Prices outside 60–140%
+- ❌ >2 consecutive increases
+- ❌ >3 consecutive decreases
+- ❌ Declining from the start (≥2 periods with no prior high phase)
 
 **Large Spike:**
-- ❌ Período 2 del pico <140%
-- ❌ Lunes AM fuera de 85-90%
-- ❌ Rate baja >5% por período en pre-pico
-- ❌ Sube temprano (antes del período 3)
-- ❌ Tarde sin subida (≥Jueves PM)
+- ❌ Spike phase 2 < 140%
+- ❌ Monday AM outside 85–90%
+- ❌ Rate drops >5% per period in pre-spike phase
+- ❌ Rises too early (before period 2)
+- ❌ Too late without a rise (≥ Thursday PM)
 
 **Small Spike:**
-- ❌ Período 2 del pico ≥140%
-- ❌ Pico máximo >200%
-- ❌ Rate baja >5% por período en pre-pico
-- ❌ Sube temprano (antes del período 2)
-- ❌ Tarde sin subida (≥Jueves PM)
+- ❌ Spike phase 2 ≥ 140%
+- ❌ Peak exceeds 200%
+- ❌ Rate drops >5% per period in pre-spike phase
+- ❌ Rises too early (before period 1)
+- ❌ Too late without a rise (≥ Thursday PM)
 
-### Scoring de patrones
+### Pattern Scoring
 
-Combina probabilidades de transición con análisis de datos reales:
+Combines transition probabilities with live price data:
 
 ```javascript
 score = (dataScore × dataWeight) + (probabilityScore × probWeight)
 
-dataWeight = min(knownPrices.length / 8, 0.70)  // Max 70% peso a datos
-probWeight = 1 - dataWeight                      // Min 30% peso a probabilidades
+dataWeight = min(knownPrices.length / 8, 0.70)  // Up to 70% weight on data
+probWeight = 1 − dataWeight                      // Minimum 30% weight on probabilities
 ```
 
-**Data Score** se calcula según:
-- Confirmaciones (pico detectado, bajadas consecutivas, etc.)
-- Señales (subidas rápidas, promedios bajos, etc.)
-- Penalizaciones (fuera de rango, patrones incorrectos, etc.)
+**Data score** is computed from:
+- Confirmations (spike detected, consecutive drops, etc.)
+- Signals (rapid rises, low averages, etc.)
+- Penalties (out-of-range prices, conflicting patterns, etc.)
 
 ---
 
-## Probabilidades de Transición
+## Transition Probabilities
 
-El patrón actual depende del patrón anterior:
+The current pattern depends on the previous one:
 
-| Anterior | Fluctuante | Large Spike | Decreasing | Small Spike |
-|----------|-----------|-------------|------------|-------------|
-| **Primera vez** | 35% | 25% | 15% | 25% |
-| **Fluctuante** | 20% | 30% | 15% | **35%** |
+| Previous | Fluctuating | Large Spike | Decreasing | Small Spike |
+|----------|-------------|-------------|------------|-------------|
+| **First time** | 35% | 25% | 15% | 25% |
+| **Fluctuating** | 20% | 30% | 15% | **35%** |
 | **Large Spike** | **50%** | 5% | 20% | 25% |
 | **Decreasing** | 25% | **45%** | 5% | 25% |
 | **Small Spike** | **45%** | 25% | 15% | 15% |
 
-**Insights:**
-- Large Spike y Decreasing raramente se repiten (5%)
-- Después de Decreasing: 45% Large Spike
-- Después de Large Spike: 50% Fluctuante
+**Key insights:**
+- Large Spike and Decreasing rarely repeat (5% each)
+- After Decreasing: 45% Large Spike
+- After Large Spike: 50% Fluctuating
 
 ---
 
-## Constantes del Algoritmo
+## Algorithm Constants
 
-Definidas en `constants.js`:
+Defined in `constants.js`:
 
 ### RATES
-Ratios de precio (porcentaje del precio base):
+Price ratios (as a percentage of the buy price):
 ```javascript
-DECREASING: { START_MIN: 0.85, START_MAX: 0.90, FLOOR: 0.40 }
-LARGE_SPIKE: { START_MIN: 0.85, START_MAX: 0.90, PEAK_PHASES: [...] }
-SMALL_SPIKE: { PEAK_RATE_MIN: 1.40, PEAK_RATE_MAX: 2.00, ... }
-FLUCTUATING: { MIN: 0.60, MAX: 1.40, HIGH: 0.90-1.40, LOW: 0.60-0.80 }
+DECREASING:   { START_MIN: 0.85, START_MAX: 0.90, FLOOR: 0.40 }
+LARGE_SPIKE:  { START_MIN: 0.85, START_MAX: 0.90, SPIKE_PHASES: [...] }
+SMALL_SPIKE:  { PEAK_RATE_MIN: 1.40, PEAK_RATE_MAX: 2.00, ... }
+FLUCTUATING:  { MIN: 0.60, MAX: 1.40, HIGH: 0.90–1.40, LOW: 0.60–0.80 }
 ```
 
 ### DECAY
-Tasas de decrecimiento:
+Drop rates per period:
 ```javascript
-MIN_PER_PERIOD: 0.03  // 3% - mejor caso
-MAX_PER_PERIOD: 0.05  // 5% - peor caso
+MIN_PER_PERIOD: 0.03  // 3% — best case
+MAX_PER_PERIOD: 0.05  // 5% — worst case
 ```
 
 ### THRESHOLDS
-Umbrales de detección:
+Detection thresholds:
 ```javascript
-LARGE_SPIKE_CONFIRMED: 2.0       // ≥200% confirma Large Spike
-SMALL_SPIKE_MIN: 1.40            // ≥140% puede ser Small Spike
-SMALL_SPIKE_MAX: 2.00            // <200% para Small Spike
-SIGNIFICANT_RISE: 1.10           // 10% = subida significativa
+LARGE_SPIKE_CONFIRMED: 2.0       // ≥200% confirms Large Spike
+SMALL_SPIKE_MIN: 1.40            // ≥140% may be Small Spike
+SMALL_SPIKE_MAX: 2.00            // <200% for Small Spike
+SIGNIFICANT_RISE: 1.10           // 10% = significant rise
 FLUCTUATING_MAX_CONSECUTIVE_INCREASES: 2
 FLUCTUATING_MAX_CONSECUTIVE_DECREASES: 3
 ```
 
 ### PERIODS
-Índices de períodos (0 = Lunes AM, 11 = Sábado PM):
+Period indices (0 = Monday AM, 11 = Saturday PM):
 ```javascript
-SMALL_SPIKE_PEAK_START_MIN: 1   // Lunes PM
-LARGE_SPIKE_PEAK_START_MIN: 2   // Martes AM
-SPIKE_PEAK_START_MAX: 7         // Jueves PM
+SMALL_SPIKE_START_MIN: 1   // Monday PM
+LARGE_SPIKE_START_MIN: 2   // Tuesday AM
+SPIKE_START_MAX: 7         // Thursday PM (both) — latest start for 5 periods
 ```
 
 ---
 
-## Mejoras sobre el Algoritmo Original
+## References
 
-Este calculador implementa mejoras sobre el gist original (2020):
-
-### 1. Detección de Período 2 del Pico
-- **Original:** No diferencia automáticamente Large vs Small Spike
-- **Actual:** Detecta período 2 y confirma/rechaza definitivamente basándose en si ≥140%
-
-### 2. Predicción Inteligente de Fluctuante
-- **Original:** Solo genera rangos aleatorios por fase
-- **Actual:** Detecta fases bajas completadas y deduce la segunda automáticamente
-
-### 3. Sistema de Rechazo con Razones
-- **Original:** Solo genera rangos
-- **Actual:** Sistema completo de validación que rechaza patrones imposibles con explicaciones
-
-### 4. Validación de Rate Drop
-- **Original:** No valida pendientes
-- **Actual:** Rechaza Spikes si el rate baja >5% por período en pre-pico
-
-### 5. Proyección Dinámica
-- **Original:** Rangos fijos
-- **Actual:** Calcula tasa de decrecimiento real observada y proyecta con varianza
-
-### 6. Sistema de Scoring
-- **Original:** No existe
-- **Actual:** Combina probabilidades de transición con análisis de datos (30-70% peso ajustable)
-
-### 7. Restricciones de Alternancia
-- **Original:** Permite cualquier secuencia en Fluctuante
-- **Actual:** Rechaza >2 incrementos o >3 decrementos consecutivos
-
----
-
-## Referencias
-
-- [Código original datamineado](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b) (Ninji/Treeki, abril 2020)
-- Comunidad de r/acturnips
+- [Original datamined code](https://gist.github.com/Treeki/85be14d297c80c8b3c0a76375743325b) (Ninji/Treeki, April 2020)
+- r/acturnips community
 - Animal Crossing Wiki
-
-**Nota:** El gist original es de la versión 1.0-1.1 del juego. Este calculador implementa mejoras adicionales de detección y validación.

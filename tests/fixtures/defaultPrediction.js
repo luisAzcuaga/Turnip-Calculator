@@ -19,10 +19,7 @@ export default {
       percentage: expect.any(Number),
     },
   ],
-  bestTime: {
-    message: "No hay momento óptimo predecible en patrón aleatorio",
-    pattern: "fluctuating",
-  },
+  bestSellDay: null,
   pattern: "fluctuating",
   patternName: "Fluctuante",
   predictions: {
@@ -87,8 +84,7 @@ export default {
       min: expect.any(Number),
     },
   },
-  primaryPercentage: 35,
-  recommendation: [
+  recommendations: [
     "🎲 Precios variables durante la semana",
     "✅ Vende cuando supere tu precio de compra",
     "⚖️ Patrón impredecible, mantente atento",
