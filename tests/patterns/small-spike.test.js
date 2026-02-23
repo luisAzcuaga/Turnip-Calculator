@@ -171,6 +171,46 @@ describe("isPossibleSmallSpike", () => {
     expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
   });
 
+  it("should reject when spike phase 2 price exceeds 90-140% range (max within 200%)", () => {
+    // Spike starts at period 2 (114, rise from 85):
+    //   Phase 1 (period 2): 114 → 110.7% ✓ (within 90-140%)
+    //   Phase 2 (period 3): 166 → 161.2% ✗ (exceeds 90-140% for small spike)
+    // Max is 166 → 161.2%, within 200% — so max check won't catch this.
+    // The phase 2 price alone should disqualify small spike.
+    const base = 103;
+    const prices = [
+      { index: 0, price: 89 },
+      { index: 1, price: 85 },
+      { index: 2, price: 114 },
+      { index: 3, price: 166 },
+    ];
+    expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
+  });
+
+  it("should reject full-week data where spike phase 2 exceeds 90-140% and max exceeds 200%", () => {
+    // Real scenario: 103|s|89|85|114|166|360|158|133|81|84|72|72|89
+    // Spike starts at period 2 (114, rise from 85):
+    //   Phase 1 (period 2): 114 → 110.7% ✓ (within 90-140%)
+    //   Phase 2 (period 3): 166 → 161.2% ✗ (exceeds 90-140% for small spike)
+    // Also max 360 → 349.5% exceeds 200%
+    const base = 103;
+    const prices = [
+      { index: 0, price: 89 },
+      { index: 1, price: 85 },
+      { index: 2, price: 114 },
+      { index: 3, price: 166 },
+      { index: 4, price: 360 },
+      { index: 5, price: 158 },
+      { index: 6, price: 133 },
+      { index: 7, price: 81 },
+      { index: 8, price: 84 },
+      { index: 9, price: 72 },
+      { index: 10, price: 72 },
+      { index: 11, price: 89 },
+    ];
+    expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
+  });
+
   it("should accept prices with moderate max in 140-200% range late in week", () => {
     const prices = [
       { index: 0, price: 85 },
