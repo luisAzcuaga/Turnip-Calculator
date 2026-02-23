@@ -449,18 +449,18 @@ describe("patterns/utils", () => {
   });
 });
 
-import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeSlope } from "../../lib/patterns/utils.js";
+import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeDropRate } from "../../lib/patterns/utils.js";
 
 describe("patterns/utils — spike validation helpers", () => {
   const base = 100;
 
-  describe("validatePreSpikeSlope", () => {
+  describe("validatePreSpikeDropRate", () => {
     it("should accept valid rate drops (<=5% per period)", () => {
       const prices = [
         { index: 0, price: 88 },
         { index: 1, price: 85 }, // 3% drop
       ];
-      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+      expect(validatePreSpikeDropRate(prices, true, base)).toEqual({ invalid: false });
     });
 
     it("should reject rate drops >5% per period in pre-spike phase", () => {
@@ -469,7 +469,7 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 85 },
         { index: 1, price: 75 },
       ];
-      const result = validatePreSpikeSlope(prices, true, base);
+      const result = validatePreSpikeDropRate(prices, true, base);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain("5%");
     });
@@ -480,7 +480,7 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 85 },
         { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10
       ];
-      const result = validatePreSpikeSlope(prices, true, base);
+      const result = validatePreSpikeDropRate(prices, true, base);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain("antes del período");
     });
@@ -490,7 +490,43 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 90 },
         { index: 3, price: 75 }, // gap — non-consecutive, skip validation
       ];
-      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+      expect(validatePreSpikeDropRate(prices, true, base)).toEqual({ invalid: false });
+    });
+
+    // Small Spike: minSpikeStart = 1 (Monday PM)
+    it("should accept a rise at period 1 for small spike (spike can start Monday PM)", () => {
+      // Same data that gets rejected for large spike — valid for small spike
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10, but period 1 >= minSpikeStart(1)
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
+    });
+
+    it("should accept valid rate drops for small spike", () => {
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 }, // 3% drop
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
+    });
+
+    it("should reject rate drops >5% per period for small spike", () => {
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 75 }, // drop=10% > 5%
+      ];
+      const result = validatePreSpikeDropRate(prices, false, base);
+      expect(result.invalid).toBe(true);
+      expect(result.reason).toContain("5%");
+    });
+
+    it("should skip non-consecutive period indices for small spike", () => {
+      const prices = [
+        { index: 0, price: 90 },
+        { index: 3, price: 75 },
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
     });
   });
 
