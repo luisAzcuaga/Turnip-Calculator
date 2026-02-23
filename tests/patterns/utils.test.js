@@ -208,7 +208,7 @@ describe("patterns/utils", () => {
       const range = getSpikeStartRange(true);
       expect(range.min).toBe(PERIODS.LARGE_SPIKE_START_MIN); // 2
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Martes PM");
+      expect(range.minName).toBe("Martes AM");
       expect(range.maxName).toBe("Jueves PM");
     });
 
@@ -216,7 +216,7 @@ describe("patterns/utils", () => {
       const range = getSpikeStartRange(false);
       expect(range.min).toBe(PERIODS.SMALL_SPIKE_START_MIN); // 1
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Martes AM");
+      expect(range.minName).toBe("Lunes PM");
       expect(range.maxName).toBe("Jueves PM");
     });
   });
