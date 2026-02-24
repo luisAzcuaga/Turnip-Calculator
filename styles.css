@@ -416,6 +416,16 @@ input.best-selling-time {
   text-align: center;
 }
 
+.chart-canvas-wrapper {
+  height: 220px;
+}
+
+@media (max-width: 500px) {
+  .chart-canvas-wrapper {
+    height: 180px;
+  }
+}
+
 .results-section h2 {
   color: #2e7d32;
   margin: 0 0 20px;
