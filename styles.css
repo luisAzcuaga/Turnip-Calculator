@@ -389,15 +389,10 @@ input.best-selling-time {
   border: 3px solid #66bb6a;
 }
 
-.results-header {
+.results-panel-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.results-header h2 {
-  margin: 0;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
 .btn-toggle-view {
@@ -442,7 +437,6 @@ input.best-selling-time {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
