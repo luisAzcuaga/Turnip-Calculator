@@ -396,6 +396,31 @@ input.best-selling-time {
   margin: 20px 0 0;
 }
 
+/* Compact view: show only the probability panel at full width */
+.results-grid.compact-view {
+  grid-template-columns: 1fr;
+}
+
+.results-grid.compact-view .results-main {
+  display: none;
+}
+
+/* Detailed view: hide the probability panel */
+.results-grid:not(.compact-view) .confidence-panel {
+  display: none;
+}
+
+/* Both panels are clickable to toggle */
+.debug-info,
+.confidence-panel {
+  cursor: pointer;
+}
+
+.debug-info:hover,
+.confidence-panel:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
 .results-main {
   min-width: 0;
 }
@@ -504,6 +529,15 @@ input.best-selling-time {
   margin: 15px auto 12px;
   color: #616161;
   line-height: 1.4;
+}
+
+/* Toggle hint label inside each panel */
+.toggle-view-hint {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: #9e9e9e;
+  text-align: right;
+  user-select: none;
 }
 
 .probability-list {
