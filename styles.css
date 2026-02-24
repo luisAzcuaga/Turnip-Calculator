@@ -389,7 +389,7 @@ input.best-selling-time {
   border: 3px solid #66bb6a;
 }
 
-.results-panel-header {
+.toggle-header {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
@@ -413,23 +413,19 @@ input.best-selling-time {
   color: #424242;
 }
 
-.results-grid {
+.pattern-panels {
   display: grid;
   grid-template-columns: 1fr;
   gap: 25px;
   margin: 20px 0 0;
 }
 
-.results-grid.compact-view .results-main {
+.pattern-panels.compact-view .pattern-detail {
   display: none;
 }
 
-.results-grid:not(.compact-view) .confidence-panel {
+.pattern-panels:not(.compact-view) .pattern-summary {
   display: none;
-}
-
-.results-main {
-  min-width: 0;
 }
 
 /* Chart container */
@@ -691,13 +687,6 @@ footer p {
   }
 }
 
-@media (max-width: 768px) {
-
-  .results-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Móviles: 1 columna */
 @media (max-width: 425px) {
   header h1 {
@@ -740,8 +729,7 @@ footer p {
   }
 }
 
-/* Sección de debugging */
-.debug-info {
+.pattern-detail {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 12px;
@@ -749,30 +737,30 @@ footer p {
   margin: 0;
 }
 
-.debug-info h3 {
+.pattern-detail h3 {
   color: #495057;
   margin-top: 20px;
   margin-bottom: 10px;
   font-size: 1.1em;
 }
 
-.debug-info h3:first-child {
+.pattern-detail h3:first-child {
   margin-top: 0;
 }
 
-.debug-info p {
+.pattern-detail p {
   margin-top: 0;
   margin-bottom: 10px;
   color: #6c757d;
 }
 
-.rejection-list {
+.pattern-list {
   list-style: none;
   padding: 0;
   margin: 0 0 20px 0;
 }
 
-.rejection-list>li {
+.pattern-list>li {
   background: white;
   border-left: 3px solid #6c757d;
   padding: 10px 15px;
@@ -780,15 +768,15 @@ footer p {
   border-radius: 4px;
 }
 
-.rejection-list>li.primary-pattern {
+.pattern-list>li.primary-pattern {
   border-left-color: #66bb6a;
 }
 
-.rejection-list>li.unlikely-pattern {
+.pattern-list>li.unlikely-pattern {
   border-left-color: #ffa726;
 }
 
-.rejection-list>li>ul {
+.pattern-list>li>ul {
   margin-top: 8px;
   margin-bottom: 0;
   padding-left: 20px;
@@ -796,6 +784,6 @@ footer p {
   font-size: 0.9em;
 }
 
-.rejection-list>li>ul>li {
+.pattern-list>li>ul>li {
   margin-bottom: 4px;
 }
