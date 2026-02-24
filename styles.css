@@ -400,6 +400,32 @@ input.best-selling-time {
   min-width: 0;
 }
 
+/* Chart container */
+.chart-container {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container h3 {
+  color: #2e7d32;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.chart-canvas-wrapper {
+  height: 220px;
+}
+
+@media (max-width: 500px) {
+  .chart-canvas-wrapper {
+    height: 180px;
+  }
+}
+
 .results-section h2 {
   color: #2e7d32;
   margin: 0 0 20px;

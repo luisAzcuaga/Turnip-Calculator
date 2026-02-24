@@ -156,6 +156,13 @@
         <div class="results-grid">
           <!-- Columna izquierda: 2/3 - Info del patrón -->
           <div class="results-main">
+            <div class="chart-container">
+              <h3>📈 Tendencia de Precios</h3>
+              <div class="chart-canvas-wrapper">
+                <canvas id="priceChart"></canvas>
+              </div>
+            </div>
+
             <div class="debug-info" id="debugInfo">
             </div>
           </div>
@@ -174,6 +181,7 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="/lib/turnip-pattern-predictor.js" type="module"></script>
   <script src="/lib/ui/controller.js" type="module"></script>
 </body>
