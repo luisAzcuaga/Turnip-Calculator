@@ -156,13 +156,23 @@ describe("isPossibleSmallSpike", () => {
     expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
   });
 
-  it("should reject when confirmation P2 rate >= 140% (confirms Large Spike)", () => {
-    // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% >= 140% → impossible for Small Spike
+  it("should reject when confirmation P2 rate > 140% (confirms Large Spike)", () => {
+    // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% > 140% → impossible for Small Spike
     const prices = [
       { index: 3, price: 110 },
       { index: 4, price: 160 },
     ];
     expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
+  });
+
+  it("should NOT reject when confirmation is exactly at the 140% Phase 1 boundary", () => {
+    // P1→P2: 90 (0.90) → 140 (1.40). 140% is the upper boundary of Phase 0/1 (90-140%) — still valid.
+    // Regression test: a >= 1.40 check would wrongly reject this as "Phase 2 (140-200%)".
+    const prices = [
+      { index: 1, price: 90 },
+      { index: 2, price: 140 },
+    ];
+    expect(reasonsToRejectSmallSpike(prices, base)).toBeNull();
   });
 
   it("should reject when spike phase 2 price exceeds 90-140% range (max within 200%)", () => {
