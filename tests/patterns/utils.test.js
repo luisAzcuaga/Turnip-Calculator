@@ -3,7 +3,6 @@ import {
   calculateAvgRateDrop,
   decreasingMaxForPeriod,
   decreasingMin,
-  detectLargeSpikeSequence,
   detectSpikePhaseStart,
   detectSpikeStart,
   getPeriodName,
@@ -127,12 +126,12 @@ describe("patterns/utils", () => {
   describe("decreasingMaxForPeriod", () => {
     const base = 100;
 
-    it("should return max at period 0 using START_MAX - 0*MIN_DECAY", () => {
+    it("should return max at period 0 using START_MAX - 0*MIN_DROP_RATE", () => {
       // rate = 0.90 - (0 * 0.03) = 0.90 → ceil(100 * 0.90) = 90
       expect(decreasingMaxForPeriod(base, 0)).toBe(90);
     });
 
-    it("should decrease by MIN_DECAY per period", () => {
+    it("should decrease by MIN_DROP_RATE per period", () => {
       const period1 = decreasingMaxForPeriod(base, 1);
       const period2 = decreasingMaxForPeriod(base, 2);
       // Monotonically decreasing
@@ -208,7 +207,7 @@ describe("patterns/utils", () => {
       const range = getSpikeStartRange(true);
       expect(range.min).toBe(PERIODS.LARGE_SPIKE_START_MIN); // 2
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Martes PM");
+      expect(range.minName).toBe("Martes AM");
       expect(range.maxName).toBe("Jueves PM");
     });
 
@@ -216,7 +215,7 @@ describe("patterns/utils", () => {
       const range = getSpikeStartRange(false);
       expect(range.min).toBe(PERIODS.SMALL_SPIKE_START_MIN); // 1
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Martes AM");
+      expect(range.minName).toBe("Lunes PM");
       expect(range.maxName).toBe("Jueves PM");
     });
   });
@@ -386,81 +385,20 @@ describe("patterns/utils", () => {
     });
   });
 
-  // ============================================================================
-  // detectLargeSpikeSequence
-  // ============================================================================
-  describe("detectLargeSpikeSequence", () => {
-    const buyPrice = 100;
-
-    it("should return not detected with fewer than 2 prices", () => {
-      expect(detectLargeSpikeSequence([], buyPrice).detected).toBe(false);
-      expect(detectLargeSpikeSequence([{ index: 0, price: 90 }], buyPrice).detected).toBe(false);
-    });
-
-    it("should detect P1 (90-140%) → P2 (140-200%) sequence", () => {
-      const knownPrices = [
-        { index: 3, price: 110 }, // rate 1.10 → P1 range (0.90-1.40)
-        { index: 4, price: 160 }, // rate 1.60 → P2 range (1.40-2.00)
-      ];
-      const result = detectLargeSpikeSequence(knownPrices, buyPrice);
-      expect(result.detected).toBe(true);
-      expect(result.spikePhase1.index).toBe(3);
-      expect(result.spikePhase2.index).toBe(4);
-    });
-
-    it("should not detect when sequence is not consecutive", () => {
-      const knownPrices = [
-        { index: 3, price: 110 }, // P1 range
-        { index: 5, price: 160 }, // P2 range but not consecutive
-      ];
-      const result = detectLargeSpikeSequence(knownPrices, buyPrice);
-      expect(result.detected).toBe(false);
-    });
-
-    it("should not detect when rates are outside expected ranges", () => {
-      const knownPrices = [
-        { index: 3, price: 80 },  // rate 0.80 → below P1 range
-        { index: 4, price: 160 }, // rate 1.60 → P2 range
-      ];
-      const result = detectLargeSpikeSequence(knownPrices, buyPrice);
-      expect(result.detected).toBe(false);
-    });
-
-    it("should report if there are prices after the sequence", () => {
-      const knownPrices = [
-        { index: 3, price: 110 },
-        { index: 4, price: 160 },
-        { index: 5, price: 400 }, // price after sequence
-      ];
-      const result = detectLargeSpikeSequence(knownPrices, buyPrice);
-      expect(result.detected).toBe(true);
-      expect(result.hasDataAfterSequence).toBe(true);
-    });
-
-    it("should report no prices after when sequence is at end", () => {
-      const knownPrices = [
-        { index: 3, price: 110 },
-        { index: 4, price: 160 },
-      ];
-      const result = detectLargeSpikeSequence(knownPrices, buyPrice);
-      expect(result.detected).toBe(true);
-      expect(result.hasDataAfterSequence).toBe(false);
-    });
-  });
 });
 
-import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeSlope } from "../../lib/patterns/utils.js";
+import { detectSpikeConfirmation, isTooLateForSpike, validatePreSpikeDropRate } from "../../lib/patterns/utils.js";
 
 describe("patterns/utils — spike validation helpers", () => {
   const base = 100;
 
-  describe("validatePreSpikeSlope", () => {
+  describe("validatePreSpikeDropRate", () => {
     it("should accept valid rate drops (<=5% per period)", () => {
       const prices = [
         { index: 0, price: 88 },
         { index: 1, price: 85 }, // 3% drop
       ];
-      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+      expect(validatePreSpikeDropRate(prices, true, base)).toEqual({ invalid: false });
     });
 
     it("should reject rate drops >5% per period in pre-spike phase", () => {
@@ -469,7 +407,7 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 85 },
         { index: 1, price: 75 },
       ];
-      const result = validatePreSpikeSlope(prices, true, base);
+      const result = validatePreSpikeDropRate(prices, true, base);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain("5%");
     });
@@ -480,7 +418,7 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 85 },
         { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10
       ];
-      const result = validatePreSpikeSlope(prices, true, base);
+      const result = validatePreSpikeDropRate(prices, true, base);
       expect(result.invalid).toBe(true);
       expect(result.reason).toContain("antes del período");
     });
@@ -490,7 +428,43 @@ describe("patterns/utils — spike validation helpers", () => {
         { index: 0, price: 90 },
         { index: 3, price: 75 }, // gap — non-consecutive, skip validation
       ];
-      expect(validatePreSpikeSlope(prices, true, base)).toEqual({ invalid: false });
+      expect(validatePreSpikeDropRate(prices, true, base)).toEqual({ invalid: false });
+    });
+
+    // Small Spike: minSpikeStart = 1 (Monday PM)
+    it("should accept a rise at period 1 for small spike (spike can start Monday PM)", () => {
+      // Same data that gets rejected for large spike — valid for small spike
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10, but period 1 >= minSpikeStart(1)
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
+    });
+
+    it("should accept valid rate drops for small spike", () => {
+      const prices = [
+        { index: 0, price: 88 },
+        { index: 1, price: 85 }, // 3% drop
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
+    });
+
+    it("should reject rate drops >5% per period for small spike", () => {
+      const prices = [
+        { index: 0, price: 85 },
+        { index: 1, price: 75 }, // drop=10% > 5%
+      ];
+      const result = validatePreSpikeDropRate(prices, false, base);
+      expect(result.invalid).toBe(true);
+      expect(result.reason).toContain("5%");
+    });
+
+    it("should skip non-consecutive period indices for small spike", () => {
+      const prices = [
+        { index: 0, price: 90 },
+        { index: 3, price: 75 },
+      ];
+      expect(validatePreSpikeDropRate(prices, false, base)).toEqual({ invalid: false });
     });
   });
 
@@ -561,6 +535,56 @@ describe("patterns/utils — spike validation helpers", () => {
       const result = detectSpikeConfirmation(prices, base);
       expect(result.detected).toBe(true);
       expect(result.isLargeSpike).toBe(true);
+    });
+
+    // Sequence path: P1→P2 detected but outcome depends on data after
+    it("should set isLargeSpike=null via sequence path when no data follows P2 (ambiguous)", () => {
+      // P1→P2 with nothing after: could still be Large Spike (waiting for P3 ≥ 200%)
+      const prices = [
+        { index: 3, price: 110 }, // P1: 110% in 90-140%
+        { index: 4, price: 160 }, // P2: 160% in 140-200%, nothing after
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.isLargeSpike).toBeNull();
+      expect(result.spikePhase1).toBeDefined();
+    });
+
+    it("should set isLargeSpike=false via sequence path when data follows P2 and max < 200%", () => {
+      // P1→P2 with data after and no price ever reaching 200%: confirmed NOT Large Spike
+      const prices = [
+        { index: 3, price: 110 }, // P1
+        { index: 4, price: 160 }, // P2
+        { index: 5, price: 155 }, // data after, max stays < 200%
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.isLargeSpike).toBe(false);
+    });
+
+    // Fallback path: no P1→P2 pair found; uses detectSpikeStart instead
+    it("should set isLargeSpike=null via fallback when confirmation is in 140-200% (ambiguous)", () => {
+      // Pre-spike jumps directly to 140-200% (P1 phases not recorded); could be either spike type
+      const prices = [
+        { index: 1, price: 76 },  // pre-spike, below P1 range — sequence path won't find P1→P2
+        { index: 4, price: 155 }, // jumped to P2 range, skipping P1
+        { index: 5, price: 165 }, // confirmation, still in 140-200%
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.isLargeSpike).toBeNull();
+      expect(result.spikePhase1).toBeUndefined(); // fallback path — no phase 1 data
+    });
+
+    it("should set isLargeSpike=false via fallback when confirmation is below 140%", () => {
+      const prices = [
+        { index: 1, price: 76 },  // pre-spike
+        { index: 4, price: 120 }, // spike start detected (>10% rise from 76)
+        { index: 5, price: 130 }, // confirmation: 130% < 140%
+      ];
+      const result = detectSpikeConfirmation(prices, base);
+      expect(result.detected).toBe(true);
+      expect(result.isLargeSpike).toBe(false);
     });
   });
 });

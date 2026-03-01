@@ -190,4 +190,14 @@ describe("isPossibleLargeSpike", () => {
     ];
     expect(reasonsToRejectLargeSpike(prices, base)).not.toBeNull();
   });
+
+  it("should not reject in late week when P1→P2 sequence is ambiguous (isLargeSpike=null)", () => {
+    // P1→P2 at Thursday PM → Friday AM with nothing after: still waiting for P3 (200-600%).
+    // Large Spike must not be rejected just because P3 hasn't appeared yet.
+    const prices = [
+      { index: 7, price: 110 }, // P1: Thursday PM, 110% in 90-140%
+      { index: 8, price: 155 }, // P2: Friday AM, 155% in 140-200% — ambiguous, no data after
+    ];
+    expect(reasonsToRejectLargeSpike(prices, base)).toBeNull();
+  });
 });
