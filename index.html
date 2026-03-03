@@ -153,16 +153,22 @@
       <section class="results-section" id="resultsSection" style="display: none;">
         <h2>📊 Pronóstico</h2>
 
-        <div class="results-grid">
-          <!-- Columna izquierda: 2/3 - Info del patrón -->
-          <div class="results-main">
-            <div class="debug-info" id="debugInfo">
-            </div>
+        <div class="chart-container">
+          <h3>📈 Tendencia de Precios</h3>
+          <div class="chart-canvas-wrapper">
+            <canvas id="priceChart"></canvas>
+          </div>
+        </div>
+
+        <div class="toggle-header">
+          <button id="toggleViewBtn" class="btn-toggle-view">Ver análisis detallado →</button>
+        </div>
+
+        <div class="pattern-panels">
+          <div class="pattern-detail" id="patternDetail">
           </div>
 
-          <!-- Columna derecha: 1/3 - Panel de confianza -->
-           <!-- TODO: Remove this confidence panel, it's superseded by probability-distribution -->
-          <div class="confidence-panel" id="confidencePanel">
+          <div class="pattern-summary" id="patternSummary">
           </div>
         </div>
       </section>
@@ -174,6 +180,7 @@
     </footer>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="/lib/turnip-pattern-predictor.js" type="module"></script>
   <script src="/lib/ui/controller.js" type="module"></script>
 </body>
