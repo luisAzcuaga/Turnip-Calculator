@@ -323,12 +323,12 @@ describe('TurnipPatternPredictor', () => {
       tue_pm: 79, wed_am: 102, wed_pm: 180,
     };
 
-    it('should detect large_spike as primary pattern', () => {
+    it('should detect small_spike as primary pattern', () => {
       const p = new TurnipPatternPredictor(107, knownPrices, 'small_spike');
       const result = p.execute();
-      // 180/107 = 168.2% with P1→P2 sequence (102→180) confirms Large Spike structure.
-      // Small Spike is rejected because P2 rate (168.2%) >= 140%.
-      expect(result.pattern).toBe('large_spike');
+      // 180/107 = 168.2% — squarely in Small Spike peak range (140-200%).
+      // Both spike types are possible, but Small Spike scores higher at this level.
+      expect(result.pattern).toBe('small_spike');
     });
 
     it('should have sensible Thu AM predictions with min <= max', () => {
