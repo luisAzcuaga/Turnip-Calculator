@@ -156,13 +156,15 @@ describe("isPossibleSmallSpike", () => {
     expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
   });
 
-  it("should reject when confirmation P2 rate > 140% (confirms Large Spike)", () => {
-    // P1→P2: 110 (1.10) → 160 (1.60). P2 at 160% > 140% → impossible for Small Spike
+  it("should NOT reject when P1→P2 sequence is within Small Spike peak range (140-200%)", () => {
+    // P1→P2: 110 (110%) → 160 (160%). The 90-140% → 140-200% transition is shared
+    // by BOTH spike types — it's the normal spike phase 0/1 → phase 2 progression.
+    // Small Spike phases 2-4 ARE 140-200%, so this must not reject.
     const prices = [
       { index: 3, price: 110 },
       { index: 4, price: 160 },
     ];
-    expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
+    expect(reasonsToRejectSmallSpike(prices, base)).toBeNull();
   });
 
   it("should NOT reject when confirmation is exactly at the 140% Phase 1 boundary", () => {
@@ -175,12 +177,11 @@ describe("isPossibleSmallSpike", () => {
     expect(reasonsToRejectSmallSpike(prices, base)).toBeNull();
   });
 
-  it("should reject when spike phase 2 price exceeds 90-140% range (max within 200%)", () => {
+  it("should NOT reject mid-week small spike with prices progressing through spike phases", () => {
     // Spike starts at period 2 (114, rise from 85):
-    //   Phase 1 (period 2): 114 → 110.7% ✓ (within 90-140%)
-    //   Phase 2 (period 3): 166 → 161.2% ✗ (exceeds 90-140% for small spike)
-    // Max is 166 → 161.2%, within 200% — so max check won't catch this.
-    // The phase 2 price alone should disqualify small spike.
+    //   Phase 0 (period 2): 114 → 110.7% ✓ (within 90-140%)
+    //   Phase 1 (period 3): 166 → 161.2% ✓ (within 140-200%, valid spike phase 2)
+    // The P1→P2 transition is expected in Small Spike. Max 161.2% < 200%.
     const base = 103;
     const prices = [
       { index: 0, price: 89 },
@@ -188,7 +189,26 @@ describe("isPossibleSmallSpike", () => {
       { index: 2, price: 114 },
       { index: 3, price: 166 },
     ];
-    expect(reasonsToRejectSmallSpike(prices, base)).not.toBeNull();
+    expect(reasonsToRejectSmallSpike(prices, base)).toBeNull();
+  });
+
+  it("should NOT reject small spike peaking at exactly 200% (the small spike ceiling)", () => {
+    // Real scenario: 106|d|78|99|124|184|212
+    // The spike is happening NOW — prices progress cleanly through spike phases:
+    //   Pre-spike (period 2): 78 → 73.6% (within 40-90%)
+    //   Phase 0   (period 3): 99 → 93.4% (within 90-140%)
+    //   Phase 1   (period 4): 124 → 117%  (within 90-140%)
+    //   Phase 2   (period 5): 184 → 173.6% (within 140-200%)
+    //   Phase 3   (period 6): 212 → 200%  (at ceiling of 140-200%)
+    // 200% is the max for Small Spike. This is a textbook small spike.
+    const prices = [
+      { index: 2, price: 78 },
+      { index: 3, price: 99 },
+      { index: 4, price: 124 },
+      { index: 5, price: 184 },
+      { index: 6, price: 212 },
+    ];
+    expect(reasonsToRejectSmallSpike(prices, 106)).toBeNull();
   });
 
   it("should reject full-week data where spike phase 2 exceeds 90-140% and max exceeds 200%", () => {
