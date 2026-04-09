@@ -423,4 +423,55 @@ describe('TurnipPatternPredictor', () => {
       });
     });
   });
+
+  describe('Real-life scenario: buyPrice 104, previous decreasing, rapid ascent to 186%', () => {
+    // Pattern: 104|d|93|89|142|194
+    // mon_am: 93 (89.4%), mon_pm: 89 (85.6%), tue_am: 142 (136.5%), tue_pm: 194 (186.5%)
+    // Sharp reversal from 89→142→194 with previous decreasing pattern.
+    // 194 at 186.5% is still climbing — the P3 peak (200-600%) hasn't hit yet.
+    // This is a large spike in progress, not a small spike that peaked.
+    const knownPrices = {
+      mon_am: 93, mon_pm: 89, tue_am: 142, tue_pm: 194,
+    };
+
+    it('should detect large_spike as primary pattern', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      expect(result.pattern).toBe('large_spike');
+    });
+
+    it('should have large_spike probability higher than small_spike', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      expect(result.allProbabilities.large_spike).toBeGreaterThan(result.allProbabilities.small_spike);
+    });
+
+    it('should have sensible predictions with min <= max for all periods', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+
+    it('should predict wed_am with potential for 200%+ peak', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      // Wed AM is the next unknown period — under large_spike, should allow for 200-600% peak
+      expect(result.predictions.wed_am.max).toBeGreaterThanOrEqual(Math.ceil(104 * 2.0));
+    });
+
+    it('should include all 4 pattern probabilities summing close to 100%', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+      const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
+
+      expect(total).toBeGreaterThanOrEqual(98);
+      expect(total).toBeLessThanOrEqual(102);
+    });
+  });
 });
