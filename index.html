@@ -166,11 +166,73 @@
 
         <div class="pattern-panels">
           <div class="pattern-detail" id="patternDetail">
+            <!-- Section: Primary pattern recommendations -->
+            <section id="primarySection" hidden>
+              <h3>⭐ Patrón más probable</h3>
+              <ul class="pattern-list">
+                <li class="primary-pattern">
+                  <strong id="primaryName"></strong> (<span id="primaryProb"></span>%):
+                  <ul id="primaryReasons"></ul>
+                </li>
+              </ul>
+            </section>
+
+            <!-- Section: Unlikely patterns (>0%) -->
+            <section id="unlikelySection" hidden>
+              <h3>📊 Patrones menos probables</h3>
+              <p><small>Estos patrones son posibles pero menos probables según los datos:</small></p>
+              <ul class="pattern-list" id="unlikelyList"></ul>
+            </section>
+
+            <!-- Section: Rejected patterns (0%) -->
+            <section id="rejectedSection" hidden>
+              <h3>🚫 Patrones descartados (0%)</h3>
+              <p><small>Estos patrones rompen las reglas del algoritmo del juego con los datos ingresados:</small></p>
+              <ul class="pattern-list" id="rejectedList"></ul>
+            </section>
+
+            <!-- Section: No-data fallback -->
+            <section id="fallbackSection" hidden>
+              <h3>🔍 Análisis de patrones</h3>
+              <p><small>No hay suficientes datos para descartar patrones alternativos.</small></p>
+            </section>
           </div>
 
           <div class="pattern-summary" id="patternSummary">
+            <div class="probability-distribution">
+              <h4>Todos los Patrones Posibles</h4>
+              <div class="probability-list" id="probabilityList"></div>
+              <p class="probability-explanation">
+                <small>Todos los patrones se muestran con sus probabilidades. Los patrones en 0% son incompatibles con los precios ingresados.</small>
+              </p>
+            </div>
           </div>
         </div>
+
+        <!-- Templates for dynamic list items -->
+        <template id="tmpl-probability-item">
+          <div class="probability-item">
+            <div class="probability-header-row">
+              <span class="probability-name"></span>
+              <span class="primary-badge" hidden>MÁS PROBABLE</span>
+            </div>
+            <div class="probability-bar-container">
+              <div class="probability-bar-fill"></div>
+              <span class="probability-value"></span>
+            </div>
+          </div>
+        </template>
+
+        <template id="tmpl-pattern-item">
+          <li>
+            <strong class="pattern-name"></strong> (<span class="pattern-prob"></span>%):
+            <ul class="pattern-reasons"></ul>
+          </li>
+        </template>
+
+        <template id="tmpl-spike-tip">
+          <li class="spike-timing-tip"></li>
+        </template>
       </section>
     </div>
 
