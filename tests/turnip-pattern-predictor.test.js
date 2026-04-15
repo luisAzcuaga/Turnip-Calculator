@@ -424,6 +424,55 @@ describe('TurnipPatternPredictor', () => {
     });
   });
 
+  describe('Real-life scenario: buyPrice 93, previous fluctuating, Mon PM spike start (93|f|80|107|154|214)', () => {
+    // Spike starts at Mon PM (index 1): 80(pre)→107(P1)→154(P2)→214(PEAK at Tue PM)
+    const knownPrices = {
+      mon_am: 80, mon_pm: 107, tue_am: 154, tue_pm: 214,
+    };
+
+    it("should detect large_spike as primary pattern", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.pattern).toBe('large_spike');
+    });
+
+    it("should identify tue_pm as the best sell day — not wed_am", () => {
+      // tue_pm=214 is the peak (230.1%); wed_am should be the decline phase
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.bestSellDay.day).toBe('tue_pm');
+    });
+
+    it("should have all unconfirmed predictions with min <= max", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+  });
+
+  describe('Real-life scenario: buyPrice 93, previous fluctuating, peak passed (93|f|80|107|154|214|168)', () => {
+    // Same as above but with Wed AM=168 (decline confirms peak passed at Tue PM)
+    const knownPrices = {
+      mon_am: 80, mon_pm: 107, tue_am: 154, tue_pm: 214, wed_am: 168,
+    };
+
+    it("should identify tue_pm as the best sell day after peak passed", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.bestSellDay.day).toBe('tue_pm');
+    });
+
+    it("should have all unconfirmed predictions with min <= max", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+  });
+
   describe('Real-life scenario: buyPrice 104, previous decreasing, rapid ascent to 186%', () => {
     // Pattern: 104|d|93|89|142|194
     // mon_am: 93 (89.4%), mon_pm: 89 (85.6%), tue_am: 142 (136.5%), tue_pm: 194 (186.5%)

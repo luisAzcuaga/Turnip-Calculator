@@ -203,11 +203,11 @@ describe("patterns/utils", () => {
   // getSpikeStartRange
   // ============================================================================
   describe("getSpikeStartRange", () => {
-    it("should return large spike range (Martes AM to Jueves PM)", () => {
+    it("should return large spike range (Lunes PM to Jueves PM)", () => {
       const range = getSpikeStartRange(true);
-      expect(range.min).toBe(PERIODS.LARGE_SPIKE_START_MIN); // 2
+      expect(range.min).toBe(PERIODS.LARGE_SPIKE_START_MIN); // 1
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Martes AM");
+      expect(range.minName).toBe("Lunes PM");
       expect(range.maxName).toBe("Jueves PM");
     });
 
@@ -331,7 +331,7 @@ describe("patterns/utils", () => {
   // ============================================================================
   describe("detectSpikePhaseStart", () => {
     const buyPrice = 100;
-    const minSpikeStart = PERIODS.LARGE_SPIKE_START_MIN; // 2
+    const minSpikeStart = PERIODS.LARGE_SPIKE_START_MIN; // 1
     const maxSpikeStart = PERIODS.SPIKE_START_MAX; // 7
 
     it("should return default (Wednesday PM) with no known prices", () => {
@@ -383,6 +383,18 @@ describe("patterns/utils", () => {
       expect(result).toBeGreaterThanOrEqual(minSpikeStart);
       expect(result).toBeLessThanOrEqual(maxSpikeStart);
     });
+
+    it("should detect spike start at Mon PM (index 1) when peak is at Tue PM with buyPrice 93", () => {
+      // 93|f|80|107|154|214: peak 230.1% is at tue_pm (index 3) → spikeStart = 3-2 = 1
+      const knownPrices = [
+        { index: 0, price: 80 },
+        { index: 1, price: 107 },
+        { index: 2, price: 154 },
+        { index: 3, price: 214 },
+      ];
+      const result = detectSpikePhaseStart(knownPrices, PERIODS.LARGE_SPIKE_START_MIN, maxSpikeStart, true, 93);
+      expect(result).toBe(1);
+    });
   });
 
 });
@@ -412,15 +424,13 @@ describe("patterns/utils — spike validation helpers", () => {
       expect(result.reason).toContain("5%");
     });
 
-    it("should reject early rises before minimum spike start", () => {
-      // For large spike, minSpikeStart = 2. Rise >10% at period 1 is too early.
+    it("should accept a rise at period 1 for large spike (spike can start Mon PM)", () => {
+      // Large spike minSpikeStart = 1 (Mon PM). Rise at period 1 is valid — it IS the spike start.
       const prices = [
         { index: 0, price: 85 },
-        { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10
+        { index: 1, price: 95 }, // 95/85 = 1.118 > 1.10, but period 1 >= minSpikeStart(1)
       ];
-      const result = validatePreSpikeDropRate(prices, true, base);
-      expect(result.invalid).toBe(true);
-      expect(result.reason).toContain("antes del período");
+      expect(validatePreSpikeDropRate(prices, true, base)).toEqual({ invalid: false });
     });
 
     it("should skip non-consecutive period indices", () => {

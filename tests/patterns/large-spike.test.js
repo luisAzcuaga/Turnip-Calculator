@@ -144,6 +144,37 @@ describe("scoreLargeSpike", () => {
   });
 });
 
+describe("Real-life scenario: buyPrice 93, Mon PM spike start (93|f|80|107|154|214)", () => {
+  // Spike sequence: mon_am=80 (86%=pre-spike), mon_pm=107 (115%=P1),
+  //                 tue_am=154 (165.6%=P2), tue_pm=214 (230.1%=PEAK)
+  // Spike must start at mon_pm (index 1) so peak falls on tue_pm (index 3)
+  const buyPrice = 93;
+  const knownPrices = [
+    { index: 0, price: 80 },  // mon_am: 86% — pre-spike decreasing
+    { index: 1, price: 107 }, // mon_pm: 115% — spike phase 1 (90-140%)
+    { index: 2, price: 154 }, // tue_am: 165.6% — spike phase 2 (140-200%)
+    { index: 3, price: 214 }, // tue_pm: 230.1% — PEAK (200-600%)
+  ];
+
+  it("should not reject large spike", () => {
+    expect(reasonsToRejectLargeSpike(knownPrices, buyPrice)).toBeNull();
+  });
+
+  it("should identify tue_pm (index 3) as the peak phase", () => {
+    // With spike starting at mon_pm (index 1), period 3 = spikeStart+2 = SPIKE_PHASES[2]
+    const result = calculateLargeSpikePattern(3, buyPrice, knownPrices);
+    expect(result.min).toBe(Math.floor(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[2].min));
+    expect(result.max).toBe(Math.ceil(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[2].max));
+  });
+
+  it("should show declining phase at wed_am (index 4), not the peak", () => {
+    // wed_am = spikeStart+3 = SPIKE_PHASES[3] (decline: 140-200%), not SPIKE_PHASES[2] (peak: 200-600%)
+    const result = calculateLargeSpikePattern(4, buyPrice, knownPrices);
+    expect(result.min).toBe(Math.floor(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[3].min));
+    expect(result.max).toBe(Math.ceil(buyPrice * RATES.LARGE_SPIKE.SPIKE_PHASES[3].max));
+  });
+});
+
 describe("isPossibleLargeSpike", () => {
   const base = 100;
 
