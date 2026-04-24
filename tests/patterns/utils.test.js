@@ -211,11 +211,11 @@ describe("patterns/utils", () => {
       expect(range.maxName).toBe("Jueves PM");
     });
 
-    it("should return small spike range (Lunes PM to Jueves PM)", () => {
+    it("should return small spike range (Lunes AM to Jueves PM)", () => {
       const range = getSpikeStartRange(false);
-      expect(range.min).toBe(PERIODS.SMALL_SPIKE_START_MIN); // 1
+      expect(range.min).toBe(PERIODS.SMALL_SPIKE_START_MIN); // 0
       expect(range.max).toBe(PERIODS.SPIKE_START_MAX); // 7
-      expect(range.minName).toBe("Lunes PM");
+      expect(range.minName).toBe("Lunes AM");
       expect(range.maxName).toBe("Jueves PM");
     });
   });
