@@ -138,8 +138,9 @@ describe('TurnipPatternPredictor', () => {
       const p = new TurnipPatternPredictor(100, { mon_am: 105 });
       const result = p.detectPossiblePatterns(p.getPriceArrayWithIndex());
       expect(result).not.toContain('decreasing');
-      expect(result).not.toContain('large_spike'); // large spike also requires mon_am ≤ buyPrice*0.90
-      expect(result).not.toContain('small_spike'); // small spike also requires mon_am ≤ buyPrice*0.90
+      expect(result).not.toContain('large_spike'); // large spike requires mon_am ≤ buyPrice*0.90
+      // 105% is within spike phase 0 range (90-140%) — small spike can start Mon AM since SMALL_SPIKE_START_MIN=0
+      expect(result).toContain('small_spike');
     });
 
     it('should return fluctuating as fallback when no patterns fit', () => {
@@ -421,6 +422,159 @@ describe('TurnipPatternPredictor', () => {
       Object.values(result.predictions).forEach(pred => {
         expect(pred.min).toBeLessThanOrEqual(pred.max);
       });
+    });
+  });
+
+  describe('Real-life scenario: buyPrice 93, previous fluctuating, Mon PM spike start (93|f|80|107|154|214)', () => {
+    // Spike starts at Mon PM (index 1): 80(pre)→107(P1)→154(P2)→214(PEAK at Tue PM)
+    const knownPrices = {
+      mon_am: 80, mon_pm: 107, tue_am: 154, tue_pm: 214,
+    };
+
+    it("should detect large_spike as primary pattern", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.pattern).toBe('large_spike');
+    });
+
+    it("should identify tue_pm as the best sell day — not wed_am", () => {
+      // tue_pm=214 is the peak (230.1%); wed_am should be the decline phase
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.bestSellDay.day).toBe('tue_pm');
+    });
+
+    it("should have all unconfirmed predictions with min <= max", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+  });
+
+  describe('Real-life scenario: buyPrice 93, previous fluctuating, peak passed (93|f|80|107|154|214|168)', () => {
+    // Same as above but with Wed AM=168 (decline confirms peak passed at Tue PM)
+    const knownPrices = {
+      mon_am: 80, mon_pm: 107, tue_am: 154, tue_pm: 214, wed_am: 168,
+    };
+
+    it("should identify tue_pm as the best sell day after peak passed", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      expect(result.bestSellDay.day).toBe('tue_pm');
+    });
+
+    it("should have all unconfirmed predictions with min <= max", () => {
+      const p = new TurnipPatternPredictor(93, knownPrices, 'fluctuating');
+      const result = p.execute();
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+  });
+
+  describe('Real-life scenario: buyPrice 104, previous decreasing, rapid ascent to 186%', () => {
+    // Pattern: 104|d|93|89|142|194
+    // mon_am: 93 (89.4%), mon_pm: 89 (85.6%), tue_am: 142 (136.5%), tue_pm: 194 (186.5%)
+    // Sharp reversal from 89→142→194 with previous decreasing pattern.
+    // 194 at 186.5% is still climbing — the P3 peak (200-600%) hasn't hit yet.
+    // This is a large spike in progress, not a small spike that peaked.
+    const knownPrices = {
+      mon_am: 93, mon_pm: 89, tue_am: 142, tue_pm: 194,
+    };
+
+    it('should detect large_spike as primary pattern', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      expect(result.pattern).toBe('large_spike');
+    });
+
+    it('should have large_spike probability higher than small_spike', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      expect(result.allProbabilities.large_spike).toBeGreaterThan(result.allProbabilities.small_spike);
+    });
+
+    it('should have sensible predictions with min <= max for all periods', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+
+    it('should predict wed_am with potential for 200%+ peak', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+
+      // Wed AM is the next unknown period — under large_spike, should allow for 200-600% peak
+      expect(result.predictions.wed_am.max).toBeGreaterThanOrEqual(Math.ceil(104 * 2.0));
+    });
+
+    it('should include all 4 pattern probabilities summing close to 100%', () => {
+      const p = new TurnipPatternPredictor(104, knownPrices, 'decreasing');
+      const result = p.execute();
+      const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
+
+      expect(total).toBeGreaterThanOrEqual(98);
+      expect(total).toBeLessThanOrEqual(102);
+    });
+  });
+
+  describe('Real-life scenario: buyPrice 101, previous large spike, rapid ascent to 118%', () => {
+    // Pattern: 101|l|92|120|144|192|163|61|56|52|49|45
+    // mon_am: 92 (91.1%), mon_pm: 120 (118.8%), tue_am: 144 (142.6%), tue_pm: 192 (190.1%),
+    // wed_am: 163 (161.4%), wed_pm: 61 (60.4%), thu_am: 56 (55.4%), thu_pm: 52 (51.5%),
+    // fri_am: 49 (48.5%), fri_pm: 45 (44.6%)
+    const knownPrices = {
+      mon_am: 92, mon_pm: 120, tue_am: 144, tue_pm: 192,
+      wed_am: 163, wed_pm: 61, thu_am: 56, thu_pm: 52,
+      fri_am: 49, fri_pm: 45
+    };
+
+    it('should detect small_spike as primary pattern', () => {
+      const p = new TurnipPatternPredictor(101, knownPrices, 'large_spike');
+      const result = p.execute();
+
+      expect(result.pattern).toBe('small_spike');
+    });
+
+    it('should have small_spike probability higher than large_spike', () => {
+      const p = new TurnipPatternPredictor(101, knownPrices, 'large_spike');
+      const result = p.execute();
+
+      expect(result.allProbabilities.small_spike).toBeGreaterThan(result.allProbabilities.large_spike);
+    });
+
+    it('should have sensible predictions with min <= max for all periods', () => {
+      const p = new TurnipPatternPredictor(101, knownPrices, 'large_spike');
+      const result = p.execute();
+
+      Object.values(result.predictions).forEach(pred => {
+        expect(pred.min).toBeLessThanOrEqual(pred.max);
+      });
+    });
+
+    it('should predict sat_am and sat_pm in post-spike low range', () => {
+      const p = new TurnipPatternPredictor(101, knownPrices, 'large_spike');
+      const result = p.execute();
+
+      // After the spike collapses (wed_pm: 61), Saturday should stay low
+      expect(result.predictions.sat_am.max).toBeLessThan(Math.ceil(101 * 0.90));
+      expect(result.predictions.sat_pm.max).toBeLessThan(Math.ceil(101 * 0.90));
+    });
+
+    it('should include all 4 pattern probabilities summing close to 100%', () => {
+      const p = new TurnipPatternPredictor(101, knownPrices, 'large_spike');
+      const result = p.execute();
+      const total = Object.values(result.allProbabilities).reduce((s, v) => s + v, 0);
+
+      expect(total).toBeGreaterThanOrEqual(98);
+      expect(total).toBeLessThanOrEqual(102);
     });
   });
 });
