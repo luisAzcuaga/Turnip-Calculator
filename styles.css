@@ -658,6 +658,16 @@ footer p {
   margin: 10px 0 0;
 }
 
+.credits a {
+  color: #2e7d32;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.credits a:hover {
+  text-decoration: underline;
+}
+
 /* Responsive */
 /* Tablets: 2 columnas */
 @media (max-width: 1024px) {
