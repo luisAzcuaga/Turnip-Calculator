@@ -170,6 +170,9 @@
   --btn-ghost-text: var(--text-subtle);
   --btn-ghost-text-hover: var(--text-strong);
   --btn-ghost-bg-hover: var(--surface-muted);
+  --btn-theme-bg: rgba(var(--white-rgb), 0.18);
+  --btn-theme-bg-hover: rgba(var(--white-rgb), 0.32);
+  --btn-theme-border: rgba(var(--white-rgb), 0.45);
 
   /* --- Resultados y probabilidades --- */
   --panel-bg: var(--green-25);
@@ -198,6 +201,9 @@
   --chart-point-border: var(--white);
   --chart-grid: rgba(var(--black-rgb), 0.08);
   --chart-axis-text: var(--gray-675);
+
+  /* Color de la barra del navegador; lo sincroniza JS con <meta name="theme-color"> */
+  --theme-color-meta: var(--green-250);
 }
 
 /* ============================================================================
@@ -210,194 +216,203 @@
 
    Los verdes que llevan texto encima (gradiente de marca, barras de
    probabilidad) se eligieron para que el texto claro pase AA 4.5:1.
+
+   Se aplica por atributo y no por @media: el script en línea de index.html
+   resuelve la preferencia guardada (o la del sistema, si no hay ninguna) y
+   pone data-theme en <html> antes del primer pintado. Así el mismo bloque
+   sirve para el tema automático y para el botón manual, sin duplicarlo.
    ============================================================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme="dark"] {
+  color-scheme: dark;
 
-    /* --- Primitivas: neutros con tinte verde --- */
-    --ink-1000: #0d140c;
-    --ink-950: #131b11;
-    --ink-900: #161e15;
-    --ink-850: #1a201a;
-    --ink-800: #1b241a;
-    --ink-700: #252f24;
-    --ink-650: #2b332a;
-    --ink-600: #2e382c;
-    --ink-500: #4a5548;
-    --ink-400: #74806f;
-    --ink-300: #9aa798;
-    --ink-200: #c3cfc0;
-    --ink-100: #e8efe6;
+  /* --- Primitivas: neutros con tinte verde --- */
+  --ink-1000: #0d140c;
+  --ink-950: #131b11;
+  --ink-900: #161e15;
+  --ink-850: #1a201a;
+  --ink-800: #1b241a;
+  --ink-700: #252f24;
+  --ink-650: #2b332a;
+  --ink-600: #2e382c;
+  --ink-500: #4a5548;
+  --ink-400: #74806f;
+  --ink-300: #9aa798;
+  --ink-200: #c3cfc0;
+  --ink-100: #e8efe6;
 
-    /* --- Primitivas: verde (marca) --- */
-    --dgreen-950: #182116;
-    --dgreen-900: #1a2a19;
-    --dgreen-850: #1f3020;
-    --dgreen-800: #274429;
-    --dgreen-700: #2b4a2e;
-    --dgreen-650: #2f5a35;
-    --dgreen-600: #3b5133;
-    --dgreen-550: #3a7040;
-    --dgreen-500: #43764a;
-    --dgreen-400: #5aa85f;
-    --dgreen-200: #9bdc9f;
-    --dgreen-100: #b5d99a;
-    --dgreen-400-rgb: 90, 168, 95;
-    --dgreen-300-rgb: 123, 196, 127; /* #7bc47f */
+  /* --- Primitivas: verde (marca) --- */
+  --dgreen-950: #182116;
+  --dgreen-900: #1a2a19;
+  --dgreen-850: #1f3020;
+  --dgreen-800: #274429;
+  --dgreen-700: #2b4a2e;
+  --dgreen-650: #2f5a35;
+  --dgreen-600: #3b5133;
+  --dgreen-550: #3a7040;
+  --dgreen-500: #43764a;
+  --dgreen-400: #5aa85f;
+  --dgreen-200: #9bdc9f;
+  --dgreen-100: #b5d99a;
+  --dgreen-400-rgb: 90, 168, 95;
+  --dgreen-300-rgb: 123, 196, 127; /* #7bc47f */
 
-    /* --- Primitivas: azul (precio de compra, compartir) --- */
-    --dblue-900: #151c27;
-    --dblue-800: #16243f;
-    --dblue-700: #2b3a55;
-    --dblue-600: #3f6fd8;
-    --dblue-500: #4a63c8;
-    --dblue-400: #9ec4ff;
-    --dblue-dim: #5a6b8a;
-    --dblue-400-rgb: 122, 174, 255;
+  /* --- Primitivas: azul (precio de compra, compartir) --- */
+  --dblue-900: #151c27;
+  --dblue-800: #16243f;
+  --dblue-700: #2b3a55;
+  --dblue-600: #3f6fd8;
+  --dblue-500: #4a63c8;
+  --dblue-400: #9ec4ff;
+  --dblue-dim: #5a6b8a;
+  --dblue-400-rgb: 122, 174, 255;
 
-    /* --- Primitivas: naranja (patrón anterior, estimados) --- */
-    --dorange-900: #241c12;
-    --dorange-800: #2a1f10;
-    --dorange-700: #33260f;
-    --dorange-600: #3a2a12;
-    --dorange-500: #4a3615;
-    --dorange-400: #5c481f;
-    --dorange-300: #8a6526;
-    --dorange-200: #c98a2a;
-    --dorange-100: #ffc078;
-    --dorange-dim: #8a7048;
+  /* --- Primitivas: naranja (patrón anterior, estimados) --- */
+  --dorange-900: #241c12;
+  --dorange-800: #2a1f10;
+  --dorange-700: #33260f;
+  --dorange-600: #3a2a12;
+  --dorange-500: #4a3615;
+  --dorange-400: #5c481f;
+  --dorange-300: #8a6526;
+  --dorange-200: #c98a2a;
+  --dorange-100: #ffc078;
+  --dorange-dim: #8a7048;
 
-    /* --- Primitivas: dorado (mejor momento) --- */
-    --dgold-900: #3d3413;
-    --dgold-800: #5c4d16;
-    --dgold-500: #a8871f;
-    --dgold-200: #ffd95e;
+  /* --- Primitivas: dorado (mejor momento) --- */
+  --dgold-900: #3d3413;
+  --dgold-800: #5c4d16;
+  --dgold-500: #a8871f;
+  --dgold-200: #ffd95e;
 
-    /* --- Primitivas: rojo (bajadas) --- */
-    --dred-900: #3d1c1e;
-    --dred-500: #c0392f;
-    --dred-200: #ff9b9b;
+  /* --- Primitivas: rojo (bajadas) --- */
+  --dred-900: #3d1c1e;
+  --dred-500: #c0392f;
+  --dred-200: #ff9b9b;
 
-    /* --- Superficies y texto --- */
-    --page-bg: linear-gradient(135deg, var(--ink-950) 0%, var(--ink-1000) 100%);
-    --surface: var(--ink-800);
-    --surface-muted: var(--ink-700);
-    --surface-brand: var(--dgreen-850);
-    --text-strong: var(--ink-100);
-    --text-muted: var(--ink-200);
-    --text-subtle: var(--ink-300);
-    --text-disabled: var(--ink-400);
-    --text-on-accent: var(--ink-100);
-    --border-disabled: var(--ink-600);
+  /* --- Superficies y texto --- */
+  --page-bg: linear-gradient(135deg, var(--ink-950) 0%, var(--ink-1000) 100%);
+  --surface: var(--ink-800);
+  --surface-muted: var(--ink-700);
+  --surface-brand: var(--dgreen-850);
+  --text-strong: var(--ink-100);
+  --text-muted: var(--ink-200);
+  --text-subtle: var(--ink-300);
+  --text-disabled: var(--ink-400);
+  --text-on-accent: var(--ink-100);
+  --border-disabled: var(--ink-600);
 
-    /* --- Marca --- */
-    --brand: var(--dgreen-400);
-    --brand-text: var(--dgreen-200);
-    --brand-text-soft: var(--dgreen-100);
-    --brand-gradient: linear-gradient(135deg, var(--dgreen-650) 0%, var(--dgreen-550) 100%);
-    /* --glow-* no se redefine a propósito: el dorado sobre fondo oscuro
-       funciona tal cual y es el resalte más importante de la app. */
-    --warning: var(--dorange-200);
-    --tip-text: var(--dblue-400);
+  /* --- Marca --- */
+  --brand: var(--dgreen-400);
+  --brand-text: var(--dgreen-200);
+  --brand-text-soft: var(--dgreen-100);
+  --brand-gradient: linear-gradient(135deg, var(--dgreen-650) 0%, var(--dgreen-550) 100%);
+  /* --glow-* no se redefine a propósito: el dorado sobre fondo oscuro
+     funciona tal cual y es el resalte más importante de la app. */
+  --warning: var(--dorange-200);
+  --tip-text: var(--dblue-400);
 
-    /* --- Sombras: el negro casi no se ve sobre fondo oscuro, sube el alfa --- */
-    --shadow-card: 0 10px 40px rgba(var(--black-rgb), 0.5);
-    --shadow-soft: 0 2px 8px rgba(var(--black-rgb), 0.4);
-    --shadow-badge: 0 1px 3px rgba(var(--black-rgb), 0.55);
-    --shadow-brand: 0 4px 15px rgba(var(--dgreen-400-rgb), 0.25);
-    --shadow-brand-hover: 0 6px 20px rgba(var(--dgreen-400-rgb), 0.35);
-    --shadow-selected: 0 3px 10px rgba(var(--dgreen-400-rgb), 0.25);
-    --focus-ring: 0 0 0 3px rgba(var(--dgreen-400-rgb), 0.25);
-    --text-shadow-header: 2px 2px 4px rgba(var(--black-rgb), 0.45);
-    /* El halo que despega el porcentaje de la barra: claro detrás de texto
-       oscuro, oscuro detrás de texto claro. */
-    --text-shadow-contrast: 0 0 3px rgba(var(--black-rgb), 0.85);
+  /* --- Sombras: el negro casi no se ve sobre fondo oscuro, sube el alfa --- */
+  --shadow-card: 0 10px 40px rgba(var(--black-rgb), 0.5);
+  --shadow-soft: 0 2px 8px rgba(var(--black-rgb), 0.4);
+  --shadow-badge: 0 1px 3px rgba(var(--black-rgb), 0.55);
+  --shadow-brand: 0 4px 15px rgba(var(--dgreen-400-rgb), 0.25);
+  --shadow-brand-hover: 0 6px 20px rgba(var(--dgreen-400-rgb), 0.35);
+  --shadow-selected: 0 3px 10px rgba(var(--dgreen-400-rgb), 0.25);
+  --focus-ring: 0 0 0 3px rgba(var(--dgreen-400-rgb), 0.25);
+  --text-shadow-header: 2px 2px 4px rgba(var(--black-rgb), 0.45);
+  /* El halo que despega el porcentaje de la barra: claro detrás de texto
+     oscuro, oscuro detrás de texto claro. */
+  --text-shadow-contrast: 0 0 3px rgba(var(--black-rgb), 0.85);
 
-    /* --- Sección: precio de compra --- */
-    --buy-bg: var(--dblue-800);
-    --buy-border: var(--dblue-600);
-    --buy-text: var(--dblue-400);
-    --buy-bg-disabled: var(--dblue-900);
-    --buy-text-disabled: var(--dblue-dim);
-    --buy-border-disabled: var(--dblue-700);
+  /* --- Sección: precio de compra --- */
+  --buy-bg: var(--dblue-800);
+  --buy-border: var(--dblue-600);
+  --buy-text: var(--dblue-400);
+  --buy-bg-disabled: var(--dblue-900);
+  --buy-text-disabled: var(--dblue-dim);
+  --buy-border-disabled: var(--dblue-700);
 
-    /* --- Sección: patrón anterior --- */
-    --prev-bg: var(--dorange-600);
-    --prev-border: var(--dorange-200);
-    --prev-text: var(--dorange-100);
-    --prev-field-bg: var(--dorange-800);
-    --prev-bg-disabled: var(--dorange-900);
-    --prev-text-disabled: var(--dorange-dim);
-    --prev-border-disabled: var(--dorange-400);
+  /* --- Sección: patrón anterior --- */
+  --prev-bg: var(--dorange-600);
+  --prev-border: var(--dorange-200);
+  --prev-text: var(--dorange-100);
+  --prev-field-bg: var(--dorange-800);
+  --prev-bg-disabled: var(--dorange-900);
+  --prev-text-disabled: var(--dorange-dim);
+  --prev-border-disabled: var(--dorange-400);
 
-    /* --- Sección: precios de la semana --- */
-    --day-bg: var(--dgreen-950);
-    --field-border: var(--dgreen-600);
-    --field-bg: var(--ink-900);
-    --field-text: var(--ink-100);
-    --field-bg-disabled: var(--ink-850);
-    --range-text: var(--dorange-100);
-    --estimated-bg: var(--dorange-700);
-    --estimated-bg-hover: var(--dorange-500);
-    --estimated-text: var(--dorange-100);
-    --estimated-border: var(--dorange-300);
-    --estimated-border-hover: var(--dorange-200);
-    --confirmed-bg: var(--dgreen-850);
-    --confirmed-bg-hover: var(--dgreen-800);
-    --confirmed-text: var(--dgreen-200);
-    --confirmed-border: var(--dgreen-500);
-    --confirmed-border-hover: var(--dgreen-400);
+  /* --- Sección: precios de la semana --- */
+  --day-bg: var(--dgreen-950);
+  --field-border: var(--dgreen-600);
+  --field-bg: var(--ink-900);
+  --field-text: var(--ink-100);
+  --field-bg-disabled: var(--ink-850);
+  --range-text: var(--dorange-100);
+  --estimated-bg: var(--dorange-700);
+  --estimated-bg-hover: var(--dorange-500);
+  --estimated-text: var(--dorange-100);
+  --estimated-border: var(--dorange-300);
+  --estimated-border-hover: var(--dorange-200);
+  --confirmed-bg: var(--dgreen-850);
+  --confirmed-bg-hover: var(--dgreen-800);
+  --confirmed-text: var(--dgreen-200);
+  --confirmed-border: var(--dgreen-500);
+  --confirmed-border-hover: var(--dgreen-400);
 
-    /* --- Badges de tasa --- */
-    --badge-rising-bg: var(--dgreen-800);
-    --badge-rising-text: var(--dgreen-200);
-    --badge-falling-bg: var(--dred-900);
-    --badge-falling-text: var(--dred-200);
-    --badge-neutral-bg: var(--ink-650);
-    --badge-neutral-text: var(--ink-200);
+  /* --- Badges de tasa --- */
+  --badge-rising-bg: var(--dgreen-800);
+  --badge-rising-text: var(--dgreen-200);
+  --badge-falling-bg: var(--dred-900);
+  --badge-falling-text: var(--dred-200);
+  --badge-neutral-bg: var(--ink-650);
+  --badge-neutral-text: var(--ink-200);
 
-    /* --- Botones --- */
-    --btn-neutral-bg: var(--ink-600);
-    --btn-neutral-text: var(--ink-200);
-    --btn-danger-bg: var(--dred-500);
-    --btn-share-bg: var(--dblue-500);
-    --btn-share-bg-hover: var(--ink-500);
-    --btn-ghost-border: var(--ink-500);
-    --btn-ghost-border-hover: var(--ink-400);
-    --btn-ghost-text: var(--ink-300);
-    --btn-ghost-text-hover: var(--ink-100);
-    --btn-ghost-bg-hover: var(--ink-700);
+  /* --- Botones --- */
+  --btn-neutral-bg: var(--ink-600);
+  --btn-neutral-text: var(--ink-200);
+  --btn-danger-bg: var(--dred-500);
+  --btn-share-bg: var(--dblue-500);
+  --btn-share-bg-hover: var(--ink-500);
+  --btn-ghost-border: var(--ink-500);
+  --btn-ghost-border-hover: var(--ink-400);
+  --btn-ghost-text: var(--ink-300);
+  --btn-ghost-text-hover: var(--ink-100);
+  --btn-ghost-bg-hover: var(--ink-700);
+  --btn-theme-bg: rgba(var(--white-rgb), 0.1);
+  --btn-theme-bg-hover: rgba(var(--white-rgb), 0.22);
+  --btn-theme-border: rgba(var(--white-rgb), 0.3);
 
-    /* --- Resultados y probabilidades --- */
-    --panel-bg: var(--dgreen-950);
-    --track-bg: var(--ink-650);
-    --badge-primary-text: var(--ink-1000);
-    --bar-gradient: linear-gradient(90deg, var(--dgreen-800) 0%, var(--dgreen-700) 100%);
-    --bar-gradient-primary: linear-gradient(90deg, var(--dgreen-550) 0%, var(--dgreen-500) 100%);
+  /* --- Resultados y probabilidades --- */
+  --panel-bg: var(--dgreen-950);
+  --track-bg: var(--ink-650);
+  --badge-primary-text: var(--ink-1000);
+  --bar-gradient: linear-gradient(90deg, var(--dgreen-800) 0%, var(--dgreen-700) 100%);
+  --bar-gradient-primary: linear-gradient(90deg, var(--dgreen-550) 0%, var(--dgreen-500) 100%);
 
-    /* --- Mejor momento para vender --- */
-    --best-time-gradient: linear-gradient(135deg, var(--dgold-900) 0%, var(--dgold-800) 100%);
-    --best-time-border: var(--dgold-500);
-    --best-time-title: var(--dgold-200);
-    --best-time-text: var(--dorange-100);
+  /* --- Mejor momento para vender --- */
+  --best-time-gradient: linear-gradient(135deg, var(--dgold-900) 0%, var(--dgold-800) 100%);
+  --best-time-border: var(--dgold-500);
+  --best-time-title: var(--dgold-200);
+  --best-time-text: var(--dorange-100);
 
-    /* --- Detalle de patrones --- */
-    --detail-bg: var(--ink-850);
-    --detail-border: var(--ink-600);
-    --detail-heading: var(--ink-200);
-    --detail-text: var(--ink-300);
+  /* --- Detalle de patrones --- */
+  --detail-bg: var(--ink-850);
+  --detail-border: var(--ink-600);
+  --detail-heading: var(--ink-200);
+  --detail-text: var(--ink-300);
 
-    /* --- Gráfica --- */
-    --chart-range-line: rgba(var(--dgreen-300-rgb), 1);
-    --chart-range-fill: rgba(var(--dgreen-300-rgb), 0.3);
-    --chart-buy-line: rgba(var(--white-rgb), 0.35);
-    --chart-confirmed-line: rgba(var(--dblue-400-rgb), 1);
-    --chart-point-border: var(--ink-800);
-    --chart-grid: rgba(var(--white-rgb), 0.09);
-    --chart-axis-text: var(--ink-300);
-  }
+  /* --- Gráfica --- */
+  --chart-range-line: rgba(var(--dgreen-300-rgb), 1);
+  --chart-range-fill: rgba(var(--dgreen-300-rgb), 0.3);
+  --chart-buy-line: rgba(var(--white-rgb), 0.35);
+  --chart-confirmed-line: rgba(var(--dblue-400-rgb), 1);
+  --chart-point-border: var(--ink-800);
+  --chart-grid: rgba(var(--white-rgb), 0.09);
+  --chart-axis-text: var(--ink-300);
+
+  --theme-color-meta: var(--ink-950);
 }
+
 /* Estilos generales */
 * {
   margin: 0;
@@ -423,10 +438,39 @@ body {
 
 /* Header */
 header {
+  position: relative;
   background: var(--brand-gradient);
   color: var(--text-on-accent);
-  padding: 15px;
+  padding: 15px 56px;
   text-align: center;
+}
+
+/* Botón de tema, en la esquina del header */
+.btn-theme-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  border: 1px solid var(--btn-theme-border);
+  background: var(--btn-theme-bg);
+  color: var(--text-on-accent);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--btn-theme-bg-hover);
+  transform: scale(1.08);
+}
+
+.btn-theme-toggle:focus-visible {
+  outline: 2px solid var(--text-on-accent);
+  outline-offset: 2px;
 }
 
 header h1 {
@@ -1111,6 +1155,18 @@ footer p {
 
   button {
     width: 100%;
+  }
+
+  /* Gana por especificidad sobre la regla de arriba: este no se estira. */
+  .btn-theme-toggle {
+    width: 36px;
+    height: 36px;
+    top: 10px;
+    right: 10px;
+  }
+
+  header {
+    padding: 15px 46px;
   }
 
   .legend {
