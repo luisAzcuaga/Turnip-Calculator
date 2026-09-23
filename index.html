@@ -4,7 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#a8e6cf" />
+  <!-- El claro va primero: un navegador que ignore "media" se queda con él. -->
+  <meta name="theme-color" content="#a8e6cf" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#131b11" media="(prefers-color-scheme: dark)" />
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icon-192.png">
