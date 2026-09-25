@@ -5,8 +5,9 @@
    directamente en las reglas; solo las referencia la capa 2.
    Capa 2 — semánticas: lo que consumen las reglas, nombrado por su función.
 
-   Para cambiar el tema basta redefinir la capa 2. Los tripletes *-rgb existen
-   para los colores que se usan con alfa variable dentro de rgba().
+   Para cambiar el tema basta redefinir la capa 2. Las variantes con alfa se
+   derivan de la primitiva con color-mix(), salvo los tokens --chart-*: Chart.js
+   no entiende color-mix(), así que esos van como rgba() literal.
    ============================================================================ */
 :root {
   /* --- Primitivas: verde (marca, precios de la semana, resultados) --- */
@@ -21,8 +22,6 @@
   --green-500: #66bb6a;
   --green-700: #558b2f;
   --green-800: #2e7d32;
-  --green-500-rgb: 102, 187, 106;
-  --green-600-rgb: 76, 175, 80; /* #4caf50 */
 
   /* --- Primitivas: azul (precio de compra, compartir, confirmados) --- */
   --blue-50: #e3f2fd;
@@ -33,7 +32,6 @@
   --blue-500: #4d8eff;
   --blue-600: #4a90e2;
   --blue-900: #005eff;
-  --blue-700-rgb: 33, 150, 243; /* #2196f3 */
 
   /* --- Primitivas: naranja (patrón anterior, valores estimados) --- */
   --orange-50: #fff8e1;
@@ -52,7 +50,6 @@
   --gold-500: #ffd700;
   --gold-600: #fbc02d;
   --gold-900: #f57f17;
-  --gold-500-rgb: 255, 215, 0;
 
   /* --- Primitivas: rojo (bajadas, limpiar) --- */
   --red-100: #ffcdd2;
@@ -61,6 +58,7 @@
 
   /* --- Primitivas: neutros --- */
   --white: #ffffff;
+  --black: #000000;
   --gray-50: #f8f9fa;
   --gray-100: #f5f5f5;
   --gray-200: #e0e0e0;
@@ -73,9 +71,6 @@
   --gray-700: #616161;
   --gray-800: #495057;
   --gray-900: #424242;
-  --black-rgb: 0, 0, 0;
-  --white-rgb: 255, 255, 255;
-  --gray-500-rgb: 158, 158, 158; /* = --gray-500 */
 
   /* --- Superficies y texto --- */
   --page-bg: linear-gradient(135deg, var(--green-250) 0%, var(--green-150) 100%);
@@ -94,20 +89,19 @@
   --brand-text: var(--green-800);
   --brand-text-soft: var(--green-700);
   --brand-gradient: linear-gradient(135deg, var(--green-500) 0%, var(--green-400) 100%);
-  --link-color: var(--green-800);
   --warning: var(--orange-400);
   --tip-text: var(--blue-600);
 
   /* --- Sombras --- */
-  --shadow-card: 0 10px 40px rgba(var(--black-rgb), 0.1);
-  --shadow-soft: 0 2px 8px rgba(var(--black-rgb), 0.1);
-  --shadow-badge: 0 1px 3px rgba(var(--black-rgb), 0.2);
-  --shadow-brand: 0 4px 15px rgba(var(--green-500-rgb), 0.3);
-  --shadow-brand-hover: 0 6px 20px rgba(var(--green-500-rgb), 0.4);
-  --shadow-selected: 0 3px 10px rgba(var(--green-500-rgb), 0.3);
-  --focus-ring: 0 0 0 3px rgba(var(--green-500-rgb), 0.1);
-  --text-shadow-header: 2px 2px 4px rgba(var(--black-rgb), 0.2);
-  --text-shadow-contrast: 0 0 3px rgba(var(--white-rgb), 0.8);
+  --shadow-card: 0 10px 40px color-mix(in srgb, var(--black) 10%, transparent);
+  --shadow-soft: 0 2px 8px color-mix(in srgb, var(--black) 10%, transparent);
+  --shadow-badge: 0 1px 3px color-mix(in srgb, var(--black) 20%, transparent);
+  --shadow-brand: 0 4px 15px color-mix(in srgb, var(--brand) 30%, transparent);
+  --shadow-brand-hover: 0 6px 20px color-mix(in srgb, var(--brand) 40%, transparent);
+  --shadow-selected: 0 3px 10px color-mix(in srgb, var(--brand) 30%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand) 10%, transparent);
+  --text-shadow-header: 2px 2px 4px color-mix(in srgb, var(--black) 20%, transparent);
+  --text-shadow-contrast: 0 0 3px color-mix(in srgb, var(--surface) 80%, transparent);
 
   /* --- Sección: precio de compra --- */
   --buy-bg: var(--blue-200);
@@ -129,7 +123,7 @@
   /* --- Sección: precios de la semana --- */
   --day-bg: var(--green-50);
   --field-border: var(--green-300);
-  --field-bg-disabled: var(--gray-100);
+  --field-bg-disabled: var(--surface-muted);
   --range-text: var(--orange-900);
   --estimated-bg: var(--orange-100);
   --estimated-bg-hover: var(--orange-200);
@@ -148,28 +142,25 @@
   --badge-falling-bg: var(--red-100);
   --badge-falling-text: var(--red-800);
   --badge-neutral-bg: var(--gray-200);
-  --badge-neutral-text: var(--gray-700);
+  --badge-neutral-text: var(--text-muted);
 
   /* --- Resalte del mejor momento (animación golden-glow) --- */
-  --glow-rgb: var(--gold-500-rgb);
   --glow-border: var(--gold-500);
   --glow-border-bright: var(--gold-300);
 
   /* --- Botones --- */
   --btn-neutral-bg: var(--gray-200);
-  --btn-neutral-text: var(--gray-700);
+  --btn-neutral-text: var(--text-muted);
   --btn-danger-bg: var(--red-400);
   --btn-share-bg: var(--blue-400);
   --btn-share-bg-hover: var(--gray-300);
   --btn-ghost-border: var(--gray-400);
   --btn-ghost-border-hover: var(--gray-500);
-  --btn-ghost-text: var(--gray-600);
-  --btn-ghost-text-hover: var(--gray-900);
-  --btn-ghost-bg-hover: var(--gray-100);
+  --btn-ghost-text: var(--text-subtle);
+  --btn-ghost-text-hover: var(--text-strong);
+  --btn-ghost-bg-hover: var(--surface-muted);
 
   /* --- Resultados y probabilidades --- */
-  --results-bg: var(--green-100);
-  --results-border: var(--green-500);
   --panel-bg: var(--green-25);
   --track-bg: var(--gray-200);
   --bar-gradient: linear-gradient(90deg, var(--green-400) 0%, var(--green-300) 100%);
@@ -186,15 +177,14 @@
   --detail-border: var(--gray-250);
   --detail-heading: var(--gray-800);
   --detail-text: var(--gray-650);
-  --list-marker: var(--gray-650);
 
   /* --- Gráfica (leídos desde JS en lib/ui/chart.js) --- */
-  --chart-range-line: rgba(var(--green-600-rgb), 1);
-  --chart-range-fill: rgba(var(--green-600-rgb), 0.5);
-  --chart-buy-line: rgba(var(--gray-500-rgb), 0.5);
-  --chart-confirmed-line: rgba(var(--blue-700-rgb), 1);
-  --chart-point-border: var(--white);
-  --chart-grid: rgba(var(--black-rgb), 0.08);
+  --chart-range-line: rgb(76, 175, 80);
+  --chart-range-fill: rgba(76, 175, 80, 0.5);
+  --chart-buy-line: rgba(158, 158, 158, 0.5); /* --gray-500 al 50% */
+  --chart-confirmed-line: rgb(33, 150, 243);
+  --chart-point-border: var(--surface);
+  --chart-grid: rgba(0, 0, 0, 0.08);
 }
 
 /* Estilos generales */
@@ -496,13 +486,13 @@ input.best-selling-time {
 
 @keyframes golden-glow {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(var(--glow-rgb), 0.5),
-                0 0 12px rgba(var(--glow-rgb), 0.3);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--glow-border) 50%, transparent),
+                0 0 12px color-mix(in srgb, var(--glow-border) 30%, transparent);
     border-color: var(--glow-border);
   }
   50% {
-    box-shadow: 0 0 16px rgba(var(--glow-rgb), 0.8),
-                0 0 24px rgba(var(--glow-rgb), 0.4);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--glow-border) 80%, transparent),
+                0 0 24px color-mix(in srgb, var(--glow-border) 40%, transparent);
     border-color: var(--glow-border-bright);
   }
 }
@@ -583,9 +573,9 @@ input.best-selling-time {
 .results-section {
   margin: 30px auto 0;
   padding: 10px;
-  background: var(--results-bg);
+  background: var(--surface-brand);
   border-radius: 15px;
-  border: 3px solid var(--results-border);
+  border: 3px solid var(--brand);
 }
 
 .toggle-header {
@@ -858,7 +848,7 @@ footer p {
 }
 
 .credits a {
-  color: var(--link-color);
+  color: var(--brand-text);
   font-weight: 600;
   text-decoration: none;
 }
@@ -971,7 +961,7 @@ footer p {
 
 .pattern-list>li {
   background: var(--surface);
-  border-left: 3px solid var(--list-marker);
+  border-left: 3px solid var(--detail-text);
   padding: 10px 15px;
   margin-bottom: 10px;
   border-radius: 4px;
