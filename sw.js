@@ -1,6 +1,6 @@
 // Minimal service worker — required for the PWA install prompt.
 // Caches the core assets so the app also works offline.
-const CACHE = 'nabos-v3';
+const CACHE = 'nabos-v5';
 // Only list files guaranteed to exist — addAll() fails atomically on any 404.
 // Everything else (icons, sub-modules, chart.js) is cached at runtime on first load.
 const ASSETS = [
