@@ -68,6 +68,26 @@
   </script>
 
   <link rel="stylesheet" href="styles.css">
+
+  <script>
+    // Corre antes del primer pintado para que no haya un destello claro al
+    // cargar en oscuro. La clave debe coincidir con THEME_PREF_KEY en
+    // lib/ui/theme.js, que es quien maneja el tema de ahí en adelante.
+    (function () {
+      var stored = null;
+      try { stored = localStorage.getItem('turnip_theme_pref'); } catch (e) { /* almacenamiento bloqueado */ }
+      var dark = stored === 'dark' || stored === 'light'
+        ? stored === 'dark'
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+      var root = document.documentElement;
+      root.dataset.theme = dark ? 'dark' : 'light';
+
+      var meta = document.querySelector('meta[name="theme-color"]');
+      var color = getComputedStyle(root).getPropertyValue('--theme-color-meta').trim();
+      if (meta && color) meta.setAttribute('content', color);
+    })();
+  </script>
 </head>
 
 <body>
@@ -75,6 +95,8 @@
     <header>
       <h1>🥕 Predictor de Nabos</h1>
       <p class="subtitle">Animal Crossing: New Horizons</p>
+      <!-- Va al final para que el encabezado se lea primero; se posiciona en la esquina por CSS. -->
+      <button type="button" id="themeToggleBtn" class="btn-theme-toggle" aria-label="Cambiar tema"></button>
     </header>
 
     <div class="main-content">
